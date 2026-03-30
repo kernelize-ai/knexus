@@ -120,7 +120,8 @@ PyObject *import_from(const char *module_name, const char *var_name) {
 // - an existing Nexus buffer,
 // - a Python tensor-like object (CPU or runtime-backed device tensor),
 // optionally copying into `device` when requested.
-static Buffer make_buffer(py::object tensor, Device device = Device()) {
+static Buffer make_buffer(py::object tensor, Device device = Device(),
+                          nxs_uint settings = 0) {
   // TODO: track ownership of the py::object tensor (release on destruction of
   // Buffer)
   static auto nexus_buffer = import_from("nexus", "buffer");
@@ -134,7 +135,6 @@ static Buffer make_buffer(py::object tensor, Device device = Device()) {
   }
 
   auto data_ptr = getPointer(tensor.ptr());
-  nxs_uint settings = 0;
   if (data_ptr.shape.getRank() == 0) { // is size 0 legal?
     return Buffer();
   }
@@ -145,7 +145,8 @@ static Buffer make_buffer(py::object tensor, Device device = Device()) {
       if (!dp_device) {
         throw std::runtime_error("Device not found: " + std::string(data_ptr.runtime_name) + " " + std::to_string(data_ptr.device_id));
       }
-      auto buf = dp_device.createBuffer(data_ptr.shape, data_ptr.ptr, settings | NXS_BufferSettings_OnDevice);
+      auto buf = dp_device.createBuffer(
+          data_ptr.shape, data_ptr.ptr, settings | NXS_BufferSettings_OnDevice);
       if (device && device != dp_device) {
         return device.copyBuffer(buf);
       }
@@ -584,6 +585,12 @@ void pynexus::init_system_bindings(py::module &m) {
              return make_buffer(tensor, self);
            },
            "Create a device buffer from a tensor-like object.")
+      .def("create_buffer",
+           [](Device &self, py::object tensor, nxs_uint settings) {
+             return make_buffer(tensor, self, settings);
+           },
+           py::arg("tensor"), py::arg("settings"),
+           "Create a device buffer from tensor-like object with explicit buffer settings.")
       .def("create_buffer",
            [](Device &self, std::vector<nxs_ulong> shape, nxs_uint settings) {
              return self.createBuffer(shape, nullptr, settings);

@@ -39,71 +39,76 @@ nxs_status CpuCommand::runCommand(nxs_int stream) {
   int32_t thread_count = rt->getNumCores();
   int32_t global_size = grid_size.x * grid_size.y * grid_size.z;
 
-  int32_t blocks_per_thread =
-      global_size / thread_count + !!(global_size % thread_count);
+  // Matching triton-cpu/backend/driver.py OpenMP launcher
+  int32_t max_threads =
+      global_size < thread_count ? global_size : thread_count;
+  int32_t consecutive_blocks =
+      global_size / max_threads + !!(global_size % max_threads);
 
   unsigned char *shared_memory_ptr = nullptr;
   int32_t shared_memory_aligned_per_team = 0;
   if (shared_memory_size > 0) {
     shared_memory_aligned_per_team = (shared_memory_size + 63) & ~63u;
     shared_memory_aligned_per_team += 64 * block_size.x;
-    unsigned shared_memory_aligned_total = shared_memory_aligned_per_team * thread_count;
-    shared_memory_ptr = (unsigned char*)aligned_alloc(64, shared_memory_aligned_total);
+    unsigned shared_memory_aligned_total =
+        shared_memory_aligned_per_team * max_threads;
+    shared_memory_ptr = (unsigned char *)aligned_alloc(
+        64, shared_memory_aligned_total);
     assert(shared_memory_ptr);
   }
 
   NXSAPI_LOG(nexus::NXS_LOG_NOTE,
-             "global_size: ", global_size
-                             , ", thread_count: ", thread_count
-                             , ", blocks_per_thread: ", blocks_per_thread);
+    "global_size: ", global_size,
+    ", thread_count: ", thread_count,
+    ", max_threads: ", max_threads,
+    ", consecutive_blocks: ", consecutive_blocks);
 
   boost::fibers::use_scheduling_algorithm<boost::fibers::algo::shared_work>();
 
   // Capture futures to wait on
   std::vector<std::future<void>> futures;
-  futures.reserve(thread_count);
+  futures.reserve(max_threads);
 
-  for (int32_t team_id = 0; team_id < thread_count; team_id++) {
+  for (int32_t team_id = 0; team_id < max_threads; team_id++) {
     futures.push_back(rt->getThreadPool()->enqueue([&, team_id]() {
-      const int32_t block_start = blocks_per_thread * team_id;
+      const int32_t block_start = consecutive_blocks * team_id;
+      const int32_t run_end =
+          block_start + consecutive_blocks < global_size
+              ? block_start + consecutive_blocks
+              : global_size;
 
       std::vector<boost::fibers::fiber> fibers;
       fibers.reserve(block_size.x);
 
-      void *shared_memory_ptr_team = shared_memory_ptr + shared_memory_aligned_per_team * team_id;
+      void *shared_memory_ptr_team =
+          shared_memory_ptr ? shared_memory_ptr +
+                                  shared_memory_aligned_per_team * team_id
+                            : nullptr;
 
       boost::fibers::barrier barrier(block_size.x);
       void *cpu_barrier = &barrier;
 
-      // for each warp in a block
+      // Persistent kernel: launch_id = [block_start, run_end, lane_id, 0, 0];
+      // kernel loops linear block ids; launch_sz holds grid + block dims.
       for (nxs_uint warp_idx = 0; warp_idx < block_size.x; warp_idx++) {
-        fibers.push_back(boost::fibers::fiber([&, warp_idx, block_start]() {
-          auto block_end =
-              std::min(block_start + blocks_per_thread, global_size);
-          for (nxs_uint grid_idx = block_start; grid_idx < block_end;
-               grid_idx++) {
-            nxs_uint launch_id[] = {
-                grid_idx % grid_size.x,
-                (grid_idx % (grid_size.x * grid_size.y)) / grid_size.x,
-                grid_idx / (grid_size.x * grid_size.y),
-                warp_idx,
-                0,
-                0};
-            auto gptr = [&](int p) {
-              return p == coords_idx     ? launch_id
-                   : p == coords_idx + 1 ? shared_memory_ptr
-                   : p == coords_idx + 2 ? cpu_barrier
-                                         : bufs[p];
-            };
-            std::invoke(kernel, gptr(0), gptr(1), gptr(2), gptr(3), gptr(4),
-                        gptr(5), gptr(6), gptr(7), gptr(8), gptr(9), gptr(10),
-                        gptr(11), gptr(12), gptr(13), gptr(14), gptr(15),
-                        gptr(16), gptr(17), gptr(18), gptr(19), gptr(20),
-                        gptr(21), gptr(22), gptr(23), gptr(24), gptr(25),
-                        gptr(26), gptr(27), gptr(28), gptr(29), gptr(30),
-                        gptr(31));
-          }
-        }));
+        fibers.push_back(
+            boost::fibers::fiber([&, warp_idx, block_start, run_end]() {
+              int32_t launch_id[] = {block_start, run_end,
+                                     static_cast<int32_t>(warp_idx), 0, 0};
+              auto gptr = [&](int p) {
+                return p == coords_idx ? static_cast<void *>(launch_id)
+                     : p == coords_idx + 1 ? shared_memory_ptr_team
+                     : p == coords_idx + 2 ? cpu_barrier
+                                           : bufs[p];
+              };
+              std::invoke(kernel, gptr(0), gptr(1), gptr(2), gptr(3), gptr(4),
+                          gptr(5), gptr(6), gptr(7), gptr(8), gptr(9), gptr(10),
+                          gptr(11), gptr(12), gptr(13), gptr(14), gptr(15),
+                          gptr(16), gptr(17), gptr(18), gptr(19), gptr(20),
+                          gptr(21), gptr(22), gptr(23), gptr(24), gptr(25),
+                          gptr(26), gptr(27), gptr(28), gptr(29), gptr(30),
+                          gptr(31));
+            }));
       }
       for (auto &fiber : fibers) {
         fiber.join();
