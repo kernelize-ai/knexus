@@ -5,7 +5,11 @@
 #include <string>
 
 #ifndef SPDLOG_ACTIVE_LEVEL
+#ifndef NDEBUG
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+#else
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_INFO
+#endif
 #endif
 
 // Nexus handles location via NEXUS_LOG_MODULE prefix only; avoid file:line in output.

@@ -53,6 +53,14 @@ def get_env_with_keys(key: list):
             return os.environ[k]
     return ""
 
+def get_build_type():
+    if check_env_flag("NEXUS_BUILD_REL"):
+        return "Release"
+    elif check_env_flag("NEXUS_BUILD_RWDI"):
+        return "RelWithDebInfo"
+    else:
+        return "Debug"
+
 
 # Taken from https://github.com/pytorch/pytorch/blob/master/tools/setup_helpers/env.py
 def check_env_flag(name: str, default: str = "") -> bool:
@@ -169,7 +177,7 @@ class CMakeBuild(build_ext):
         cmake_args.extend(thirdparty_cmake_args)
 
         # configuration
-        cfg = "Debug" # get_build_type()
+        cfg = get_build_type()
         build_args = ["--config", cfg]
         cmake_args += [f"-DCMAKE_BUILD_TYPE={cfg}"]
         if platform.system() == "Windows":
