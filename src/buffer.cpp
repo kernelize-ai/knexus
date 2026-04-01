@@ -15,6 +15,7 @@ using namespace nexus;
 
 detail::BufferImpl::BufferImpl(detail::Impl base, const Layout &layout, const char *_hostData)
     : Impl(base), layout(layout), size_bytes(0), data(nullptr) {
+  NXSLOG_TRACE("CTOR: {} - {}", getId(), layout.getNumElements());
   nxs_ulong size_bytes = layout.getNumElements();
   if (auto element_size_bits = layout.getElementSizeBits()) {
     size_bytes *= element_size_bits;
@@ -23,7 +24,10 @@ detail::BufferImpl::BufferImpl(detail::Impl base, const Layout &layout, const ch
   setData(size_bytes, _hostData);
 }
 
-detail::BufferImpl::~BufferImpl() { release(); }
+detail::BufferImpl::~BufferImpl() {
+  NXSLOG_TRACE("DTOR: {}", getId());
+  release();
+}
 
 void detail::BufferImpl::release() {
   size_bytes = 0;
@@ -76,6 +80,7 @@ nxs_status detail::BufferImpl::copyData(void *_hostBuf, nxs_uint direction) cons
     return (nxs_status)rt->runAPIFunction<NF_nxsCopyBuffer>(getId(), _hostBuf,
                                                             direction);
   }
+  NXSLOG_ERROR("copyData: not supported on host");
   return NXS_InvalidDevice;
 }
 

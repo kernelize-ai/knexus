@@ -14,12 +14,12 @@ using namespace nexus::detail;
 /// @brief Construct a Runtime for the current system
 RuntimeImpl::RuntimeImpl(Impl base, const std::string &path)
     : Impl(base), pluginLibraryPath(path), library(nullptr) {
-  NXSLOG_INFO("CTOR: {}", path);
+  NXSLOG_TRACE("CTOR: {}", path);
   loadPlugin();
 }
 
 RuntimeImpl::~RuntimeImpl() {
-  NXSLOG_INFO("DTOR: {}", pluginLibraryPath);
+  NXSLOG_TRACE("DTOR: {}", pluginLibraryPath);
   release();
   if (library != nullptr) dlclose(library);
 }

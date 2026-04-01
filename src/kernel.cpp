@@ -14,11 +14,11 @@ namespace detail {
   /// @brief Construct a Platform for the current system
 KernelImpl::KernelImpl(Impl base, const std::string &kName, Info info)
     : Impl(base), kernelName(kName), info(info) {
-  NXSLOG_INFO("Kernel: {} - {}", kernelName, getId());
+  NXSLOG_TRACE("CTOR: {} - {}", getId(), kernelName);
 }
 
 KernelImpl::~KernelImpl() {
-  NXSLOG_INFO("~Kernel: {}", getId());
+  NXSLOG_TRACE("DTOR: {}", getId());
   release();
 }
 

@@ -13,11 +13,11 @@ class EventImpl : public Impl {
  public:
   /// @brief Construct a Platform for the current system
   EventImpl(Impl owner, nxs_int value) : Impl(owner), value(value) {
-    NXSLOG_INFO("Event: {}", getId());
+    NXSLOG_TRACE("CTOR: {}", getId());
   }
 
   ~EventImpl() {
-    NXSLOG_INFO("~Event: {}", getId());
+    NXSLOG_TRACE("DTOR: {}", getId());
     release();
   }
 

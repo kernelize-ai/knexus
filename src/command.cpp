@@ -22,16 +22,16 @@ class CommandImpl : public Impl {
  public:
   /// @brief Construct a Platform for the current system
   CommandImpl(Impl owner, Kernel kern) : Impl(owner), kernel(kern) {
-    NXSLOG_INFO("Command: {}", getId());
+    NXSLOG_TRACE("CTOR: {}", getId());
     // TODO: gather kernel argument details
   }
 
   CommandImpl(Impl owner, Event event) : Impl(owner), event(event) {
-    NXSLOG_INFO("Command: {}", getId());
+    NXSLOG_TRACE("CTOR: {}", getId());
   }
 
   ~CommandImpl() {
-    NXSLOG_INFO("~Command: {}", getId());
+    NXSLOG_TRACE("DTOR: {}", getId());
     release();
   }
 
