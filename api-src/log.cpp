@@ -2,7 +2,7 @@
 
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/null_sink.h>
-#include <spdlog/sinks/stdout_sinks.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
 #include <cstdlib>
@@ -42,7 +42,7 @@ spdlog::level::level_enum levelFromEnv() {
 
 std::shared_ptr<spdlog::logger> makeNexusLogger(std::shared_ptr<spdlog::sinks::sink> sink) {
   auto logger = std::make_shared<spdlog::logger>(kNexusLoggerName, std::move(sink));
-  logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] %^%8l%$ | %v");
+  logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] %^%-4!l%$ | %v");
   logger->set_level(levelFromEnv());
   spdlog::register_logger(logger);
   spdlog::set_default_logger(logger);
@@ -53,7 +53,7 @@ std::shared_ptr<spdlog::logger> makeDisabledLogger() {
   auto sink = std::make_shared<spdlog::sinks::null_sink_mt>();
   auto logger = std::make_shared<spdlog::logger>(kNexusLoggerName, std::move(sink));
   logger->set_level(spdlog::level::off);
-  logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] %^%8l%$ | %v");
+  logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] %^%-4!l%$ | %v");
   spdlog::register_logger(logger);
   spdlog::set_default_logger(logger);
   return logger;
@@ -99,7 +99,7 @@ void LogManager::openFile(const std::string& filename) {
 void LogManager::openStdout() {
   resetLogger();
   try {
-    auto sink = std::make_shared<spdlog::sinks::stdout_sink_mt>();
+    auto sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     impl_->logger = makeNexusLogger(std::move(sink));
   } catch (const spdlog::spdlog_ex& ex) {
     std::cerr << "Failed to create stdout logger (" << ex.what() << ")\n";
