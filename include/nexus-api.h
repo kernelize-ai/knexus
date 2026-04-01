@@ -3,7 +3,6 @@
 
 #include <nexus-api/nxs.h>
 #include <nexus-api/nxs_functions.h>
-#include <nexus-api/nxs_log.h>
 #include <nexus-api/nxs_platform.h>
 #include <nexus-api/nxs_propertys.h>
 #include <nexus-api/nxs_version.h>

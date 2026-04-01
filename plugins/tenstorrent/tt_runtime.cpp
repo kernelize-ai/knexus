@@ -31,7 +31,7 @@ nxsGetRuntimeProperty(nxs_uint runtime_property_id, void *property_value,
                       size_t *property_value_size) {
   auto rt = getRuntime();
 
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "getRuntimeProperty ", runtime_property_id);
+  NXSLOG_INFO("getRuntimeProperty {}", runtime_property_id);
 
   /* lookup HIP equivalent */
   /* return value size */
@@ -116,7 +116,7 @@ extern "C" nxs_int NXS_API_CALL nxsCreateBuffer(nxs_int device_id, nxs_buffer_la
   auto dev = rt->getDevice(device_id);
   if (!dev) return NXS_InvalidDevice;
 
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "createBuffer ", shape.rank);
+  NXSLOG_INFO("createBuffer {}", shape.rank);
   auto *buf = rt->getBuffer(dev, shape, host_ptr, settings);
   if (!buf) return NXS_InvalidBuffer;
 
@@ -174,7 +174,7 @@ extern "C" nxs_status NXS_API_CALL nxsCopyBuffer(nxs_int buffer_id,
  ***********************************************************************/
 extern "C" nxs_status NXS_API_CALL nxsReleaseBuffer(nxs_int buffer_id) {
   auto rt = getRuntime();
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "releaseBuffer ", buffer_id);
+  NXSLOG_INFO("releaseBuffer {}", buffer_id);
   return rt->releaseBuffer(buffer_id);
 }
 
@@ -240,8 +240,7 @@ extern "C" nxs_status NXS_API_CALL nxsReleaseLibrary(nxs_int library_id) {
  ***********************************************************************/
 extern "C" nxs_int NXS_API_CALL nxsGetKernel(nxs_int library_id,
                                              const char *kernel_name) {
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE,
-             "getKernel ", library_id, " - ", kernel_name);
+  NXSLOG_INFO("getKernel {} - {}", library_id, kernel_name);
   auto rt = getRuntime();
   auto lib = rt->get<TTLibrary>(library_id);
   if (!lib) return NXS_InvalidProgram;
@@ -329,8 +328,7 @@ extern "C" nxs_int NXS_API_CALL nxsCreateSchedule(nxs_int device_id,
 extern "C" nxs_status NXS_API_CALL
 nxsGetScheduleProperty(nxs_int schedule_id, nxs_uint schedule_property_id,
                        void *property_value, size_t *property_value_size) {
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE,
-             "getScheduleProperty ", schedule_property_id);
+  NXSLOG_INFO("getScheduleProperty {}", schedule_property_id);
   auto rt = getRuntime();
   auto schedule = rt->get<TTSchedule>(schedule_id);
   if (!schedule) return NXS_InvalidSchedule;
@@ -444,9 +442,8 @@ extern "C" nxs_status NXS_API_CALL nxsFinalizeCommand(nxs_int command_id,
                                                       nxs_dim3 group_size,
                                                       nxs_uint shared_memory_size) {
 
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "finalizeCommand ", command_id, " - "
-  , "{ ", grid_size.x,", ", grid_size.y,", ", grid_size.z, " }", " - "
-  , "{ ", group_size.x,", ", group_size.y,", ", group_size.z, " }");
+  NXSLOG_INFO("finalizeCommand {} - {{ {}, {}, {} }} - {{ {}, {}, {} }}", command_id, grid_size.x,
+             grid_size.y, grid_size.z, group_size.x, group_size.y, group_size.z);
 
   auto rt = getRuntime();
 

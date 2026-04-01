@@ -14,7 +14,12 @@ public:
   CudaDevice(int deviceID) {
     cudaGetDeviceProperties(&props, deviceID);
     cuDeviceGet(&cudaDeviceRef, 0);
+    #if CUDA_VERSION >= 13000
+    CUctxCreateParams params = {0};
+    cuCtxCreate(&context, &params, 0, cudaDeviceRef);
+    #else
     cuCtxCreate(&context, 0, cudaDeviceRef);
+    #endif
   }
   ~CudaDevice() = default;
 };

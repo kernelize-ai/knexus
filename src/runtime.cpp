@@ -1,3 +1,5 @@
+#define NEXUS_LOG_MODULE "runtime"
+
 #include <assert.h>
 #include <dlfcn.h>
 #include <nexus/device_db.h>
@@ -9,17 +11,15 @@
 using namespace nexus;
 using namespace nexus::detail;
 
-#define NEXUS_LOG_MODULE "runtime"
-
 /// @brief Construct a Runtime for the current system
 RuntimeImpl::RuntimeImpl(Impl base, const std::string &path)
     : Impl(base), pluginLibraryPath(path), library(nullptr) {
-  NEXUS_LOG(NXS_LOG_NOTE, "  CTOR: ", path);
+  NXSLOG_INFO("CTOR: {}", path);
   loadPlugin();
 }
 
 RuntimeImpl::~RuntimeImpl() {
-  NEXUS_LOG(NXS_LOG_NOTE, "  DTOR: ", pluginLibraryPath);
+  NXSLOG_INFO("DTOR: {}", pluginLibraryPath);
   release();
   if (library != nullptr) dlclose(library);
 }
@@ -40,14 +40,14 @@ std::optional<Property> detail::RuntimeImpl::getProperty(nxs_int prop) const {
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 void RuntimeImpl::loadPlugin() {
-  NEXUS_LOG(NXS_LOG_NOTE, "Loading Runtime plugin: ", pluginLibraryPath);
+  NXSLOG_INFO("Loading Runtime plugin: {}", pluginLibraryPath);
   library = dlopen(pluginLibraryPath.c_str(), RTLD_NOW | RTLD_GLOBAL);
   char *dlError = dlerror();
   if (dlError || library == nullptr) {
     if (dlError)
-      NEXUS_LOG(NXS_LOG_ERROR, "  Failed to dlopen plugin: ", dlError);
+      NXSLOG_ERROR("Failed to dlopen plugin: {}", dlError);
     else
-      NEXUS_LOG(NXS_LOG_ERROR, "  Failed to load plugin: ", pluginLibraryPath);
+      NXSLOG_ERROR("Failed to load plugin: {}", pluginLibraryPath);
     memset(runtimeFns, 0, sizeof(runtimeFns));
     library = nullptr;
     return;
@@ -58,12 +58,10 @@ void RuntimeImpl::loadPlugin() {
     runtimeFns[fn] = dlsym(library, fName);
     dlError = dlerror();
     if (dlError) {
-      NEXUS_LOG(NXS_LOG_WARN,
-                "  Failed to load symbol '", fName, "': ", dlError);
+      NXSLOG_WARN("Failed to load symbol '{}': {}", fName, dlError);
     } else {
-      NEXUS_LOG(
-          NXS_LOG_NOTE,
-          "  Loaded symbol: ", fName, " - ", (int64_t)runtimeFns[fn]);
+      NXSLOG_INFO("Loaded symbol: {} - {}", fName,
+                  (int64_t)runtimeFns[fn]);
     }
   };
 

@@ -13,3 +13,6 @@
 [submodule "third_party/pybind11_json"]
 	path = third_party/pybind11_json
 	url = https://github.com/pybind/pybind11_json.git
+[submodule "third_party/spdlog"]
+	path = third_party/spdlog
+	url = https://github.com/gabime/spdlog.git

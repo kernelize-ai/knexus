@@ -1,13 +1,13 @@
-#include <nexus/log.h>
+#define NEXUS_LOG_MODULE "utility"
+
 #include <nexus/utility.h>
+#include <nexus/log.h>
 
 #include <filesystem>
 #include <iostream>
 #include <sstream>
 
 using namespace nexus;
-
-#define NEXUS_LOG_MODULE "utility"
 
 static std::vector<std::string> splitPaths(const std::string& paths,
                                            char delimiter) {
@@ -25,7 +25,7 @@ void nexus::iterateEnvPaths(const char* envVar, const char* envDefault,
   // Load Runtimes from NEXUS_DEVICE_PATH
   const char* env = std::getenv(envVar);
   if (!env) {
-    NEXUS_LOG(NXS_LOG_WARN, envVar, " environment variable is not set.");
+    NXSLOG_WARN("{} environment variable is not set.", envVar);
     env = envDefault;
   }
 
@@ -34,18 +34,18 @@ void nexus::iterateEnvPaths(const char* envVar, const char* envDefault,
     try {
       std::filesystem::path directory(dirname);
 
-      NEXUS_LOG(NXS_LOG_NOTE, "Reading directory: ", directory);
+      NXSLOG_INFO("Reading directory: {}", directory.string());
       for (auto const& dir_entry :
           std::filesystem::directory_iterator{directory}) {
         if (dir_entry.is_regular_file()) {
           auto filepath = dir_entry.path();
-          NEXUS_LOG(NXS_LOG_NOTE, "  Adding file: ", filepath);
+          NXSLOG_INFO("Adding file: {}", filepath.string());
 
           func(filepath, filepath.filename());
           }
         }
     } catch (std::filesystem::filesystem_error const& ex) {
-      NEXUS_LOG(NXS_LOG_ERROR, "Error iterating environment paths: ", ex.what());
+      NXSLOG_ERROR("Error iterating environment paths: {}", ex.what());
     }
   }
 }

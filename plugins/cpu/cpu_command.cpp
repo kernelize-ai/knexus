@@ -1,10 +1,10 @@
 
 #include <cpu_command.h>
 #include <cpu_runtime.h>
-#include <nexus/log.h>
 #include <rt_buffer.h>
 
 #include <boost/fiber/all.hpp>
+#include <cstdint>
 
 /************************************************************************
  * @def _cpu_barrier
@@ -18,10 +18,11 @@ extern "C" void NXS_API_CALL _cpu_barrier(void *barrier) {
 }
 
 nxs_status CpuCommand::runCommand(nxs_int stream) {
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "runCommand ", kernel, " - ", type);
+  NXSLOG_INFO("runCommand {:x} - {}", reinterpret_cast<uintptr_t>(kernel),
+             static_cast<int>(type));
 
   if (getArgsCount() >= 32) {
-    NXSAPI_LOG(nexus::NXS_LOG_ERROR, "Too many arguments for kernel");
+    NXSLOG_ERROR("Too many arguments for kernel");
     return NXS_InvalidCommand;
   }
   std::array<void *, NXS_KERNEL_MAX_ARGS> bufs;  // max 32 args
@@ -57,11 +58,8 @@ nxs_status CpuCommand::runCommand(nxs_int stream) {
     assert(shared_memory_ptr);
   }
 
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE,
-    "global_size: ", global_size,
-    ", thread_count: ", thread_count,
-    ", max_threads: ", max_threads,
-    ", consecutive_blocks: ", consecutive_blocks);
+  NXSLOG_INFO("global_size: {}, thread_count: {}, max_threads: {}, consecutive_blocks: {}",
+              global_size, thread_count, max_threads, consecutive_blocks);
 
   boost::fibers::use_scheduling_algorithm<boost::fibers::algo::shared_work>();
 

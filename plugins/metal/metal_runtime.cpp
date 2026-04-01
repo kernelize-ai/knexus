@@ -141,8 +141,7 @@
 #include <optional>
 #include <vector>
 
-#include <nexus-api/nxs_log.h>
-#define NXSAPI_LOG_MODULE "metal"
+#define NXSAPI_LOG_MODULE "metal_rt"
 
 #include <rt_runtime.h>
 #include <rt_command.h>
@@ -152,6 +151,7 @@
 #include <string.h>
 
 #include <nexus-api.h>
+#include <nexus-api/nxs_log.h>
 
 #define NS_PRIVATE_IMPLEMENTATION
 #define MTL_PRIVATE_IMPLEMENTATION
@@ -208,7 +208,8 @@ class MetalCommand : public rt::Command<MTL::ComputePipelineState *, MTL::Event 
    : Command(event, type, event_value, settings) {}
 
    virtual nxs_status runCommand(MTL::CommandBuffer *cmdbuf) override {
-    NXSAPI_LOG(nexus::NXS_LOG_NOTE, "runCommand ", kernel, " - ", type);
+    NXSLOG_INFO("runCommand {} - {}", static_cast<const void*>(kernel),
+               static_cast<int>(type));
 
     switch (type) {
       case NXS_CommandType_Dispatch: {
@@ -271,10 +272,7 @@ class MetalSchedule : public rt::Schedule<MetalCommand, MTL::Device *, MTL::Comm
     if (!(run_settings & NXS_ExecutionSettings_NonBlocking)) {
       cmdbuf->waitUntilCompleted();  // Synchronous wait for simplicity
       if (cmdbuf->status() == MTL::CommandBufferStatusError) {
-        NXSAPI_LOG(
-            nexus::NXS_LOG_ERROR,
-            "runSchedule: "
-                , cmdbuf->error()->localizedDescription()->utf8String());
+        NXSLOG_ERROR("runSchedule: {}", cmdbuf->error()->localizedDescription()->utf8String());
         return NXS_InvalidSchedule;
       }
     }
@@ -298,7 +296,7 @@ nxsGetRuntimeProperty(nxs_uint runtime_property_id, void *property_value,
                       size_t *property_value_size) {
   auto rt = getRuntime();
 
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "getRuntimeProperty ", runtime_property_id);
+  NXSLOG_TRACE("getRuntimeProperty {}", runtime_property_id);
 
   /* return value size */
   /* return value */
@@ -443,7 +441,7 @@ extern "C" nxs_int NXS_API_CALL nxsCreateBuffer(nxs_int device_id, nxs_buffer_la
     size *= element_size_bits;
     size /= 8;
   }
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "createBuffer ", size);
+  NXSLOG_TRACE("createBuffer {}", size);
 
   MTL::Buffer *buf;
   if (host_ptr != nullptr)
@@ -505,12 +503,10 @@ extern "C" nxs_int NXS_API_CALL nxsCreateLibrary(nxs_int device_id,
   // MTL::Library *pLibrary = device->newLibrary(data, &pError);
   MTL::Library *pLibrary = dev->newLibrary(
       NS::String::string("kernel.so", NS::UTF8StringEncoding), &pError);
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE,
-             "createLibrary ", (int64_t)pError, " - ", (int64_t)pLibrary);
+  NXSLOG_TRACE("createLibrary {} - {}", reinterpret_cast<int64_t>(pError),
+             reinterpret_cast<int64_t>(pLibrary));
   if (pError) {
-    NXSAPI_LOG(
-        nexus::NXS_LOG_ERROR,
-        "createLibrary ", pError->localizedDescription()->utf8String());
+    NXSLOG_ERROR("createLibrary {}", pError->localizedDescription()->utf8String());
     return NXS_InvalidLibrary;
   }
   return rt->addObject(pLibrary, true);
@@ -523,8 +519,7 @@ extern "C" nxs_int NXS_API_CALL nxsCreateLibrary(nxs_int device_id,
  ***********************************************************************/
 extern "C" nxs_int NXS_API_CALL nxsCreateLibraryFromFile(
     nxs_int device_id, const char *library_path, nxs_uint settings) {
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE,
-             "createLibraryFromFile ", device_id, " - ", library_path);
+  NXSLOG_TRACE("createLibraryFromFile {} - {}", device_id, library_path);
   auto rt = getRuntime();
   auto parent = rt->getObject(device_id);
   if (!parent) return NXS_InvalidDevice;
@@ -534,9 +529,7 @@ extern "C" nxs_int NXS_API_CALL nxsCreateLibraryFromFile(
   MTL::Library *pLibrary = dev->newLibrary(
       NS::String::string(library_path, NS::UTF8StringEncoding), &pError);
   if (pError) {
-    NXSAPI_LOG(
-        nexus::NXS_LOG_ERROR,
-        "createLibrary ", pError->localizedDescription()->utf8String());
+    NXSLOG_ERROR("createLibrary {}", pError->localizedDescription()->utf8String());
     return NXS_InvalidLibrary;
   }
   return rt->addObject(pLibrary, true);
@@ -578,8 +571,7 @@ extern "C" nxs_status NXS_API_CALL nxsReleaseLibrary(nxs_int library_id) {
  ***********************************************************************/
 extern "C" nxs_int NXS_API_CALL nxsGetKernel(nxs_int library_id,
                                              const char *kernel_name) {
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE,
-             "getKernel ", library_id, " - ", kernel_name);
+  NXSLOG_TRACE("getKernel {} - {}", library_id, kernel_name);
   auto rt = getRuntime();
   auto parent = rt->getObject(library_id);
   if (!parent) return NXS_InvalidLibrary;
@@ -589,15 +581,13 @@ extern "C" nxs_int NXS_API_CALL nxsGetKernel(nxs_int library_id,
   MTL::Function *func = lib->newFunction(
       NS::String::string(kernel_name, NS::UTF8StringEncoding));
   if (!func) {
-    NXSAPI_LOG(nexus::NXS_LOG_ERROR,
-               "getKernel ", pError->localizedDescription()->utf8String());
+    NXSLOG_ERROR("getKernel {}", pError->localizedDescription()->utf8String());
     return NXS_InvalidKernel;
   }
   rt->addObject(func, true);
   MTL::ComputePipelineState *pipeState = lib->device()->newComputePipelineState(func, &pError);
   if (!pipeState) {
-    NXSAPI_LOG(nexus::NXS_LOG_ERROR,
-               "getKernel->ComputePipelineState ", pError->localizedDescription()->utf8String());
+    NXSLOG_ERROR("getKernel->ComputePipelineState {}", pError->localizedDescription()->utf8String());
     return NXS_InvalidKernel;
   }
 
@@ -737,7 +727,7 @@ extern "C" nxs_int nxsCreateStream(nxs_int device_id,
   if (!dev) return NXS_InvalidDevice;
 
   // TODO: Get the default command queue for the first Stream
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "createStream");
+  NXSLOG_TRACE("createStream");
   MTL::CommandQueue *queue = dev->newCommandQueue();
   return rt->addObject(queue, true);
 }
@@ -779,7 +769,7 @@ extern "C" nxs_int nxsCreateSchedule(nxs_int device_id,
   auto dev = (*parent)->get<MTL::Device>();
   if (!dev) return NXS_InvalidDevice;
 
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "createSchedule");
+  NXSLOG_TRACE(" createSchedule");
   auto *sched = new MetalSchedule(dev, sched_settings);
   return rt->addObject(sched, true);
 }
@@ -831,7 +821,7 @@ extern "C" nxs_int NXS_API_CALL nxsCreateCommand(nxs_int schedule_id,
   auto pipeState = rt->get<MTL::ComputePipelineState>(kernel_id);
   if (!pipeState) return NXS_InvalidKernel;
 
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "createCommand");
+  NXSLOG_TRACE("createCommand");
 
   auto *cmd = new MetalCommand(pipeState, command_settings);
   sched->addCommand(cmd);
@@ -855,7 +845,7 @@ nxsCreateSignalCommand(nxs_int schedule_id, nxs_int event_id,
   auto event = rt->get<MTL::Event>(event_id);
   if (!event) return NXS_InvalidEvent;
 
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "createSignalCommand");
+  NXSLOG_TRACE("createSignalCommand");
   auto *cmd = new MetalCommand(event, NXS_CommandType_Signal, signal_value, command_settings);
   sched->addCommand(cmd);
   return rt->addObject(cmd, true);
@@ -877,7 +867,7 @@ nxsCreateWaitCommand(nxs_int schedule_id, nxs_int event_id, nxs_int wait_value,
   auto event = rt->get<MTL::Event>(event_id);
   if (!event) return NXS_InvalidEvent;
 
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "createWaitCommand");
+  NXSLOG_TRACE("createWaitCommand");
   auto *cmd = new MetalCommand(event, NXS_CommandType_Wait, wait_value, command_settings);
   sched->addCommand(cmd);
   return rt->addObject(cmd, true);
@@ -894,9 +884,8 @@ extern "C" nxs_status NXS_API_CALL nxsSetCommandArgument(nxs_int command_id,
                                                          nxs_int buffer_id,
                                                          const char *name,
                                                          nxs_uint arg_settings) {
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "setCommandArg ", command_id, " - "
-                                                  , argument_index, " - "
-                                                  , buffer_id);
+  NXSLOG_TRACE("setCommandArg {} - {} - {}", command_id, argument_index,
+             buffer_id);
   auto rt = getRuntime();
   auto parent = rt->getObject(command_id);
   if (!parent) return NXS_InvalidCommand;

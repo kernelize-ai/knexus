@@ -1,10 +1,9 @@
+#define NEXUS_LOG_MODULE "event"
 
 #include <nexus/event.h>
 #include <nexus/log.h>
 
 #include "_runtime_impl.h"
-
-#define NEXUS_LOG_MODULE "event"
 
 using namespace nexus;
 
@@ -14,11 +13,11 @@ class EventImpl : public Impl {
  public:
   /// @brief Construct a Platform for the current system
   EventImpl(Impl owner, nxs_int value) : Impl(owner), value(value) {
-    NEXUS_LOG(NXS_LOG_NOTE, "    Event: ", getId());
+    NXSLOG_INFO("Event: {}", getId());
   }
 
   ~EventImpl() {
-    NEXUS_LOG(NXS_LOG_NOTE, "    ~Event: ", getId());
+    NXSLOG_INFO("~Event: {}", getId());
     release();
   }
 

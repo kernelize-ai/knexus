@@ -14,8 +14,6 @@
 #include <optional>
 #include <vector>
 
-#define NXSAPI_LOG_MODULE "cpu_runtime"
-
 using namespace nxs;
 
 CpuRuntime *getRuntime() {
@@ -39,7 +37,7 @@ nxsGetRuntimeProperty(nxs_uint runtime_property_id, void *property_value,
   auto *arch = cpuinfo_get_uarch(0);
   auto aid = cpuinfo_get_current_uarch_index();
 
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "getRuntimeProperty ", runtime_property_id);
+  NXSLOG_TRACE("getRuntimeProperty {}", nxsGetPropName(runtime_property_id));
 
   /* lookup HIP equivalent */
   /* return value size */
@@ -87,6 +85,8 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint device_property_id,
   auto *arch = cpuinfo_get_uarch(device_id);
   // auto isa = device->core->isa;
 
+  NXSLOG_TRACE("getDeviceProperty {}", nxsGetPropName(device_property_id));
+
   switch (device_property_id) {
     case NP_Keys: {
       nxs_long keys[] = {NP_Name, NP_Type, NP_Architecture, NP_Size};
@@ -125,7 +125,7 @@ extern "C" nxs_int NXS_API_CALL nxsCreateBuffer(nxs_int device_id, nxs_buffer_la
   auto dev = rt->getObject(device_id);
   if (!dev) return NXS_InvalidDevice;
 
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "createBuffer ", shape.rank);
+  NXSLOG_TRACE("createBuffer {}", shape.rank);
   auto *buf = rt->getBuffer(shape, host_ptr, settings);
   if (!buf) return NXS_InvalidBuffer;
 
@@ -223,7 +223,7 @@ extern "C" nxs_status NXS_API_CALL nxsCopyBuffer(nxs_int buffer_id,
  ***********************************************************************/
 extern "C" nxs_status NXS_API_CALL nxsReleaseBuffer(nxs_int buffer_id) {
   auto rt = getRuntime();
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "releaseBuffer ", buffer_id);
+  NXSLOG_TRACE("releaseBuffer {}", buffer_id);
   return rt->releaseBuffer(buffer_id);
 }
 
@@ -259,15 +259,14 @@ extern "C" nxs_int NXS_API_CALL nxsCreateLibrary(nxs_int device_id,
  ***********************************************************************/
 extern "C" nxs_int NXS_API_CALL nxsCreateLibraryFromFile(
     nxs_int device_id, const char *library_path, nxs_uint settings) {
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE,
-             "createLibraryFromFile ", device_id, " - ", library_path);
+  NXSLOG_TRACE("createLibraryFromFile {} - {}", device_id, library_path);
   auto rt = getRuntime();
   auto dev = rt->getObject(device_id);
   if (!dev) return NXS_InvalidDevice;
 
   void *lib = dlopen(library_path, RTLD_NOW);
   if (!lib) {
-    NXSAPI_LOG(nexus::NXS_LOG_ERROR, "createLibraryFromFile ", dlerror());
+    NXSLOG_ERROR("createLibraryFromFile {}", dlerror());
     return NXS_InvalidLibrary;
   }
   return rt->addObject(lib);
@@ -304,14 +303,13 @@ extern "C" nxs_status NXS_API_CALL nxsReleaseLibrary(nxs_int library_id) {
  ***********************************************************************/
 extern "C" nxs_int NXS_API_CALL nxsGetKernel(nxs_int library_id,
                                              const char *kernel_name) {
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE,
-             "getKernel ", library_id, " - ", kernel_name);
+  NXSLOG_INFO("getKernel {} - {}", library_id, kernel_name);
   auto rt = getRuntime();
   auto lib = rt->getObject(library_id);
   if (!lib) return NXS_InvalidProgram;
   void *func = dlsym((*lib)->get<void>(), kernel_name);
   if (!func) {
-    NXSAPI_LOG(nexus::NXS_LOG_ERROR, "getKernel ", dlerror());
+    NXSLOG_ERROR("getKernel {}", dlerror());
     return NXS_InvalidKernel;
   }
   return rt->addObject(func);
@@ -397,8 +395,7 @@ extern "C" nxs_int NXS_API_CALL nxsCreateSchedule(nxs_int device_id,
 extern "C" nxs_status NXS_API_CALL
 nxsGetScheduleProperty(nxs_int schedule_id, nxs_uint schedule_property_id,
                        void *property_value, size_t *property_value_size) {
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE,
-             "getScheduleProperty ", schedule_property_id);
+  NXSLOG_INFO("getScheduleProperty {}", schedule_property_id);
   auto rt = getRuntime();
   auto schedule = rt->get<CpuSchedule>(schedule_id);
   if (!schedule) return NXS_InvalidSchedule;
@@ -511,9 +508,8 @@ extern "C" nxs_status NXS_API_CALL nxsFinalizeCommand(nxs_int command_id,
                                                       nxs_dim3 group_size,
                                                       nxs_uint shared_memory_size) {
 
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "finalizeCommand ", command_id, " - "
-  , "{ ", grid_size.x,", ", grid_size.y,", ", grid_size.z, " }", " - "
-  , "{ ", group_size.x,", ", group_size.y,", ", group_size.z, " }");
+  NXSLOG_INFO("finalizeCommand {} - {{ {}, {}, {} }} - {{ {}, {}, {} }}", command_id, grid_size.x,
+             grid_size.y, grid_size.z, group_size.x, group_size.y, group_size.z);
 
   auto rt = getRuntime();
 

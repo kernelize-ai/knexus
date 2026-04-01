@@ -40,7 +40,7 @@ TTBuffer::TTBuffer(TTDevice *dev, nxs_buffer_layout shape,
       nxs_ulong tileSizeBytes = tileWidth * tileWidth * elementSize;
 
       // Create buffer in DRAM.
-      NXSAPI_LOG(nexus::NXS_LOG_NOTE, "TTBuffer: tile_size=", tileSizeBytes, " size=", paddedSize);
+      NXSLOG_INFO("TTBuffer: tile_size={} size={}", tileSizeBytes, paddedSize);
       ttmd::DeviceLocalBufferConfig dram_config{
           .page_size = tileSizeBytes,  // Number of bytes when round-robin between banks. Usually this is the same
                                         // as the tile size for efficiency.
@@ -79,7 +79,8 @@ nxs_status TTBuffer::tilizeAndCopyToDevice(T *data_ptr, bool blocking) {
   }
 
   address = buffer->address(); // defer until cq finished
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "TTBuffer: tilizeAndCopyToDevice: address=", address, " size=", paddedSize);
+  NXSLOG_INFO("TTBuffer: tilizeAndCopyToDevice: address={} size={}", address,
+             paddedSize);
   return NXS_Success;
 }
 
@@ -98,8 +99,7 @@ nxs_status TTBuffer::copyToDevice(void *host_buf, bool blocking) {
       return tilizeAndCopyToDevice<uint16_t>(reinterpret_cast<uint16_t *>(getData()), blocking);
       break;
     default:
-      NXSAPI_LOG(nexus::NXS_LOG_ERROR, "TTBuffer: Unsupported data type: ",
-        nxsGetDataTypeName(getDataType()));
+      NXSLOG_ERROR("TTBuffer: Unsupported data type: {}", nxsGetDataTypeName(getDataType()));
       break;
   }
   return NXS_Success;
@@ -107,7 +107,8 @@ nxs_status TTBuffer::copyToDevice(void *host_buf, bool blocking) {
 
 template <typename T>
 nxs_status TTBuffer::copyToHostUntilize(T *data_ptr) {
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "TTBuffer: copyToHostUntilize: address=", address, " size=", paddedSize);
+  NXSLOG_INFO("TTBuffer: copyToHostUntilize: address={} size={}", address,
+             paddedSize);
   std::vector<T> buf_v(paddedSize);
   auto &cq = device->getCQ();
   TT_CHECK(ttmd::EnqueueReadMeshBuffer, cq, buf_v, buffer, true);
@@ -144,8 +145,7 @@ nxs_status TTBuffer::copyToHost(void *host_buf) {
         return copyToHostUntilize<uint16_t>(reinterpret_cast<uint16_t *>(host_buf));
         break;
       default:
-        NXSAPI_LOG(nexus::NXS_LOG_ERROR, "TTBuffer: Unsupported data type: ",
-          nxsGetDataTypeName(getDataType()));
+        NXSLOG_ERROR("TTBuffer: Unsupported data type: {}", nxsGetDataTypeName(getDataType()));
         break;
     }
   }

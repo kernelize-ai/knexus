@@ -11,11 +11,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+# Do not set -stdlib=libc++ on Linux: Clang defaults to the platform libstdc++,
+# matching GCC and Python/Boost system packages. Forcing libc++ breaks configure
+# when libc++ is not installed (linker: cannot find -lc++).
 
-    set(CMAKE_CXX_FLAGS_INIT "-stdlib=libc++")
-    set(CMAKE_EXE_LINKER_FLAGS_INIT "-stdlib=libc++")
-
+if(APPLE)
+  set(CMAKE_CXX_FLAGS_INIT "-stdlib=libc++")
+  set(CMAKE_EXE_LINKER_FLAGS_INIT "-stdlib=libc++")
+  set(CMAKE_SHARED_LINKER_FLAGS_INIT "-stdlib=libc++")
+  set(CMAKE_MODULE_LINKER_FLAGS_INIT "-stdlib=libc++")
 endif()
 
 project(nexus CXX C)
@@ -103,6 +107,12 @@ include_directories(${PROJECT_SOURCE_DIR}/third_party/pybind11_json/include)
 # -----
 add_subdirectory(third_party/json json)
 
+set(SPDLOG_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
+set(SPDLOG_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(SPDLOG_BUILD_BENCH OFF CACHE BOOL "" FORCE)
+set(SPDLOG_BUILD_PIC ON CACHE BOOL "" FORCE)
+add_subdirectory(third_party/spdlog)
+
 set(PYBIND11_FINDPYTHON ON)
 add_subdirectory(third_party/pybind11_json pybind11_json)
 
@@ -124,6 +134,7 @@ if(NEXUS_BUILD_PYTHON_MODULE)
   set(NEXUS_LIBRARIES
     nexus-api
     nlohmann_json::nlohmann_json
+    spdlog::spdlog
 
     Python3::Module
     pybind11::headers

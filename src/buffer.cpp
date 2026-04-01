@@ -1,3 +1,4 @@
+#define NEXUS_LOG_MODULE "buffer"
 
 #include <nexus/buffer.h>
 #include <nexus/log.h>
@@ -9,8 +10,6 @@
 #include "_device_impl.h"
 #include "_runtime_impl.h"
 #include "_system_impl.h"
-
-#define NEXUS_LOG_MODULE "buffer"
 
 using namespace nexus;
 
@@ -72,7 +71,7 @@ void detail::BufferImpl::setData(nxs_ulong sz, const char *hostData) {
 
 nxs_status detail::BufferImpl::copyData(void *_hostBuf, nxs_uint direction) const {
   if (getParentOfType<DeviceImpl>()) {
-    NEXUS_LOG(NXS_LOG_NOTE, "copyData: from device: ", getSizeBytes());
+    NXSLOG_INFO("copyData: from device: {}", getSizeBytes());
     auto *rt = getParentOfType<RuntimeImpl>();
     return (nxs_status)rt->runAPIFunction<NF_nxsCopyBuffer>(getId(), _hostBuf,
                                                             direction);
@@ -81,13 +80,13 @@ nxs_status detail::BufferImpl::copyData(void *_hostBuf, nxs_uint direction) cons
 }
 
 nxs_status detail::BufferImpl::fillData(void *value, nxs_uint size_bytes) const {
-  nxs_status return_stat;
+  nxs_status return_stat = NXS_Success;
   if (getParentOfType<DeviceImpl>()) {
-    NEXUS_LOG(NXS_LOG_NOTE, "fillData: on device: ", getSizeBytes());
+    NXSLOG_INFO("fillData: on device: {}", getSizeBytes());
     auto *rt = getParentOfType<RuntimeImpl>();
     return_stat = (nxs_status)rt->runAPIFunction<NF_nxsFillBuffer>(getId(), value, size_bytes);
   }
-  NEXUS_LOG(NXS_LOG_NOTE, "fillData: on host: ", getSizeBytes());
+  NXSLOG_INFO("fillData: on host: {}", getSizeBytes());
   return return_stat;
 }
 

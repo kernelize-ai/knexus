@@ -1,10 +1,9 @@
+#define NEXUS_LOG_MODULE "command"
 
 #include <nexus/command.h>
 #include <nexus/log.h>
 
 #include "_schedule_impl.h"
-
-#define NEXUS_LOG_MODULE "command"
 
 using namespace nexus;
 
@@ -23,16 +22,16 @@ class CommandImpl : public Impl {
  public:
   /// @brief Construct a Platform for the current system
   CommandImpl(Impl owner, Kernel kern) : Impl(owner), kernel(kern) {
-    NEXUS_LOG(NXS_LOG_NOTE, "    Command: ", getId());
+    NXSLOG_INFO("Command: {}", getId());
     // TODO: gather kernel argument details
   }
 
   CommandImpl(Impl owner, Event event) : Impl(owner), event(event) {
-    NEXUS_LOG(NXS_LOG_NOTE, "    Command: ", getId());
+    NXSLOG_INFO("Command: {}", getId());
   }
 
   ~CommandImpl() {
-    NEXUS_LOG(NXS_LOG_NOTE, "    ~Command: ", getId());
+    NXSLOG_INFO("~Command: {}", getId());
     release();
   }
 

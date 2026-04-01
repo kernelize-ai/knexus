@@ -7,10 +7,6 @@
 #include <cpuinfo.h>
 #include <rt_runtime.h>
 
-#include <nexus/log.h>
-
-#define NXSAPI_LOG_MODULE "cpu_runtime"
-
 #include "threadpool.h"
 
 using namespace nxs;

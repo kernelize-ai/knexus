@@ -1,8 +1,6 @@
 #ifndef THREADPOOL_H
 #define THREADPOOL_H
 
-#include <nexus/log.h>
-
 #include <atomic>
 #include <condition_variable>
 #include <functional>
@@ -59,15 +57,12 @@ class ThreadPool {
         // Fall back to QoS (Quality of Service) approach
         static bool warned = false;
         if (!warned) {
-          NXSAPI_LOG(
-              nexus::NXS_LOG_NOTE,
-              "Note: Thread affinity not available (KERN_POLICY_STATIC). Using "
-              "QoS classes instead for thread scheduling hints.");
+          NXSLOG_INFO("Note: Thread affinity not available (KERN_POLICY_STATIC). Using "
+                       "QoS classes instead for thread scheduling hints.");
           warned = true;
         }
       } else {
-        NXSAPI_LOG(nexus::NXS_LOG_ERROR,
-                   "Warning: thread_policy_set failed with error: ", ret);
+        NXSLOG_ERROR("Warning: thread_policy_set failed with error: {}", ret);
       }
     }
     // Attempt 2: Use pthread QoS (Quality of Service) as alternative
@@ -92,10 +87,8 @@ class ThreadPool {
         set_thread_affinity(
             static_cast<int>(i % std::thread::hardware_concurrency()));
 
-        NXSAPI_LOG(nexus::NXS_LOG_NOTE,
-                   "Worker thread "
-                       , i, " bound to CPU core "
-                       , (i % std::thread::hardware_concurrency()));
+        NXSLOG_TRACE("Worker thread {} bound to CPU core {}", i,
+                    (i % std::thread::hardware_concurrency()));
 
         for (;;) {
           std::function<void()> task;

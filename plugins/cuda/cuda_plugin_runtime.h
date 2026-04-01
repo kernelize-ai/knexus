@@ -39,7 +39,7 @@ public:
     CUDA_CHECK(NXS_InvalidDevice, cudaGetDeviceCount, &numDevices);
 
     if (numDevices == 0) {
-      NXSAPI_LOG(nexus::NXS_LOG_ERROR, "No CUDA devices found.");
+      NXSLOG_ERROR("No CUDA devices found.");
       return NXS_InvalidDevice;
     }
 
@@ -58,7 +58,7 @@ public:
     if (id < 0 || id >= numDevices) return nullptr;
     if (id != current_device) {
       if (cudaSetDevice(id) != cudaSuccess) {
-        NXSAPI_LOG(nexus::NXS_LOG_ERROR, "Failed to set CUDA device ", id);
+        NXSLOG_ERROR("Failed to set CUDA device {}", id);
         return nullptr;
       }
       current_device = id;

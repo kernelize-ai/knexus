@@ -1,3 +1,5 @@
+#define NEXUS_LOG_MODULE "schedule"
+
 #include <nexus/command.h>
 #include <nexus/event.h>
 #include <nexus/kernel.h>
@@ -7,18 +9,16 @@
 
 #include "_schedule_impl.h"
 
-#define NEXUS_LOG_MODULE "schedule"
-
 using namespace nexus;
 using namespace nexus::detail;
 
 /// @brief Construct a Platform for the current system
 ScheduleImpl::ScheduleImpl(detail::Impl base) : detail::Impl(base) {
-  NEXUS_LOG(NXS_LOG_NOTE, "  Schedule: ", getId());
+  NXSLOG_INFO("Schedule: {}", getId());
 }
 
 ScheduleImpl::~ScheduleImpl() {
-  NEXUS_LOG(NXS_LOG_NOTE, "  ~Schedule: ", getId());
+  NXSLOG_INFO("~Schedule: {}", getId());
   release();
 }
 

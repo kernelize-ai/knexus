@@ -1,3 +1,4 @@
+#define NEXUS_LOG_MODULE "info"
 
 #include <nexus/log.h>
 #include <nexus/info.h>
@@ -9,8 +10,6 @@
 
 using namespace nexus;
 using namespace nexus::detail;
-
-#define NEXUS_LOG_MODULE "info"
 
 namespace nexus {
 
@@ -30,7 +29,7 @@ InfoImpl::InfoImpl(const std::string &filepath)
     : propertyFilePath(filepath) {}
 InfoImpl::InfoImpl(Info::Node &node) {
   props = node.getJson();
-  NEXUS_LOG(NXS_LOG_NOTE, "  JSON size: ", props.size());
+  NXSLOG_INFO("JSON size: {}", props.size());
 }
 
 std::optional<Property> InfoImpl::getProperty(
@@ -139,7 +138,7 @@ std::optional<Property> InfoImpl::getProp(
       }
       return getValue(node.at(tail.data()), typeId);
     } catch (...) {
-      NEXUS_LOG(NXS_LOG_ERROR, "  Properties.getProp - ", path[0]);
+      NXSLOG_ERROR("Properties.getProp - {}", path[0]);
     }
   }
   return std::nullopt;
@@ -151,11 +150,9 @@ void InfoImpl::loadInfo() {
   try {
     std::ifstream f(propertyFilePath);
     props = json::parse(f);
-    NEXUS_LOG(NXS_LOG_NOTE, "Loaded json from "
-                                     , propertyFilePath
-                                     , " - size: ", props.size());
+    NXSLOG_INFO("Loaded json from {} - size: {}", propertyFilePath, props.size());
   } catch (...) {
-    NEXUS_LOG(NXS_LOG_ERROR, "Failed to load ", propertyFilePath);
+    NXSLOG_ERROR("Failed to load {}", propertyFilePath);
   }
 }
 

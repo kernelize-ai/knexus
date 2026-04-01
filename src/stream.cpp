@@ -1,10 +1,9 @@
+#define NEXUS_LOG_MODULE "stream"
 
 #include <nexus/log.h>
 #include <nexus/stream.h>
 
 #include "_device_impl.h"
-
-#define NEXUS_LOG_MODULE "stream"
 
 namespace nexus {
 namespace detail {
@@ -13,11 +12,11 @@ class StreamImpl : public Impl {
  public:
   /// @brief Construct a Platform for the current system
   StreamImpl(detail::Impl base) : detail::Impl(base) {
-    NEXUS_LOG(NXS_LOG_NOTE, "  Stream: ", getId());
+    NXSLOG_TRACE("Stream: {}", getId());
   }
 
   ~StreamImpl() {
-    NEXUS_LOG(NXS_LOG_NOTE, "  ~Stream: ", getId());
+    NXSLOG_TRACE("~Stream: {}", getId());
     release();
   }
 

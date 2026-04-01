@@ -1,8 +1,10 @@
 #ifndef NEXUS_UTILITY_H
 #define NEXUS_UTILITY_H
 
+#include <cstdint>
 #include <functional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace nexus {

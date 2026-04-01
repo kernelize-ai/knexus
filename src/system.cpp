@@ -1,17 +1,17 @@
-#include <nexus/log.h>
+#define NEXUS_LOG_MODULE "system"
+
 #include <nexus/system.h>
 #include <nexus/utility.h>
+#include <nexus/log.h>
 
 #include "_system_impl.h"
 
 using namespace nexus;
 using namespace nexus::detail;
 
-#define NEXUS_LOG_MODULE "system"
-
 /// @brief Construct a Platform for the current system
 SystemImpl::SystemImpl(int) {
-  NEXUS_LOG(NXS_LOG_NOTE, "CTOR");
+  NXSLOG_TRACE("CTOR");
   iterateEnvPaths("NEXUS_RUNTIME_PATH", "./runtime_libs",
                   [&](const std::string &path, const std::string &name) {
                     Runtime rt(detail::Impl(this, runtimes.size()), path);
@@ -21,7 +21,7 @@ SystemImpl::SystemImpl(int) {
 }
 
 SystemImpl::~SystemImpl() {
-  NEXUS_LOG(NXS_LOG_NOTE, "DTOR");
+  NXSLOG_TRACE("DTOR");
   // for (auto rt : runtimes)
   //   rt.release();
   // for (auto buf : buffers)
@@ -44,7 +44,7 @@ Buffer SystemImpl::createBuffer(const Layout &layout, const void *hostData,
   nxs_uint buffer_settings =
       settings & (NXS_BufferSettings_OnHost | NXS_BufferSettings_OnDevice |
                   NXS_BufferSettings_Maintain);
-  NEXUS_LOG(NXS_LOG_NOTE, "createBuffer ", normalized_layout.getNumElements());
+  NXSLOG_TRACE("createBuffer {}", normalized_layout.getNumElements());
   nxs_uint id = buffers.size();
   Buffer buf(detail::Impl(this, id, buffer_settings), normalized_layout, hostData);
   buffers.add(buf);
@@ -52,13 +52,13 @@ Buffer SystemImpl::createBuffer(const Layout &layout, const void *hostData,
 }
 
 Buffer SystemImpl::copyBuffer(Buffer buf, Device dev, nxs_uint settings) {
-  NEXUS_LOG(NXS_LOG_NOTE, "copyBuffer ", buf.getSizeBytes());
+  NXSLOG_TRACE("copyBuffer {}", buf.getSizeBytes());
   Buffer nbuf = dev.copyBuffer(buf, settings);
   return nbuf;
 }
 
 Info SystemImpl::loadCatalog(const std::string &catalogPath) {
-  NEXUS_LOG(NXS_LOG_NOTE, "loadCatalog ", catalogPath);
+  NXSLOG_TRACE("loadCatalog {}", catalogPath);
   Info cat(catalogPath);
   catalogs.add(cat);
   return cat;

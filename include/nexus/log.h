@@ -1,91 +1,58 @@
 #ifndef NEXUS_LOG_H
 #define NEXUS_LOG_H
 
-#define NEXUS_LOG_DEPTH 30
+#include <nexus/log_manager.h>
 
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <memory>
-#include <mutex>
-#include <sstream>
-#include <string>
+#ifndef NEXUS_LOG_MODULE
+#define NEXUS_LOG_MODULE "nexus"
+#endif
 
-namespace nexus {
+#ifndef NEXUS_LOG_PADDING
+#define NEXUS_LOG_PADDING "10"
+#endif
 
-enum nxs_log_severity {
-  NXS_LOG_ERROR = 0,
-  NXS_LOG_NOTE = 1,
-  NXS_LOG_WARN = 2,
-};
-  
-// Singleton LogManager that owns the log file
-class LogManager {
-public:
-  static LogManager& getInstance() {
-    static LogManager instance;
-    return instance;
-  }
+// fmt + __VA_ARGS__ only — define NEXUS_LOG_MODULE per .cpp before the first #include of
+// this header (nexus-api pulls log_manager.h only, not these macros).
+#if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_TRACE
+#define NXSLOG_TRACE(fmt, ...)                                                     \
+  ::nexus::LogManager::log<spdlog::level::trace>(NEXUS_LOG_MODULE, "{:" NEXUS_LOG_PADDING "s} | " fmt, ##__VA_ARGS__)
+#else
+#define NXSLOG_TRACE(fmt, ...) (void)0
+#endif
 
-  void setOpen(bool open) {
-    if (open) {
-      const char* logPath = std::getenv("NEXUS_LOG_FILE");
-      std::string filename = logPath ? logPath : "nexus.log";
-      setLogFile(filename);
-    } else {
-      std::lock_guard<std::mutex> lock(mutex_);
-      logFile_.close();
-    }
-  }
-  bool isOpen() const {
-    return logFile_.is_open();
-  }
+#if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_DEBUG
+#define NXSLOG_DEBUG(fmt, ...)                                                     \
+  ::nexus::LogManager::log<spdlog::level::debug>(NEXUS_LOG_MODULE, "{:" NEXUS_LOG_PADDING "s} | " fmt, ##__VA_ARGS__)
+#else
+#define NXSLOG_DEBUG(fmt, ...) (void)0
+#endif
 
-  template<typename... Args>
-  void log(nxs_log_severity severity, const char *module, Args&&... args) {
-    if (logFile_.is_open()) {
-      std::lock_guard<std::mutex> lock(mutex_);
-      const char *severity_str[] = { "ERROR", "NOTE", "WARN" };
-      logFile_ << "[" << module << "]" << severity_str[severity]
-               << std::left << std::setw(NEXUS_LOG_DEPTH) << ": ";
-      ((logFile_ << args), ...);
-      logFile_ << std::endl;
-    }
-  }
-  
-  void setLogFile(const std::string& filename) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (logFile_.is_open()) {
-      logFile_.close();
-    }
-    logFile_.open(filename, std::ios::out | std::ios::app);
-    if (!logFile_.is_open()) {
-      std::cerr << "Failed to open log file: " << filename << std::endl;
-    }
-  }
-  
-  // Disable copy and move
-  LogManager(const LogManager&) = delete;
-  LogManager& operator=(const LogManager&) = delete;
-  LogManager(LogManager&&) = delete;
-  LogManager& operator=(LogManager&&) = delete;
+#if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_INFO
+#define NXSLOG_INFO(fmt, ...)                                                      \
+  ::nexus::LogManager::log<spdlog::level::info>(NEXUS_LOG_MODULE, "{:" NEXUS_LOG_PADDING "s} | " fmt, ##__VA_ARGS__)
+#else
+#define NXSLOG_INFO(fmt, ...) (void)0
+#endif
 
-private:
-  LogManager() {
-    const char* logPath = std::getenv("NEXUS_LOG_ENABLE");
-    bool enable = logPath ? std::stoi(logPath) : false;
-    setOpen(enable);
-  }
-  
-  ~LogManager() { setOpen(false); }
-  
-  std::ofstream logFile_;
-  std::mutex mutex_;
-};
+#if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_WARN
+#define NXSLOG_WARN(fmt, ...)                                                      \
+  ::nexus::LogManager::log<spdlog::level::warn>(NEXUS_LOG_MODULE, "{:" NEXUS_LOG_PADDING "s} | " fmt, ##__VA_ARGS__)
+#else
+#define NXSLOG_WARN(fmt, ...) (void)0
+#endif
 
-} // namespace nexus
+#if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_ERROR
+#define NXSLOG_ERROR(fmt, ...)                                                     \
+  ::nexus::LogManager::log<spdlog::level::err>(NEXUS_LOG_MODULE, "{:" NEXUS_LOG_PADDING "s} | " fmt, ##__VA_ARGS__)
+#else
+#define NXSLOG_ERROR(fmt, ...) (void)0
+#endif
 
-#define NEXUS_LOG(SEVERITY, ...) \
-  ::nexus::LogManager::getInstance().log(SEVERITY, NEXUS_LOG_MODULE, __VA_ARGS__)
+#if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_CRITICAL
+#define NXSLOG_CRITICAL(fmt, ...)                                                  \
+  ::nexus::LogManager::log<spdlog::level::critical>(NEXUS_LOG_MODULE, "{:" NEXUS_LOG_PADDING "s} | " fmt, ##__VA_ARGS__)
+#else
+#define NXSLOG_CRITICAL(fmt, ...) (void)0
+#endif
 
 #endif  // NEXUS_LOG_H

@@ -1,3 +1,4 @@
+#define NEXUS_LOG_MODULE "library"
 
 #include <nexus/log.h>
 
@@ -6,21 +7,17 @@
 #include "_library_impl.h"
 #include "_runtime_impl.h"
 
-#define NEXUS_LOG_MODULE "library"
-#undef NEXUS_LOG_DEPTH
-#define NEXUS_LOG_DEPTH 34
-
 using namespace nexus;
 using namespace nexus::detail;
 
 /// @brief Construct a Platform for the current system
 LibraryImpl::LibraryImpl(Impl base) : Impl(base) {
-  NEXUS_LOG(NXS_LOG_NOTE, "CTOR: ", getId());
+  NXSLOG_INFO("CTOR: {}", getId());
 }
 
 LibraryImpl::LibraryImpl(Impl base, Info info) : Impl(base), info(info) {
   // auto name = info.get<std::string_view>("Name");
-  NEXUS_LOG(NXS_LOG_NOTE, "CTOR: ", getId());
+  NXSLOG_INFO("CTOR: {}", getId());
   // Iterate over all functions and kernels
   try {
     if (auto functions = info.getNode({"Functions"})) {
@@ -31,12 +28,12 @@ LibraryImpl::LibraryImpl(Impl base, Info info) : Impl(base), info(info) {
       }
     }
   } catch (...) {
-    NEXUS_LOG(NXS_LOG_ERROR, "  LibraryImpl: ERROR loading functions");
+    NXSLOG_ERROR("LibraryImpl: ERROR loading functions");
   }
 }
 
 LibraryImpl::~LibraryImpl() {
-  NEXUS_LOG(NXS_LOG_NOTE, "DTOR: ", getId());
+  NXSLOG_INFO("DTOR: {}", getId());
   release();
 }
 
@@ -52,7 +49,7 @@ std::optional<Property> detail::LibraryImpl::getProperty(nxs_int prop) const {
 }
 
 Kernel LibraryImpl::getKernel(const std::string &kernelName, Info info) {
-  NEXUS_LOG(NXS_LOG_NOTE, "  getKernel: ", kernelName);
+  NXSLOG_INFO("getKernel: {}", kernelName);
   auto it = kernelMap.find(kernelName);
   if (it != kernelMap.end())
     return it->second;

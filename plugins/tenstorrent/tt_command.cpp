@@ -13,10 +13,11 @@
  ***********************************************************************/
 nxs_status TTCommand::runCommand(nxs_int stream, ttmd::MeshWorkload &workload,
                                  ttmd::MeshCoordinateRange &dev_range, ttm::CoreRange &cores) {
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "runCommand ", kernel, " - ", cores.start_coord.x, ",", cores.start_coord.y);
+  NXSLOG_INFO("runCommand {} - {},{}", kernel, cores.start_coord.x,
+             cores.start_coord.y);
 
   if (getArgsCount() >= 32) {
-    NXSAPI_LOG(nexus::NXS_LOG_ERROR, "Too many arguments for kernel");
+    NXSLOG_ERROR("Too many arguments for kernel");
     return NXS_InvalidCommand;
   }
 
@@ -43,12 +44,13 @@ nxs_status TTCommand::runCommand(nxs_int stream, ttmd::MeshWorkload &workload,
       size_t tile_count = *(nxs_int*)consts[i].value;
       size_t tile_size_bytes = tile_size * getDataTypeSize(cst.settings);
       auto data_format = getDataFormat(consts[i].settings);
-      NXSAPI_LOG(nexus::NXS_LOG_NOTE, "CB size (", i, "): ", tile_size_bytes, ", format=", data_format);
+      NXSLOG_INFO("CB size ({}): {}, format={}", i, tile_size_bytes,
+                 static_cast<int>(data_format));
       auto cb_config = make_cb_config(static_cast<tt::CBIndex>(i), tile_count, tile_size_bytes, data_format);
       TT_CHECK(ttm::CreateCircularBuffer, program, cores, cb_config);
       ctas.push_back(i);
     } else {
-      NXSAPI_LOG(nexus::NXS_LOG_ERROR, "Constant not supported: ", consts[i].name);
+      NXSLOG_ERROR("Constant not supported: {}", consts[i].name);
       //assert(0); // unsupported cta
     }
   }
@@ -65,14 +67,14 @@ nxs_status TTCommand::runCommand(nxs_int stream, ttmd::MeshWorkload &workload,
   assert(numArgs <= NXS_KERNEL_MAX_ARGS - 5);
   for (size_t i = 0; i < numArgs; i++) {
     uint32_t arg_val = *static_cast<uint32_t *>(args[i].value);
-    NXSAPI_LOG(nexus::NXS_LOG_NOTE, "Runtime arg: ", i, "=", arg_val);
+    NXSLOG_INFO("Runtime arg: {}={}", i, arg_val);
     rt_args[i] = arg_val;
   }
 
   // compute persistent grid size
   int total_grid_size = grid_size.x * grid_size.y * grid_size.z;
   int persistent_grid_stride = std::max(1, total_grid_size / (int)cores.size());
-  NXSAPI_LOG(nexus::NXS_LOG_NOTE, "Total grid size: ", total_grid_size, ", cores: ", cores.size(), ", persistent grid stride: ", persistent_grid_stride);
+  NXSLOG_INFO("Total grid size: {}, cores: {}, persistent grid stride: {}", total_grid_size, cores.size(), persistent_grid_stride);
 
   library->setupCommonRuntime(program, rt_args);
 
@@ -84,7 +86,8 @@ nxs_status TTCommand::runCommand(nxs_int stream, ttmd::MeshWorkload &workload,
     core_rt_args[1] = persistent_grid_idx * persistent_grid_stride + persistent_grid_stride;
     if (core_rt_args[1] > total_grid_size)
       core_rt_args[1] = total_grid_size;
-    NXSAPI_LOG(nexus::NXS_LOG_NOTE, "Launch params: grid_idx=", persistent_grid_idx, ", start=", core_rt_args[0], ", end=", core_rt_args[1]);
+    NXSLOG_INFO("Launch params: grid_idx={}, start={}, end={}", persistent_grid_idx,
+               core_rt_args[0], core_rt_args[1]);
     library->setupCoreRuntime(program, core, core_rt_args);
     persistent_grid_idx++;
   }

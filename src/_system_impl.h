@@ -4,7 +4,6 @@
 
 #include <nexus/buffer.h>
 #include <nexus/info.h>
-#include <nexus/log.h>
 #include <nexus/runtime.h>
 
 namespace nexus {

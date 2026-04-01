@@ -1,10 +1,9 @@
 #ifndef RT_TT_H
 #define RT_TT_H
 
+#define NXSAPI_LOG_MODULE "tt_rt"
 #include <nexus-api.h>
 #include <nexus-api/nxs_log.h>
-
-#define NXSAPI_LOG_MODULE "tt_runtime"
 
 #include <rt_utilities.h>
 
@@ -72,32 +71,26 @@ inline size_t getDataTypeSize(nxs_uint settings) {
 // "TT_CHECK ", #call, nxs::rt::print_value(__VA_ARGS__));
 
 #define TT_NOBJ_CHECK(obj, call, ...)                                      \
-    NXSAPI_LOG(nexus::NXS_LOG_NOTE,                                           \
-               "TT_CHECK ", #call, "(", #__VA_ARGS__, ")"); \
-    auto obj = call(__VA_ARGS__);                                    
+    NXSLOG_TRACE("TT_CHECK {} ({})", #call, #__VA_ARGS__);     \
+    auto obj = call(__VA_ARGS__)
 
 
 #define TT_OBJ_CHECK(obj, call, ...)                                      \
-    NXSAPI_LOG(nexus::NXS_LOG_NOTE,                                           \
-               "TT_CHECK ", #call, "(", #__VA_ARGS__, ")"); \
-    obj = call(__VA_ARGS__);                                     \
-    if (!obj) {                                                \
-      NXSAPI_LOG(nexus::NXS_LOG_ERROR,                                          \
-                 "TT error: ");                 \
-    }                                                                        
+    NXSLOG_TRACE("TT_CHECK {} ({})", #call, #__VA_ARGS__);     \
+    obj = call(__VA_ARGS__);                                                      \
+    if (!obj) {                                                                   \
+      NXSLOG_ERROR("TT error");                               \
+    }
 
 #define TT_COND_CHECK(cond, call, ...)                                      \
-    NXSAPI_LOG(nexus::NXS_LOG_NOTE,                                           \
-               "TT_CHECK ", #call, "(", #__VA_ARGS__, ")"); \
-    call(__VA_ARGS__);                                     \
-    if (cond) {                                                \
-      NXSAPI_LOG(nexus::NXS_LOG_ERROR,                                          \
-                 "TT error: ", #cond);                 \
-    }                                                                        
+    NXSLOG_TRACE("TT_CHECK {} ({})", #call, #__VA_ARGS__);     \
+    call(__VA_ARGS__);                                                            \
+    if (cond) {                                                                   \
+      NXSLOG_ERROR("TT error: {}", #cond);                   \
+    }
 
 #define TT_CHECK(call, ...)                                      \
-    NXSAPI_LOG(nexus::NXS_LOG_NOTE,                                           \
-               "TT_CHECK ", #call, "(", #__VA_ARGS__, ")"); \
-    call(__VA_ARGS__);                                    
+    NXSLOG_TRACE("TT_CHECK {} ({})", #call, #__VA_ARGS__);     \
+    call(__VA_ARGS__)
 
 #endif // RT_TT_H

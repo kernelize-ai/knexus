@@ -3,8 +3,6 @@
 
 #include "cpu_runtime.h"
 
-#define NXSAPI_LOG_MODULE "cpu_runtime"
-
 float CpuSchedule::getTime() const {
   return std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
                                                                start_time)
@@ -19,7 +17,7 @@ nxs_status CpuSchedule::run(nxs_int stream, nxs_uint run_settings) {
   }
 
   for (auto cmd : getCommands()) {
-    NXSAPI_LOG(nexus::NXS_LOG_NOTE, "runCommand ", " - ", cmd->getType());
+    NXSLOG_INFO("runCommand - {}", static_cast<int>(cmd->getType()));
     auto status = cmd->runCommand(stream);
     if (!nxs_success(status)) return status;
   }
