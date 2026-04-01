@@ -256,7 +256,7 @@ CLASSIFIERS = BASE_CLASSIFIERS + PYTHON_CLASSIFIERS
 
 setup(
     name=os.environ.get("NEXUS_WHEEL_NAME", "knexus"),
-    version="0.0.1",
+    version="0.1.0",
     author="Simon Waters, Matthew Leon, Alex Baden",
     author_email="simon@kernelize.ai",
     description="",
@@ -288,7 +288,7 @@ setup(
     },
     zip_safe=False,
     keywords=["Runtime", "Triton"],
-    url="https://github.com/kernelize-ai/nexus/",
+    url="https://github.com/kernelize-ai/knexus/",
     extras_require={"test": ["pytest>=6.0"]},
     python_requires=PYTHON_REQUIRES,
     classifiers=CLASSIFIERS,
