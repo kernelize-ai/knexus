@@ -142,6 +142,8 @@
 #include <vector>
 
 #define NXSAPI_LOG_MODULE "metal_rt"
+#include <nexus-api.h>
+#include <nexus-api/nxs_log.h>
 
 #include <rt_runtime.h>
 #include <rt_command.h>
@@ -149,9 +151,6 @@
 #include <rt_utilities.h>
 
 #include <string.h>
-
-#include <nexus-api.h>
-#include <nexus-api/nxs_log.h>
 
 #define NS_PRIVATE_IMPLEMENTATION
 #define MTL_PRIVATE_IMPLEMENTATION
