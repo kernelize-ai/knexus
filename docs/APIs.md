@@ -10,6 +10,7 @@ This document provides an overview of the different APIs available in the Nexus 
 - [Plugin API](Plugin_API.md) - C API for implementing hardware backend plugins
 - [JSON API](JSON_API.md) - JSON-based device information and property system
 - [Build and CI](Build_and_CI.md) - Build instructions and continuous integration setup
+- [Logging](Logging.md) - Runtime and compile-time logging (`NEXUS_LOG_*`, `NXSLOG_*`)
 
 ## Overview
 

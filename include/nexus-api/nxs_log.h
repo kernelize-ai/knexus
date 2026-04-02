@@ -10,7 +10,16 @@
 #endif
 
 #ifndef NEXUS_LOG_PADDING
-#define NEXUS_LOG_PADDING "20"
+#define NEXUS_LOG_PADDING 20
+#endif
+
+// Per-plugin ANSI foreground for the module column (SGR prefix, e.g. "\033[32m"). Optional.
+#ifndef NEXUS_LOG_MODULE_COLOR
+#ifdef NXSAPI_LOG_MODULE_COLOR
+#define NEXUS_LOG_MODULE_COLOR NXSAPI_LOG_MODULE_COLOR
+#else
+#define NEXUS_LOG_MODULE_COLOR ((const char*)0)
+#endif
 #endif
 
 #if defined(__cplusplus)

@@ -9,6 +9,7 @@
 #include <cuda_runtime.h>
 
 #define NXSAPI_LOG_MODULE "cuda_rt"
+#define NXSAPI_LOG_MODULE_COLOR "\033[32m"
 #include <nexus-api.h>
 #include <nexus-api/nxs_log.h>
 #include <rt_utilities.h>

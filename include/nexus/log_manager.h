@@ -21,21 +21,14 @@ namespace nexus {
 
 class LogManager {
  public:
+  /// Pads `module` to `module_width` characters, then wraps with ANSI colors when logging to a
+  /// color terminal (not when logging to a file). If `color_ansi` is non-null and non-empty, it is
+  /// used as the SGR foreground prefix (e.g. "\033[32m"); otherwise nxs-api vs core defaults apply.
+  static std::string format_module_column(const std::string& module, int module_width,
+                                         const char* color_ansi);
 
-  template <spdlog::level::level_enum Tlevel>
-  static inline void log(const std::string& module, const char *message) {
-    auto &inst = getInstance();
-    if (inst.isOpen()) {
-      inst.logger()->log(Tlevel, message, module);
-    }
-  }
-  template <spdlog::level::level_enum Tlevel, typename... Args>
-  static inline void log(const std::string& module, const char *message, Args... args) {
-    auto &inst = getInstance();
-    if (inst.isOpen()) {
-      inst.logger()->log(Tlevel, message, module, std::forward<Args>(args)...);
-    }
-  }
+  /// True when logging is enabled and the active sink is not at `level::off`.
+  bool isOpen() const;
 
   // Disable copying and moving
   LogManager(const LogManager&) = delete;
@@ -45,16 +38,15 @@ class LogManager {
 
   ~LogManager();
 
- private:
   static LogManager& getInstance() {
     static LogManager instance;
     return instance;
   }
 
   inline auto logger() const noexcept -> spdlog::logger* { return impl_->logger.get(); }
+ private:
 
   void setOpen(bool open);
-  bool isOpen() const;
   void setLogFile(const std::string& filename);
 
   LogManager();
@@ -66,6 +58,7 @@ class LogManager {
 
   struct Impl {
     std::shared_ptr<spdlog::logger> logger;
+    bool color_module{false};
   };
   std::unique_ptr<Impl> impl_;
 };

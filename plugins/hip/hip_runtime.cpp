@@ -140,6 +140,7 @@
  */
 
 #define NXSAPI_LOG_MODULE "hip_rt"
+#define NXSAPI_LOG_MODULE_COLOR "\033[35m"
 
 #include <assert.h>
 #include <hip/hip_runtime.h>

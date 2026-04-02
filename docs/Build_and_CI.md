@@ -83,7 +83,11 @@ python -m pip install pybind11
 | `CMAKE_BUILD_TYPE` | Debug | Build type (Debug, Release, RelWithDebInfo) |
 | `NEXUS_BUILD_PYTHON_MODULE` | ON | Build Python bindings |
 | `NEXUS_BUILD_PLUGINS` | ON | Build runtime plugins |
-| `NEXUS_ENABLE_LOGGING` | ON | Enable Nexus logging |
+| `NEXUS_ENABLE_LOGGING` | ON | Reserved CMake option (not wired to strip logging); use [runtime environment variables](Logging.md#enabling-output-runtime) to turn logs on or off |
+
+### Logging (runtime)
+
+Nexus logging is controlled primarily by **environment variables** (`NEXUS_LOG_ENABLE`, `NEXUS_LOG_FILE`, `NEXUS_LOG_LEVEL`) and compile-time macros (`SPDLOG_ACTIVE_LEVEL`, `NEXUS_LOG_MODULE`). See **[Logging](Logging.md)** for the full reference.
 
 ### Platform-Specific Builds
 
@@ -262,4 +266,5 @@ python3 -m pip install --upgrade pybind11
 - [Core API](Core_API.md) - C++ API documentation
 - [Python API](Python_API.md) - Python bindings documentation
 - [Plugin API](Plugin_API.md) - Plugin development guide
-- [JSON API](JSON_API.md) - JSON interface documentation 
+- [JSON API](JSON_API.md) - JSON interface documentation
+- [Logging](Logging.md) - `NEXUS_LOG_*` environment variables, `NXSLOG_*` macros, and module setup 

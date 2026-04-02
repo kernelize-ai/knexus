@@ -158,3 +158,4 @@ See the [Build and CI Documentation](docs/Build_and_CI.md) for details on the CI
 - [Plugin API](docs/Plugin_API.md) - Plugin development guide
 - [JSON API](docs/JSON_API.md) - JSON interface documentation
 - [Build and CI](docs/Build_and_CI.md) - Build instructions and CI setup
+- [Logging](docs/Logging.md) - Runtime and compile-time logging controls (`NEXUS_LOG_*`, `NXSLOG_*`)

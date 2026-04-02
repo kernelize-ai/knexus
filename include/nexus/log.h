@@ -8,49 +8,67 @@
 #endif
 
 #ifndef NEXUS_LOG_PADDING
-#define NEXUS_LOG_PADDING "10"
+#define NEXUS_LOG_PADDING 10
+#endif
+
+#ifndef NEXUS_LOG_MODULE_COLOR
+#define NEXUS_LOG_MODULE_COLOR ((const char*)0)
 #endif
 
 // fmt + __VA_ARGS__ only — define NEXUS_LOG_MODULE per .cpp before the first #include of
 // this header (nexus-api pulls log_manager.h only, not these macros).
+// Optional: NEXUS_LOG_MODULE_COLOR = ANSI SGR prefix string (e.g. "\033[32m"), or 0 for defaults.
+// Log call is expanded here so the format string is a literal at the call site (no SPDLOG_FMT_RUNTIME).
+#define NXSLOG_MACRO(level, fmt, ...)                                                                \
+  do {                                                                                               \
+    auto& _nxslog_inst = ::nexus::LogManager::getInstance();                                        \
+    if (_nxslog_inst.isOpen()) {                                                                     \
+      _nxslog_inst.logger()->log((level), "{} | \033[97m" fmt "\033[0m",                            \
+          ::nexus::LogManager::format_module_column(NEXUS_LOG_MODULE, NEXUS_LOG_PADDING,            \
+                                                     NEXUS_LOG_MODULE_COLOR),                        \
+          ##__VA_ARGS__);                                                                            \
+    }                                                                                                \
+  } while (0)
+
+
 #if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_TRACE
 #define NXSLOG_TRACE(fmt, ...)                                                     \
-  ::nexus::LogManager::log<spdlog::level::trace>(NEXUS_LOG_MODULE, "{:" NEXUS_LOG_PADDING "s} | " fmt, ##__VA_ARGS__)
+  NXSLOG_MACRO(spdlog::level::trace, fmt, ##__VA_ARGS__)
 #else
 #define NXSLOG_TRACE(fmt, ...) (void)0
 #endif
 
 #if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_DEBUG
 #define NXSLOG_DEBUG(fmt, ...)                                                     \
-  ::nexus::LogManager::log<spdlog::level::debug>(NEXUS_LOG_MODULE, "{:" NEXUS_LOG_PADDING "s} | " fmt, ##__VA_ARGS__)
+  NXSLOG_MACRO(spdlog::level::debug, fmt, ##__VA_ARGS__)
 #else
 #define NXSLOG_DEBUG(fmt, ...) (void)0
 #endif
 
 #if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_INFO
 #define NXSLOG_INFO(fmt, ...)                                                      \
-  ::nexus::LogManager::log<spdlog::level::info>(NEXUS_LOG_MODULE, "{:" NEXUS_LOG_PADDING "s} | " fmt, ##__VA_ARGS__)
+  NXSLOG_MACRO(spdlog::level::info, fmt, ##__VA_ARGS__)
 #else
 #define NXSLOG_INFO(fmt, ...) (void)0
 #endif
 
 #if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_WARN
 #define NXSLOG_WARN(fmt, ...)                                                      \
-  ::nexus::LogManager::log<spdlog::level::warn>(NEXUS_LOG_MODULE, "{:" NEXUS_LOG_PADDING "s} | " fmt, ##__VA_ARGS__)
+  NXSLOG_MACRO(spdlog::level::warn, fmt, ##__VA_ARGS__)
 #else
 #define NXSLOG_WARN(fmt, ...) (void)0
 #endif
 
 #if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_ERROR
 #define NXSLOG_ERROR(fmt, ...)                                                     \
-  ::nexus::LogManager::log<spdlog::level::err>(NEXUS_LOG_MODULE, "{:" NEXUS_LOG_PADDING "s} | " fmt, ##__VA_ARGS__)
+  NXSLOG_MACRO(spdlog::level::err, fmt, ##__VA_ARGS__)
 #else
 #define NXSLOG_ERROR(fmt, ...) (void)0
 #endif
 
 #if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_CRITICAL
 #define NXSLOG_CRITICAL(fmt, ...)                                                  \
-  ::nexus::LogManager::log<spdlog::level::critical>(NEXUS_LOG_MODULE, "{:" NEXUS_LOG_PADDING "s} | " fmt, ##__VA_ARGS__)
+  NXSLOG_MACRO(spdlog::level::critical, fmt, ##__VA_ARGS__)
 #else
 #define NXSLOG_CRITICAL(fmt, ...) (void)0
 #endif

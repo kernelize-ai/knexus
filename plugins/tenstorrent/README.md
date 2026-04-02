@@ -301,6 +301,8 @@ The plugin uses Nexus logging infrastructure with module name `"tt_runtime"`. En
 - Kernel JIT compilation
 - Error messages
 
+Set **`NEXUS_LOG_ENABLE=1`** (and optionally **`NEXUS_LOG_LEVEL`**, **`NEXUS_LOG_FILE`**) as documented in the project’s **[Logging guide](../../docs/Logging.md)**.
+
 ## Future Improvements
 
 - [ ] Implement in-memory library loading

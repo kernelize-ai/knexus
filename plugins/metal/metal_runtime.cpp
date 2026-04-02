@@ -142,6 +142,7 @@
 #include <vector>
 
 #define NXSAPI_LOG_MODULE "metal_rt"
+#define NXSAPI_LOG_MODULE_COLOR "\033[95m"
 #include <nexus-api.h>
 #include <nexus-api/nxs_log.h>
 
