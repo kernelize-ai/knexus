@@ -3,6 +3,7 @@
 
 #include <nexus-api.h>
 
+#include <array>
 #include <cassert>
 #include <functional>
 #include <memory>
@@ -22,7 +23,8 @@ template <typename T, size_t chunk_size = 1024>
 class Pool {
  private:
   typedef std::array<T, chunk_size> Chunk;
-  std::vector<Chunk> object_storage_;       // Owns all objects
+  // unique_ptr keeps chunk storage stable when this vector grows (raw pointers in rt::Runtime)
+  std::vector<std::unique_ptr<Chunk>> object_storage_;
   std::vector<nxs_int> available_indices_;  // Indices of available objects
   std::mutex pool_mutex_;
   nxs_int tail_index_;
@@ -32,14 +34,16 @@ class Pool {
     return {index / chunk_size, index % chunk_size};
   }
 
-  Chunk& getChunk(nxs_int index) { return object_storage_[index]; }
+  Chunk& getChunk(nxs_int index) { return *object_storage_[index]; }
 
  public:
   /**
    * Constructor
    * @param initial_capacity Initial capacity for the pool
    */
-  explicit Pool() : tail_index_(0) { object_storage_.push_back(Chunk()); }
+  explicit Pool() : tail_index_(0) {
+    object_storage_.push_back(std::make_unique<Chunk>());
+  }
 
   ~Pool() { clear(); }
 
@@ -63,7 +67,7 @@ class Pool {
 
     auto [chunk_index, chunk_offset] = getIndexPair(tail_index_);
     if (chunk_index >= object_storage_.size()) {
-      object_storage_.push_back(Chunk());
+      object_storage_.push_back(std::make_unique<Chunk>());
     }
     auto& chunk = getChunk(chunk_index);
     new (&chunk[chunk_offset]) T(std::forward<Args>(args)...);
@@ -85,16 +89,16 @@ class Pool {
 
     std::lock_guard<std::mutex> lock(pool_mutex_);
 
-    // Find the index of the object
-    nxs_int chunk_index = 0;
-    for (auto& chunk : object_storage_) {
-      auto chunk_offset = obj - &chunk[0];
-      if (chunk_offset >= 0 && chunk_offset < chunk_size) {
+    // Resolve by pool slot index, not pointer arithmetic across chunks. Chunk
+    // base + offset checks can still misbehave with separate allocations; and
+    // comparing get(i) == obj is the definitive identity for placement-new slots.
+    // O(tail_index_) — acceptable for current pool sizes; can add a side map later.
+    for (nxs_int i = 0; i < tail_index_; ++i) {
+      if (get(i) == obj) {
         // obj->~T();
-        available_indices_.push_back(chunk_index * chunk_size + chunk_offset);
+        available_indices_.push_back(i);
         return;
       }
-      chunk_index++;
     }
   }
 
@@ -167,8 +171,10 @@ class Pool {
   bool owns_object(const T* obj) {
     if (!obj) return false;
     std::lock_guard<std::mutex> lock(pool_mutex_);
-    return obj >= &object_storage_[0] &&
-           obj < &object_storage_[0] + object_storage_.size();
+    for (nxs_int i = 0; i < tail_index_; ++i) {
+      if (get(i) == obj) return true;
+    }
+    return false;
   }
 };
 
