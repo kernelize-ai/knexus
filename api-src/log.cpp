@@ -13,8 +13,6 @@
 
 namespace {
 
-const char* kNexusLoggerName = "nexus";
-
 bool noColorEnv() {
   static const char* s = std::getenv("NO_COLOR");
   return s != nullptr && s[0] != '\0';
@@ -45,8 +43,8 @@ spdlog::level::level_enum levelFromEnv() {
   return spdlog::level::from_str(std::string(s));
 }
 
-std::shared_ptr<spdlog::logger> makeNexusLogger(std::shared_ptr<spdlog::sinks::sink> sink) {
-  auto logger = std::make_shared<spdlog::logger>(kNexusLoggerName, std::move(sink));
+std::shared_ptr<spdlog::logger> makeNexusLogger(const char *name, std::shared_ptr<spdlog::sinks::sink> sink) {
+  auto logger = std::make_shared<spdlog::logger>(name, std::move(sink));
   logger->set_pattern("\x1b[90m[%Y-%m-%d %H:%M:%S.%e]\x1b[0m %^%-4!l%$ | %v");
   logger->set_level(levelFromEnv());
   spdlog::register_logger(logger);
@@ -54,9 +52,9 @@ std::shared_ptr<spdlog::logger> makeNexusLogger(std::shared_ptr<spdlog::sinks::s
   return logger;
 }
 
-std::shared_ptr<spdlog::logger> makeDisabledLogger() {
+std::shared_ptr<spdlog::logger> makeDisabledLogger(const char *name) {
   auto sink = std::make_shared<spdlog::sinks::null_sink_mt>();
-  auto logger = std::make_shared<spdlog::logger>(kNexusLoggerName, std::move(sink));
+  auto logger = std::make_shared<spdlog::logger>(name, std::move(sink));
   logger->set_level(spdlog::level::off);
   spdlog::register_logger(logger);
   spdlog::set_default_logger(logger);
@@ -96,7 +94,7 @@ std::string LogManager::format_module_column(const std::string& module, int modu
   return std::string(fore) + padded + "\033[0m";
 }
 
-LogManager::LogManager() : impl_(std::make_unique<Impl>()) {
+LogManager::LogManager(const char *_name) : impl_(std::make_unique<Impl>()), name(_name) {
   const char* enableEnv = std::getenv("NEXUS_LOG_ENABLE");
   const bool enable = enableEnv ? (std::atoi(enableEnv) != 0) : false;
   setOpen(enable);
@@ -107,7 +105,7 @@ LogManager::~LogManager() { setOpen(false); }
 void LogManager::resetLogger() {
   if (impl_->logger) {
     impl_->logger->flush();
-    spdlog::drop(kNexusLoggerName);
+    spdlog::drop(name);
     impl_->logger.reset();
   }
 }
@@ -115,7 +113,7 @@ void LogManager::resetLogger() {
 void LogManager::installDisabledLogger() {
   resetLogger();
   impl_->color_module = false;
-  impl_->logger = makeDisabledLogger();
+  impl_->logger = makeDisabledLogger(name.c_str());
 }
 
 void LogManager::openFile(const std::string& filename) {
@@ -123,7 +121,7 @@ void LogManager::openFile(const std::string& filename) {
   impl_->color_module = false;
   try {
     auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(filename, false);
-    impl_->logger = makeNexusLogger(std::move(sink));
+    impl_->logger = makeNexusLogger(name.c_str(), std::move(sink));
   } catch (const spdlog::spdlog_ex& ex) {
     std::cerr << "Failed to open log file: " << filename << " (" << ex.what() << ")\n";
     impl_->logger.reset();
@@ -136,7 +134,7 @@ void LogManager::openStdout() {
   impl_->color_module = true;
   try {
     auto sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    impl_->logger = makeNexusLogger(std::move(sink));
+    impl_->logger = makeNexusLogger(name.c_str(), std::move(sink));
   } catch (const spdlog::spdlog_ex& ex) {
     std::cerr << "Failed to create stdout logger (" << ex.what() << ")\n";
     impl_->logger.reset();

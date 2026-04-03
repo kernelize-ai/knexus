@@ -1,3 +1,7 @@
+#define NEXUS_LOG_MODULE "pynexus"
+#define NEXUS_LOG_NAME "pynexus"
+#include <nexus/log.h>
+
 #include <Python.h>
 #include <nexus-api.h>
 #include <nexus.h>
@@ -30,6 +34,25 @@ static DevPtr getPointer(PyObject *obj) {
   if (obj == Py_None || PyLong_Check(obj) || PyFloat_Check(obj)) {
     return result;
   }
+  PyObject *device_m = PyObject_GetAttrString(obj, "device");
+  if (device_m) {
+    PyObject *runtime_name_m = PyObject_GetAttrString(device_m, "type");
+    if (runtime_name_m) {
+      result.runtime_name = PyUnicode_AsUTF8(runtime_name_m);
+      Py_DECREF(runtime_name_m);
+    }
+    PyObject *device_id_m = PyObject_GetAttrString(device_m, "index");
+    if (device_id_m && PyLong_Check(device_id_m)) {
+      result.device_id = PyLong_AsLong(device_id_m);
+      Py_DECREF(device_id_m);
+    } else if (!result.runtime_name.empty()) {
+      result.device_id = 0;
+    }
+    if (result.runtime_name == "nexus") {
+      // call torch.nexus.get_nexus_buffer(obj)
+    }
+    Py_DECREF(device_m);
+  }
   PyObject *data_ptr_m = PyObject_GetAttrString(obj, "data_ptr");
   if (data_ptr_m == nullptr) {
     data_ptr_m = PyObject_GetAttrString(obj, "tobytes");
@@ -43,22 +66,6 @@ static DevPtr getPointer(PyObject *obj) {
           PyExc_TypeError,
           "data_ptr method of Pointer object must return 64-bit int");
       return result;
-    }
-    PyObject *device_m = PyObject_GetAttrString(obj, "device");
-    if (device_m) {
-      PyObject *runtime_name_m = PyObject_GetAttrString(device_m, "type");
-      if (runtime_name_m) {
-        result.runtime_name = PyUnicode_AsUTF8(runtime_name_m);
-        Py_DECREF(runtime_name_m);
-      }
-      PyObject *device_id_m = PyObject_GetAttrString(device_m, "index");
-      if (device_id_m && PyLong_Check(device_id_m)) {
-        result.device_id = PyLong_AsLong(device_id_m);
-        Py_DECREF(device_id_m);
-      } else if (!result.runtime_name.empty()) {
-        result.device_id = 0;
-      }
-      Py_DECREF(device_m);
     }
     // get element type
     PyObject *dtype_tuple = PyTuple_New(1);
@@ -275,6 +282,11 @@ static py::class_<Objects<T>> make_objects_class(py::module &m, const std::strin
 static nxs_status set_argument(Command &self, int index, py::object value,
                                const char *name = "", nxs_data_type data_type = NXS_DataType_Undefined,
                                bool is_const = false) {
+  py::handle tp = py::type::of(value);
+  std::string object_type =
+      tp.attr("__qualname__").cast<std::string>();
+  NXSLOG_TRACE("set_argument: {} - {}", index, object_type);
+
   // Argument conversion precedence:
   // Buffer -> tensor-like object -> bool -> int -> float -> None sentinel.
   nxs_uint settings = data_type | (is_const ? NXS_CommandArgType_Constant : 0);
