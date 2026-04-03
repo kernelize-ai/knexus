@@ -7,6 +7,7 @@
 #include <cassert>
 #include <functional>
 #include <memory>
+#include <memory_resource>
 #include <mutex>
 #include <queue>
 #include <vector>
@@ -175,6 +176,34 @@ class Pool {
       if (get(i) == obj) return true;
     }
     return false;
+  }
+};
+
+
+template <typename T>
+class SynchronizedPmrPool {
+  std::pmr::synchronized_pool_resource synchronized_resource;
+  std::pmr::polymorphic_allocator<T> allocator;
+
+ public:
+  SynchronizedPmrPool() : allocator(&synchronized_resource) {}
+
+  template <typename... Args>
+  T *construct(Args &&...args) {
+    T *p = allocator.allocate(1);
+    try {
+      ::new (static_cast<void *>(p)) T(std::forward<Args>(args)...);
+    } catch (...) {
+      allocator.deallocate(p, 1);
+      throw;
+    }
+    return p;
+  }
+
+  void destroy(T *p) {
+    if (!p) return;
+    p->~T();
+    allocator.deallocate(p, 1);
   }
 };
 
