@@ -30,11 +30,11 @@ bool placeCommand(nxs_uint cmdSize, ttm::CoreRange &cmdRange, ttm::CoreRange &de
   cmdRange.start_coord.y = devRange.start_coord.y;
   cmdRange.end_coord.x = numRows > 1 ? devRange.end_coord.x : devRange.start_coord.x + tail - 1;
   cmdRange.end_coord.y = devRange.start_coord.y + numRows - 1;
-  devRange.start_coord.y += numRows;
   NXSLOG_INFO("placeCommand: devRange={},{} - {},{} numRows={}", devRange.start_coord.x,
              devRange.start_coord.y, devRange.end_coord.x, devRange.end_coord.y, numRows);
   NXSLOG_INFO("placeCommand: cmdRange={},{} - {},{}", cmdRange.start_coord.x,
              cmdRange.start_coord.y, cmdRange.end_coord.x, cmdRange.end_coord.y);
+  devRange.start_coord.y += numRows;
   return true;
   // TODO: this fails
   //auto crange = select_contiguous_range_from_corerangeset(coreRangeSet, devSize.x, numRows);
@@ -59,9 +59,13 @@ nxs_status TTSchedule::run(nxs_int stream, nxs_uint run_settings) {
   ttmd::MeshWorkload workload;
 
   // get current device size
+  // TT_NOBJ_CHECK(devGrid, device->get()->compute_with_storage_grid_size);
   TT_NOBJ_CHECK(devGrid, device->get()->compute_with_storage_grid_size);
   NXSLOG_INFO("Device grid: {},{}", devGrid.x, devGrid.y);
 
+  auto [num_cores, all_cores, core_group_1, core_group_2, work_per_core1, work_per_core2] =
+       ttm::split_work_to_cores(devGrid, 97);
+  NXSLOG_INFO("Split Work to cores: {}", core_group_1.str());
 //  TODO: use split_work_to_cores utility function to distribute commands across cores
 //  NXSLOG_INFO("Core range set: ", coreRangeSet.bounding_box().start_coord.x, ",", coreRangeSet.bounding_box().start_coord.y, " - ", coreRangeSet.bounding_box().end_coord.x, ",", coreRangeSet.bounding_box().end_coord.y);
 
@@ -73,7 +77,7 @@ nxs_status TTSchedule::run(nxs_int stream, nxs_uint run_settings) {
     }
     NXSLOG_INFO("placeCommand: cmdCores={},{} - {},{}", cmdCores.start_coord.x,
                cmdCores.start_coord.y, cmdCores.end_coord.x, cmdCores.end_coord.y);
-    auto status = cmd->runCommand(stream, workload, device_range, cmdCores);
+    auto status = cmd->runCommand(device->get(), workload, device_range, cmdCores);
     if (!nxs_success(status)) return status;
   }
 

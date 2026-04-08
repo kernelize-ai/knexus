@@ -89,7 +89,9 @@ enum _nxs_status {
     NXS_InvalidStream                        = -87,
     NXS_InvalidSystem                        = -88,
 
-    NXS_STATUS_MIN                           = -88,
+    NXS_InvalidDataType                      = -89,
+
+    NXS_STATUS_MIN                           = -89,
     NXS_STATUS_MAX                           = 0,
     NXS_STATUS_PREFIX_LEN                    = 4
 };

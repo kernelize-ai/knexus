@@ -34,6 +34,7 @@ static DevPtr getPointer(PyObject *obj) {
   if (obj == Py_None || PyLong_Check(obj) || PyFloat_Check(obj)) {
     return result;
   }
+  // Get device first, check for `nexus`
   PyObject *device_m = PyObject_GetAttrString(obj, "device");
   if (device_m) {
     PyObject *runtime_name_m = PyObject_GetAttrString(device_m, "type");
@@ -48,11 +49,12 @@ static DevPtr getPointer(PyObject *obj) {
     } else if (!result.runtime_name.empty()) {
       result.device_id = 0;
     }
-    if (result.runtime_name == "nexus") {
-      // call torch.nexus.get_nexus_buffer(obj)
-    }
     Py_DECREF(device_m);
+    if (result.runtime_name == "nexus") {
+      return result;
+    }
   }
+  // Get data_ptr and nbytes (size)
   PyObject *data_ptr_m = PyObject_GetAttrString(obj, "data_ptr");
   if (data_ptr_m == nullptr) {
     data_ptr_m = PyObject_GetAttrString(obj, "tobytes");
@@ -142,6 +144,19 @@ static Buffer make_buffer(py::object tensor, Device device = Device(),
   }
 
   auto data_ptr = getPointer(tensor.ptr());
+  if (data_ptr.runtime_name == "nexus") {
+    // call torch.nexus.get_nexus_buffer(obj)
+    auto get_nexus_buffer = import_from("torch.nexus", "get_nexus_buffer");
+    PyObject *get_nexus_buffer_ret = PyObject_CallFunctionObjArgs(get_nexus_buffer, tensor.ptr(), NULL);
+    Py_DECREF(get_nexus_buffer);
+    if (!get_nexus_buffer_ret) {
+      PyErr_Print();
+      throw std::runtime_error("Failed to get Nexus buffer");
+    }
+    auto buffer = pybind11::cast<Buffer>(get_nexus_buffer_ret);
+    Py_DECREF(get_nexus_buffer_ret);
+    return buffer;
+  }
   if (data_ptr.shape.getRank() == 0) { // is size 0 legal?
     return Buffer();
   }

@@ -191,8 +191,10 @@ extern "C" nxs_int NXS_API_CALL nxsCreateLibrary(nxs_int device_id,
   auto dev = rt->getObject(device_id);
   if (!dev) return NXS_InvalidDevice;
 
-  // load in memory source
-  return NXS_InvalidLibrary;
+  char *library_cptr = static_cast<char *>(library_data);
+  std::string lib_s(library_cptr, library_cptr + data_size);
+  auto lib = rt->getLibrary(lib_s, settings);
+  return rt->addObject(lib);
 }
 
 /************************************************************************
@@ -206,7 +208,7 @@ extern "C" nxs_int NXS_API_CALL nxsCreateLibraryFromFile(
   auto dev = rt->getObject(device_id);
   if (!dev) return NXS_InvalidDevice;
 
-  auto lib = rt->getLibrary(library_path, settings);
+  auto lib = rt->getLibraryFromFile(library_path, settings);
   return rt->addObject(lib);
 }
 
@@ -314,6 +316,7 @@ extern "C" nxs_status NXS_API_CALL nxsReleaseStream(nxs_int stream_id) {
  ***********************************************************************/
 extern "C" nxs_int NXS_API_CALL nxsCreateSchedule(nxs_int device_id,
                                                   nxs_uint schedule_settings) {
+  NXSLOG_INFO("createSchedule {}", device_id);
   auto rt = getRuntime();
   auto dev = rt->getDevice(device_id);
   if (!dev) return NXS_InvalidDevice;
@@ -382,6 +385,7 @@ extern "C" nxs_status NXS_API_CALL nxsReleaseSchedule(nxs_int schedule_id) {
 extern "C" nxs_int NXS_API_CALL nxsCreateCommand(nxs_int schedule_id,
                                                  nxs_int kernel_id,
                                                  nxs_uint settings) {
+  NXSLOG_INFO("createCommand {} - {}", schedule_id, kernel_id);
   auto rt = getRuntime();
   auto schedule = rt->get<TTSchedule>(schedule_id);
   if (!schedule) return NXS_InvalidSchedule;

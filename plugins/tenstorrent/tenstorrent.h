@@ -11,9 +11,13 @@
 #include <tt-metalium/host_api.hpp>
 #include <tt-metalium/distributed.hpp>
 #include <tt-metalium/work_split.hpp>
+#include <tt-metalium/tt_metal.hpp>
 
 namespace ttm = tt::tt_metal;
 namespace ttmd = tt::tt_metal::distributed;
+
+
+typedef std::shared_ptr<ttmd::MeshDevice> TTMeshDevice;
 
 inline tt::DataFormat getDataFormat(nxs_uint settings) {
     auto nxsFormat = settings & NXS_DataType_Mask;
@@ -71,27 +75,27 @@ inline size_t getDataTypeSize(nxs_uint settings) {
 
 // "TT_CHECK ", #call, nxs::rt::print_value(__VA_ARGS__));
 
-#define TT_NOBJ_CHECK(obj, call, ...)                                      \
-    NXSLOG_TRACE("TT_CHECK {} ({})", #call, #__VA_ARGS__);     \
+#define TT_NOBJ_CHECK(obj, call, ...)                          \
+    NXSLOG_TRACE("TT_CHECK: {} ({})", #call, #__VA_ARGS__);     \
     auto obj = call(__VA_ARGS__)
 
 
-#define TT_OBJ_CHECK(obj, call, ...)                                      \
-    NXSLOG_TRACE("TT_CHECK {} ({})", #call, #__VA_ARGS__);     \
-    obj = call(__VA_ARGS__);                                                      \
-    if (!obj) {                                                                   \
-      NXSLOG_ERROR("TT error");                               \
+#define TT_OBJ_CHECK(obj, call, ...)                           \
+    NXSLOG_TRACE("TT_CHECK: {} ({})", #call, #__VA_ARGS__);     \
+    obj = call(__VA_ARGS__);                                   \
+    if (!obj) {                                                \
+      NXSLOG_ERROR("TT_CHECK {}: invalid object {}", #call, #obj);   \
     }
 
-#define TT_COND_CHECK(cond, call, ...)                                      \
-    NXSLOG_TRACE("TT_CHECK {} ({})", #call, #__VA_ARGS__);     \
-    call(__VA_ARGS__);                                                            \
-    if (cond) {                                                                   \
-      NXSLOG_ERROR("TT error: {}", #cond);                   \
+#define TT_COND_CHECK(cond, call, ...)                         \
+    NXSLOG_TRACE("TT_CHECK: {} ({})", #call, #__VA_ARGS__);     \
+    call(__VA_ARGS__);                                         \
+    if (cond) {                                                \
+      NXSLOG_ERROR("TT_CHECK: {}", #cond);                     \
     }
 
-#define TT_CHECK(call, ...)                                      \
-    NXSLOG_TRACE("TT_CHECK {} ({})", #call, #__VA_ARGS__);     \
+#define TT_CHECK(call, ...)                                    \
+    NXSLOG_TRACE("TT_CHECK: {} ({})", #call, #__VA_ARGS__);     \
     call(__VA_ARGS__)
 
 #endif // RT_TT_H

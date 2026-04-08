@@ -11,9 +11,9 @@
  * @brief Barrier for CPU fibers
  * @return void
  ***********************************************************************/
-nxs_status TTCommand::runCommand(nxs_int stream, ttmd::MeshWorkload &workload,
+nxs_status TTCommand::runCommand(TTMeshDevice device, ttmd::MeshWorkload &workload,
                                  ttmd::MeshCoordinateRange &dev_range, ttm::CoreRange &cores) {
-  NXSLOG_INFO("runCommand {} - {},{}", kernel, cores.start_coord.x,
+  NXSLOG_INFO("runCommand {} - {},{}", (intptr_t)kernel, cores.start_coord.x,
              cores.start_coord.y);
 
   if (getArgsCount() >= 32) {
@@ -25,7 +25,7 @@ nxs_status TTCommand::runCommand(nxs_int stream, ttmd::MeshWorkload &workload,
   auto *library = kernel->getLibrary();
   assert(library);
 
-  ttm::Program program = ttm::CreateProgram();
+  TT_NOBJ_CHECK(program, ttm::CreateProgram);
 
   // load the compile-time args
   TTLibrary::CompileTimeArgs ctas;
@@ -59,7 +59,9 @@ nxs_status TTCommand::runCommand(nxs_int stream, ttmd::MeshWorkload &workload,
   ctas.push_back(ttm::CreateSemaphore(program, cores, 0));
 
   // jit the programs
-  library->jitProgram(program, cores, ctas);
+  if (auto build_status = library->jitProgram(device, program, cores, ctas)) {
+    return build_status;
+  }
 
   // collect uniform args
   TTLibrary::RunTimeArgs rt_args;
@@ -73,8 +75,9 @@ nxs_status TTCommand::runCommand(nxs_int stream, ttmd::MeshWorkload &workload,
 
   // compute persistent grid size
   int total_grid_size = grid_size.x * grid_size.y * grid_size.z;
-  int persistent_grid_stride = std::max(1, total_grid_size / (int)cores.size());
-  NXSLOG_INFO("Total grid size: {}, cores: {}, persistent grid stride: {}", total_grid_size, cores.size(), persistent_grid_stride);
+  int num_cores = cores.size();
+  int persistent_grid_stride = (total_grid_size + num_cores - 1) / num_cores;
+  NXSLOG_INFO("Total grid size: {}, cores: {}, persistent grid stride: {}", total_grid_size, num_cores, persistent_grid_stride);
 
   library->setupCommonRuntime(program, rt_args);
 
@@ -86,8 +89,8 @@ nxs_status TTCommand::runCommand(nxs_int stream, ttmd::MeshWorkload &workload,
     core_rt_args[1] = persistent_grid_idx * persistent_grid_stride + persistent_grid_stride;
     if (core_rt_args[1] > total_grid_size)
       core_rt_args[1] = total_grid_size;
-    NXSLOG_INFO("Launch params: grid_idx={}, start={}, end={}", persistent_grid_idx,
-               core_rt_args[0], core_rt_args[1]);
+    NXSLOG_INFO("Command Launch params: core {},{}  grid_idx={}, start={}, end={}", core.x, core.y,
+                persistent_grid_idx, core_rt_args[0], core_rt_args[1]);
     library->setupCoreRuntime(program, core, core_rt_args);
     persistent_grid_idx++;
   }
