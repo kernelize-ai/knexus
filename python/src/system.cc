@@ -1,3 +1,7 @@
+#define NEXUS_LOG_MODULE "pynexus"
+#define NEXUS_LOG_NAME "pynexus"
+#include <nexus/log.h>
+
 #include <Python.h>
 #include <nexus-api.h>
 #include <nexus.h>
@@ -30,10 +34,46 @@ static DevPtr getPointer(PyObject *obj) {
   if (obj == Py_None || PyLong_Check(obj) || PyFloat_Check(obj)) {
     return result;
   }
+  // Get the device from the object.
+  PyObject *device_m = PyObject_GetAttrString(obj, "device");
+  if (device_m) {
+    PyObject *runtime_name_m = PyObject_GetAttrString(device_m, "type");
+    if (runtime_name_m) {
+      result.runtime_name = PyUnicode_AsUTF8(runtime_name_m);
+      Py_DECREF(runtime_name_m);
+    }
+    PyObject *device_id_m = PyObject_GetAttrString(device_m, "index");
+    if (device_id_m && PyLong_Check(device_id_m)) {
+      result.device_id = PyLong_AsLong(device_id_m);
+      Py_DECREF(device_id_m);
+    } else if (!result.runtime_name.empty()) {
+      result.device_id = 0;
+    }
+    Py_DECREF(device_m);
+    if (result.runtime_name == "nexus") {
+      return result;
+    }
+  }
+  // Get the data pointer from the object.
   PyObject *data_ptr_m = PyObject_GetAttrString(obj, "data_ptr");
   if (data_ptr_m == nullptr) {
     data_ptr_m = PyObject_GetAttrString(obj, "tobytes");
   }
+  if (data_ptr_m) {
+    PyObject *data_ret = PyObject_CallNoArgs(data_ptr_m);
+    Py_DECREF(data_ptr_m);
+    if (!data_ret || *((nxs_long*)&data_ret) == -1) {
+      PyErr_SetString(
+          PyExc_TypeError,
+          "data_ptr method of Pointer object must return 64-bit int");
+      return result;
+    }
+    result.ptr = (char *)PyLong_AsUnsignedLongLong(data_ret);
+    Py_DECREF(data_ret);
+  } else {
+    return result;
+  }
+  // Get the number of bytes from the object.
   PyObject *nbytes_ret = PyObject_GetAttrString(obj, "nbytes");
   if (data_ptr_m && nbytes_ret) {
     PyObject *data_ret = PyObject_CallNoArgs(data_ptr_m);
@@ -43,22 +83,6 @@ static DevPtr getPointer(PyObject *obj) {
           PyExc_TypeError,
           "data_ptr method of Pointer object must return 64-bit int");
       return result;
-    }
-    PyObject *device_m = PyObject_GetAttrString(obj, "device");
-    if (device_m) {
-      PyObject *runtime_name_m = PyObject_GetAttrString(device_m, "type");
-      if (runtime_name_m) {
-        result.runtime_name = PyUnicode_AsUTF8(runtime_name_m);
-        Py_DECREF(runtime_name_m);
-      }
-      PyObject *device_id_m = PyObject_GetAttrString(device_m, "index");
-      if (device_id_m && PyLong_Check(device_id_m)) {
-        result.device_id = PyLong_AsLong(device_id_m);
-        Py_DECREF(device_id_m);
-      } else if (!result.runtime_name.empty()) {
-        result.device_id = 0;
-      }
-      Py_DECREF(device_m);
     }
     // get element type
     PyObject *dtype_tuple = PyTuple_New(1);
@@ -78,7 +102,7 @@ static DevPtr getPointer(PyObject *obj) {
       throw std::runtime_error("Failed to get data type");
     }
 
-    result.ptr = (char *)PyLong_AsUnsignedLongLong(data_ret);
+    // Get the shape from the object.
     PyObject *shape_m = PyObject_GetAttrString(obj, "shape");
     if (shape_m) {
       PyObject *builtins = PyImport_ImportModule("builtins");
@@ -135,6 +159,19 @@ static Buffer make_buffer(py::object tensor, Device device = Device(),
   }
 
   auto data_ptr = getPointer(tensor.ptr());
+  if (data_ptr.runtime_name == "nexus") {
+    // call torch.nexus.get_nexus_buffer(obj)
+    auto get_nexus_buffer = import_from("torch.nexus", "get_nexus_buffer");
+    PyObject *get_nexus_buffer_ret = PyObject_CallFunctionObjArgs(get_nexus_buffer, tensor.ptr(), NULL);
+    Py_DECREF(get_nexus_buffer);
+    if (!get_nexus_buffer_ret) {
+      PyErr_Print();
+      throw std::runtime_error("Failed to get Nexus buffer");
+    }
+    auto buffer = pybind11::cast<Buffer>(get_nexus_buffer_ret);
+    Py_DECREF(get_nexus_buffer_ret);
+    return buffer;
+  }
   if (data_ptr.shape.getRank() == 0) { // is size 0 legal?
     return Buffer();
   }
@@ -276,6 +313,10 @@ static nxs_status set_argument(Command &self, int index, py::object value,
                                const char *name = "", nxs_data_type data_type = NXS_DataType_Undefined,
                                bool is_const = false) {
   // Argument conversion precedence:
+  // Python type name: type(value).__qualname__
+  py::type tp = py::type::of(value);
+  std::string object_type = tp.attr("__qualname__").cast<std::string>();
+  NXSLOG_TRACE("set_argument: {} - {}", index, object_type);
   // Buffer -> tensor-like object -> bool -> int -> float -> None sentinel.
   nxs_uint settings = data_type | (is_const ? NXS_CommandArgType_Constant : 0);
   if (py::isinstance<Buffer>(value)) {

@@ -30,14 +30,6 @@ class LogManager {
   /// True when logging is enabled and the active sink is not at `level::off`.
   bool isOpen() const;
 
-  // Disable copying and moving
-  LogManager(const LogManager&) = delete;
-  LogManager& operator=(const LogManager&) = delete;
-  LogManager(LogManager&&) = delete;
-  LogManager& operator=(LogManager&&) = delete;
-
-  ~LogManager();
-
   static LogManager& getInstance() {
     static LogManager instance;
     return instance;
@@ -50,6 +42,13 @@ class LogManager {
   void setLogFile(const std::string& filename);
 
   LogManager();
+  // Disable copying and moving
+  LogManager(const LogManager&) = delete;
+  LogManager& operator=(const LogManager&) = delete;
+  LogManager(LogManager&&) = delete;
+  LogManager& operator=(LogManager&&) = delete;
+
+  ~LogManager();
 
   void resetLogger();
   void openFile(const std::string& filename);
