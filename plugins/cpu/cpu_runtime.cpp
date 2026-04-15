@@ -161,7 +161,7 @@ extern "C" nxs_int NXS_API_CALL nxsCreateBuffer(nxs_int device_id, nxs_buffer_la
 
 /************************************************************************
  * @def CopyBuffer
- * @brief Copy a buffer to the host
+ * @brief Copy a buffer to/from the host based on the settings
  * @return Error status or Succes.
  ***********************************************************************/
 extern "C" nxs_status NXS_API_CALL nxsCopyBuffer(nxs_int buffer_id,
