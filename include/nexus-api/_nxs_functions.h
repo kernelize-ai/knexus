@@ -102,11 +102,10 @@ NEXUS_API_FUNC(nxs_status, GetBufferProperty,
     size_t* property_value_size
 )
 /************************************************************************
- * @def CreateBuffer
- * @brief Create buffer on the device
-  * @return Negative value is an error status.
-  *         Non-negative is the bufferId.
-***********************************************************************/
+ * @def CopyBuffer
+ * @brief Copy buffer to/from the host
+ * @return Error status or Success.
+ ***********************************************************************/
 NEXUS_API_FUNC(nxs_status, CopyBuffer,
     nxs_int buffer_id,
     void* host_ptr,
@@ -116,9 +115,8 @@ NEXUS_API_FUNC(nxs_status, CopyBuffer,
 /************************************************************************
  * @def FillBuffer
  * @brief Fill buffer on the device with a value
-  * @return Negative value is an error status.
-  *         Non-negative is the bufferId.
-***********************************************************************/
+ * @return Error status or Success.
+ ***********************************************************************/
 NEXUS_API_FUNC(nxs_status, FillBuffer,
     nxs_int buffer_id,
     void *value,

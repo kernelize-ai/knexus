@@ -47,7 +47,7 @@ spdlog::level::level_enum levelFromEnv() {
 
 std::shared_ptr<spdlog::logger> makeNexusLogger(std::shared_ptr<spdlog::sinks::sink> sink) {
   auto logger = std::make_shared<spdlog::logger>(kNexusLoggerName, std::move(sink));
-  logger->set_pattern("\x1b[90m[%Y-%m-%d %H:%M:%S.%e]\x1b[0m %^%-4!l%$ | %v");
+  logger->set_pattern("\x1b[38;5;19m[%Y-%m-%d %H:%M:%S.%e]\x1b[38;5;0m %^%-4!l%$ | %v");
   logger->set_level(levelFromEnv());
   spdlog::register_logger(logger);
   spdlog::set_default_logger(logger);
@@ -86,14 +86,11 @@ std::string LogManager::format_module_column(const std::string& module, int modu
     return padded;
   }
 
-  const char* fore = nullptr;
+  const char* fore = "\x1b[90m";
   if (color_ansi != nullptr && color_ansi[0] != '\0') {
     fore = color_ansi;
-  } else {
-    const bool nxs_api = module.size() >= 7 && module.compare(0, 7, "nxs-api") == 0;
-    fore = nxs_api ? "\033[36m" : "\033[90m";
   }
-  return std::string(fore) + padded + "\033[0m";
+  return std::string(fore) + padded + "\x1b[0m";
 }
 
 LogManager::LogManager() : impl_(std::make_unique<Impl>()) {
@@ -105,7 +102,7 @@ LogManager::LogManager() : impl_(std::make_unique<Impl>()) {
 LogManager::~LogManager() { setOpen(false); }
 
 void LogManager::resetLogger() {
-  if (impl_->logger) {
+  if (impl_ && impl_->logger) {
     impl_->logger->flush();
     spdlog::drop(kNexusLoggerName);
     impl_->logger.reset();
@@ -114,8 +111,10 @@ void LogManager::resetLogger() {
 
 void LogManager::installDisabledLogger() {
   resetLogger();
-  impl_->color_module = false;
-  impl_->logger = makeDisabledLogger();
+  if (impl_) {
+    impl_->color_module = false;
+    impl_->logger = makeDisabledLogger();
+  }
 }
 
 void LogManager::openFile(const std::string& filename) {
@@ -158,7 +157,7 @@ void LogManager::setOpen(bool open) {
 }
 
 bool LogManager::isOpen() const {
-  return impl_->logger && impl_->logger->level() != spdlog::level::off;
+  return impl_ && impl_->logger && impl_->logger->level() != spdlog::level::off;
 }
 
 void LogManager::setLogFile(const std::string& filename) { openFile(filename); }

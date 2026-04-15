@@ -126,6 +126,9 @@ extern "C" nxs_int NXS_API_CALL nxsCreateBuffer(nxs_int device_id, nxs_buffer_la
   if (!dev) return NXS_InvalidDevice;
 
   NXSLOG_TRACE("createBuffer {}", shape.rank);
+  if (!(settings & NXS_BufferSettings_OnDevice)) {
+    settings |= NXS_BufferSettings_Maintain | NXS_BufferSettings_OnDevice;
+  }
   auto *buf = rt->getBuffer(shape, host_ptr, settings);
   if (!buf) return NXS_InvalidBuffer;
 
@@ -158,7 +161,7 @@ extern "C" nxs_int NXS_API_CALL nxsCreateBuffer(nxs_int device_id, nxs_buffer_la
 
 /************************************************************************
  * @def CopyBuffer
- * @brief Copy a buffer to the host
+ * @brief Copy a buffer to/from the host based on the settings
  * @return Error status or Succes.
  ***********************************************************************/
 extern "C" nxs_status NXS_API_CALL nxsCopyBuffer(nxs_int buffer_id,
@@ -168,7 +171,11 @@ extern "C" nxs_status NXS_API_CALL nxsCopyBuffer(nxs_int buffer_id,
   auto buf = rt->getObject(buffer_id);
   if (!buf) return NXS_InvalidBuffer;
   auto bufObj = (*buf)->get<rt::Buffer>();
-  std::memcpy(host_ptr, bufObj->data(), bufObj->getSizeBytes());
+  if (settings & NXS_BufferHostToDevice) {
+    std::memcpy(bufObj->data(), host_ptr, bufObj->getSizeBytes());
+  } else {
+    std::memcpy(host_ptr, bufObj->data(), bufObj->getSizeBytes());
+  }
   return NXS_Success;
 }
 

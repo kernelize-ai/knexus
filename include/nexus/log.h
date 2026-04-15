@@ -21,10 +21,10 @@
 // Log call is expanded here so the format string is a literal at the call site (no SPDLOG_FMT_RUNTIME).
 #define NXSLOG_MACRO(level, fmt, ...)                                                                \
   do {                                                                                               \
-    auto& _nxslog_inst = ::nexus::LogManager::getInstance();                                        \
+    auto& _nxslog_inst = ::nexus::LogManager::getInstance();                                         \
     if (_nxslog_inst.isOpen()) {                                                                     \
-      _nxslog_inst.logger()->log((level), "{} | \033[97m" fmt "\033[0m",                            \
-          ::nexus::LogManager::format_module_column(NEXUS_LOG_MODULE, NEXUS_LOG_PADDING,            \
+      _nxslog_inst.logger()->log((level), "{} | \x1b[40m\x1b[97m" fmt "\x1b[0m",                     \
+          ::nexus::LogManager::format_module_column(NEXUS_LOG_MODULE, NEXUS_LOG_PADDING,             \
                                                      NEXUS_LOG_MODULE_COLOR),                        \
           ##__VA_ARGS__);                                                                            \
     }                                                                                                \

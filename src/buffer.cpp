@@ -75,7 +75,7 @@ void detail::BufferImpl::setData(nxs_ulong sz, const char *hostData) {
 
 nxs_status detail::BufferImpl::copyData(void *_hostBuf, nxs_uint direction) const {
   if (getParentOfType<DeviceImpl>()) {
-    NXSLOG_INFO("copyData: from device: {}", getSizeBytes());
+    NXSLOG_INFO("copyData: from {}: {}", direction == NXS_BufferHostToDevice ? "host" : "device", getSizeBytes());
     auto *rt = getParentOfType<RuntimeImpl>();
     return (nxs_status)rt->runAPIFunction<NF_nxsCopyBuffer>(getId(), _hostBuf,
                                                             direction);
