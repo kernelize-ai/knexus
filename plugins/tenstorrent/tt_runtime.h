@@ -85,6 +85,9 @@ class TTRuntime : public rt::Runtime {
   TTLibrary *getLibrary(const std::string &filename, nxs_uint settings = 0) {
     return library_pool.get_new(this, filename, settings);
   }
+  TTLibrary *getLibrary(void *library_data, nxs_uint data_size, nxs_uint settings = 0) {
+    return library_pool.get_new(this, library_data, data_size, settings);
+  }
   nxs_status releaseLibrary(nxs_int library_id) {
     auto lib = get<TTLibrary>(library_id);
     if (!lib) return NXS_InvalidLibrary;

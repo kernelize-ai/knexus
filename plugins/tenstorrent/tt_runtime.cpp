@@ -187,12 +187,13 @@ extern "C" nxs_int NXS_API_CALL nxsCreateLibrary(nxs_int device_id,
                                                  void *library_data,
                                                  nxs_uint data_size,
                                                  nxs_uint settings) {
+  NXSLOG_INFO("createLibrary {} - {} - {}", device_id, (intptr_t)library_data, data_size);
   auto rt = getRuntime();
   auto dev = rt->getObject(device_id);
   if (!dev) return NXS_InvalidDevice;
 
-  // load in memory source
-  return NXS_InvalidLibrary;
+  auto lib = rt->getLibrary(library_data, data_size, settings);
+  return rt->addObject(lib);
 }
 
 /************************************************************************
@@ -202,6 +203,7 @@ extern "C" nxs_int NXS_API_CALL nxsCreateLibrary(nxs_int device_id,
  ***********************************************************************/
 extern "C" nxs_int NXS_API_CALL nxsCreateLibraryFromFile(
     nxs_int device_id, const char *library_path, nxs_uint settings) {
+  NXSLOG_INFO("createLibraryFromFile {} - {}", device_id, library_path);
   auto rt = getRuntime();
   auto dev = rt->getObject(device_id);
   if (!dev) return NXS_InvalidDevice;

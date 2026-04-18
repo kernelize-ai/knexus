@@ -13,7 +13,7 @@
  ***********************************************************************/
 nxs_status TTCommand::runCommand(nxs_int stream, ttmd::MeshWorkload &workload,
                                  ttmd::MeshCoordinateRange &dev_range, ttm::CoreRange &cores) {
-  NXSLOG_INFO("runCommand {} - {},{}", kernel, cores.start_coord.x,
+  NXSLOG_INFO("runCommand {} - {},{}", (intptr_t)kernel, cores.start_coord.x,
              cores.start_coord.y);
 
   if (getArgsCount() >= 32) {

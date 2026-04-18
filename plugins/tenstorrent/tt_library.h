@@ -20,6 +20,8 @@ class TTKernel {
 class TTLibrary {
   TTRuntime *rt;
   std::string file;
+  bool is_filename;
+
   TTKernel kernel;
   bool loaded;
 
@@ -28,8 +30,11 @@ class TTLibrary {
   ttm::KernelHandle compute_kernel;
 
  public:
-  TTLibrary(TTRuntime *rt = nullptr, const std::string &filename = "",
-             nxs_uint library_settings = 0) : rt(rt), file(filename), kernel(this), loaded(false) {
+  TTLibrary(TTRuntime *rt = nullptr, const std::string &filename = "", nxs_uint library_settings = 0)
+      : rt(rt), file(filename), is_filename(true), kernel(this), loaded(false) {
+  }
+  TTLibrary(TTRuntime *rt, void *library_data, nxs_uint data_size, nxs_uint library_settings = 0)
+      : rt(rt), file(reinterpret_cast<char *>(library_data), data_size), is_filename(false), kernel(this), loaded(false) {
   }
   TTLibrary(const TTLibrary &other) = default;
 
