@@ -3,15 +3,17 @@
 
 #include "tenstorrent.h"
 
+#include <mutex>
+
 class TTDevice {
   int device_id;
   std::shared_ptr<ttmd::MeshDevice> device;
  public:
-  TTDevice(int device_id = 0) : device_id(device_id) {}
+  TTDevice(int device_id = 0) : device_id(device_id) { initDevice(); }
   virtual ~TTDevice() { release(); }
 
   nxs_status release() {
-    device = nullptr;
+    device.reset();
     return NXS_Success;
   }
 
@@ -28,8 +30,8 @@ class TTDevice {
  private:
   bool initDevice() {
     if (device) return true;
-    NXSLOG_INFO("Create TTDevice: {}", device_id);
     TT_OBJ_CHECK(device, ttmd::MeshDevice::create_unit_mesh, device_id);
+    NXSLOG_INFO("Create TTDevice: {}", device_id);
     return true;
   }
 };
