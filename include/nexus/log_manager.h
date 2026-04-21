@@ -12,6 +12,10 @@
 #endif
 #endif
 
+#ifndef NEXUS_LOG_NAME
+#define NEXUS_LOG_NAME "nexus"
+#endif
+
 // Nexus handles location via NEXUS_LOG_MODULE prefix only; avoid file:line in output.
 #define SPDLOG_NO_SOURCE_LOC
 #include <spdlog/spdlog.h>
@@ -31,7 +35,7 @@ class LogManager {
   bool isOpen() const;
 
   static LogManager& getInstance() {
-    static LogManager instance;
+    static LogManager instance(NEXUS_LOG_NAME);
     return instance;
   }
 
@@ -41,7 +45,7 @@ class LogManager {
   void setOpen(bool open);
   void setLogFile(const std::string& filename);
 
-  LogManager();
+  LogManager(const std::string& log_name);
   // Disable copying and moving
   LogManager(const LogManager&) = delete;
   LogManager& operator=(const LogManager&) = delete;
@@ -60,6 +64,7 @@ class LogManager {
     bool color_module{false};
   };
   std::unique_ptr<Impl> impl_;
+  std::string log_name_;
 };
 
 }  // namespace nexus

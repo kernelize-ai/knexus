@@ -20,6 +20,8 @@ class TTKernel {
 class TTLibrary {
   TTRuntime *rt;
   std::string file;
+  bool is_filename;
+
   TTKernel kernel;
   bool loaded;
 
@@ -28,8 +30,11 @@ class TTLibrary {
   ttm::KernelHandle compute_kernel;
 
  public:
-  TTLibrary(TTRuntime *rt = nullptr, const std::string &filename = "",
-             nxs_uint library_settings = 0) : rt(rt), file(filename), kernel(this), loaded(false) {
+  TTLibrary(TTRuntime *rt = nullptr, const std::string &filename = "", nxs_uint library_settings = 0)
+      : rt(rt), file(filename), is_filename(true), kernel(this), loaded(false) {
+  }
+  TTLibrary(TTRuntime *rt, void *library_data, nxs_uint data_size, nxs_uint library_settings = 0)
+      : rt(rt), file(reinterpret_cast<char *>(library_data), data_size), is_filename(false), kernel(this), loaded(false) {
   }
   TTLibrary(const TTLibrary &other) = default;
 
@@ -40,7 +45,7 @@ class TTLibrary {
   typedef std::vector<uint32_t> CompileTimeArgs;
   typedef std::array<uint32_t, NXS_KERNEL_MAX_ARGS> RunTimeArgs;
 
-  void jitProgram(ttm::Program &program, const ttm::CoreRange &cores, const CompileTimeArgs &compile_time_args);
+  nxs_status jitProgram(std::shared_ptr<ttmd::MeshDevice> device, ttm::Program &program, const ttm::CoreRange &cores, const CompileTimeArgs &ctas);
   void setupCommonRuntime(ttm::Program &program, const RunTimeArgs &run_time_args);
   void setupCoreRuntime(ttm::Program &program, const ttm::CoreCoord &core, const RunTimeArgs &run_time_args);
 };

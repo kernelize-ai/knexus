@@ -5,6 +5,7 @@
 
 #include <rt_command.h>
 #include <tt_library.h>
+#include <tt_device.h>
 
 class TTRuntime;
 
@@ -23,7 +24,7 @@ class TTCommand : public nxs::rt::Command<TTKernel *, nxs_int, nxs_int> {
   ~TTCommand() = default;
 
   nxs_status runCommand(nxs_int stream) override { assert(0); return NXS_Success; }
-  nxs_status runCommand(nxs_int stream, ttmd::MeshWorkload &workload,
+  nxs_status runCommand(TTDevice *device, nxs_int stream, ttmd::MeshWorkload &workload,
                         ttmd::MeshCoordinateRange &dev_range,
                         ttm::CoreRange &core_range);
 

@@ -1,25 +1,51 @@
 #include <tt_library.h>
 
+#include <tt-metalium/tt_metal.hpp>
 
-void TTLibrary::jitProgram(ttm::Program &program, const ttm::CoreRange &cores, const CompileTimeArgs &compile_time_args) {
-    // Q: why does it need cores
+
+nxs_status TTLibrary::jitProgram(std::shared_ptr<ttmd::MeshDevice> device, ttm::Program &program,
+    const ttm::CoreRange &cores, const CompileTimeArgs &ctas) {
     // create 3 source files
-    std::string reader_kernel_str = "#define READER_KERNEL\n#include \"" + file + "\"\n";
+
+    auto load_kernel_str = [&](const char *kernel_enum_name) {
+        std::string kernel_str = "#define " + std::string(kernel_enum_name) + "\n";
+        if (auto kernel_override_path = std::getenv("TT_KERNEL_OVERRIDE_PATH")) {
+          kernel_str += "#include \"" + std::string(kernel_override_path) + "\"\n";
+        } else {
+        if (is_filename) {
+            kernel_str += "#include \"" + file + "\"\n";
+        } else {
+            kernel_str += file;
+        }
+        }
+        return kernel_str;
+    };
+    std::string reader_kernel_str = load_kernel_str("READER_KERNEL");
     TT_OBJ_CHECK(reader_kernel, ttm::CreateKernelFromString,
         program, reader_kernel_str, cores,
-        ttm::DataMovementConfig{.processor = ttm::DataMovementProcessor::RISCV_0,
-                        .noc = ttm::NOC::RISCV_0_default,
-                        .compile_args = compile_time_args});
-    std::string writer_kernel_str = "#define WRITER_KERNEL\n#include \"" + file + "\"\n";
-    TT_OBJ_CHECK(writer_kernel, ttm::CreateKernelFromString,
-        program, writer_kernel_str, cores,
         ttm::DataMovementConfig{.processor = ttm::DataMovementProcessor::RISCV_1,
                         .noc = ttm::NOC::RISCV_1_default,
-                        .compile_args = compile_time_args});
-    std::string compute_kernel_str = "#define COMPUTE_KERNEL\n#include \"" + file + "\"\n";
+                        .compile_args = ctas});
+    std::string writer_kernel_str = load_kernel_str("WRITER_KERNEL");
+    TT_OBJ_CHECK(writer_kernel, ttm::CreateKernelFromString,
+        program, writer_kernel_str, cores,
+        ttm::DataMovementConfig{.processor = ttm::DataMovementProcessor::RISCV_0,
+                        .noc = ttm::NOC::RISCV_0_default,
+                        .compile_args = ctas});
+    std::string compute_kernel_str = load_kernel_str("COMPUTE_KERNEL");
     TT_OBJ_CHECK(compute_kernel, ttm::CreateKernelFromString,
         program, compute_kernel_str, cores,
-        ttm::ComputeConfig{.math_fidelity = MathFidelity::HiFi4, .compile_args = compile_time_args});
+        ttm::ComputeConfig{.math_fidelity = MathFidelity::HiFi4, .compile_args = ctas});
+
+    try {
+      TT_CHECK(ttm::detail::CompileProgram, device->get_devices()[0], program);
+    } catch (const std::exception& e) {
+      // Compiler error — e.what() contains the error message
+      NXSLOG_ERROR("Compilation failed: {}", e.what());
+      return NXS_InvalidCommand;
+    }
+
+    return NXS_Success;
 }
 
 void TTLibrary::setupCommonRuntime(ttm::Program &program, const RunTimeArgs &run_time_args) {

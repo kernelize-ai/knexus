@@ -77,12 +77,14 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint device_property_id,
 
   switch (device_property_id) {
     case NP_Keys: {
-      nxs_long keys[] = {NP_Name, NP_Type, NP_Architecture, NP_Size};
-      return rt::getPropertyVec(property_value, property_value_size, keys, 4);
+      nxs_long keys[] = {NP_Name, NP_Vendor, NP_Type, NP_Architecture, NP_Size};
+      return rt::getPropertyVec(property_value, property_value_size, keys, 5);
     }
     case NP_Name: {
       // return getStr(property_value, property_value_size, device->core);
     }
+    case NP_Vendor:
+      return rt::getPropertyStr(property_value, property_value_size, "tenstorrent");
     case NP_Type:
       return rt::getPropertyStr(property_value, property_value_size, "npu");
     case NP_Architecture: {
@@ -187,12 +189,13 @@ extern "C" nxs_int NXS_API_CALL nxsCreateLibrary(nxs_int device_id,
                                                  void *library_data,
                                                  nxs_uint data_size,
                                                  nxs_uint settings) {
+  NXSLOG_INFO("createLibrary {} - {} - {}", device_id, (intptr_t)library_data, data_size);
   auto rt = getRuntime();
   auto dev = rt->getObject(device_id);
   if (!dev) return NXS_InvalidDevice;
 
-  // load in memory source
-  return NXS_InvalidLibrary;
+  auto lib = rt->getLibrary(library_data, data_size, settings);
+  return rt->addObject(lib);
 }
 
 /************************************************************************
@@ -202,6 +205,7 @@ extern "C" nxs_int NXS_API_CALL nxsCreateLibrary(nxs_int device_id,
  ***********************************************************************/
 extern "C" nxs_int NXS_API_CALL nxsCreateLibraryFromFile(
     nxs_int device_id, const char *library_path, nxs_uint settings) {
+  NXSLOG_INFO("createLibraryFromFile {} - {}", device_id, library_path);
   auto rt = getRuntime();
   auto dev = rt->getObject(device_id);
   if (!dev) return NXS_InvalidDevice;

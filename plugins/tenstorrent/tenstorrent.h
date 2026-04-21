@@ -9,7 +9,9 @@
 #include <rt_utilities.h>
 
 #include <tt-metalium/host_api.hpp>
+#include <tt-metalium/device.hpp>
 #include <tt-metalium/distributed.hpp>
+#include <tt-metalium/constants.hpp>
 #include <tt-metalium/work_split.hpp>
 
 namespace ttm = tt::tt_metal;
