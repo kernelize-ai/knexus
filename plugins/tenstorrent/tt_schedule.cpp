@@ -73,7 +73,7 @@ nxs_status TTSchedule::run(nxs_int stream, nxs_uint run_settings) {
     }
     NXSLOG_INFO("placeCommand: cmdCores={},{} - {},{}", cmdCores.start_coord.x,
                cmdCores.start_coord.y, cmdCores.end_coord.x, cmdCores.end_coord.y);
-    auto status = cmd->runCommand(stream, workload, device_range, cmdCores);
+    auto status = cmd->runCommand(device, stream, workload, device_range, cmdCores);
     if (!nxs_success(status)) return status;
   }
 
@@ -81,9 +81,8 @@ nxs_status TTSchedule::run(nxs_int stream, nxs_uint run_settings) {
     start_time = std::chrono::steady_clock::now();
   }
 
-  TT_CHECK(ttmd::EnqueueMeshWorkload, cq, workload, false);
-  TT_CHECK(ttmd::Finish, cq);
-
+  TT_CHECK(ttmd::EnqueueMeshWorkload, cq, workload, run_settings & NXS_ExecutionSettings_NonBlocking);
+  TT_CHECK(ttmd::Finish, cq); // TODO: check if non-blocking is set
 
   if (settings & NXS_ExecutionSettings_Timing) {
     end_time = std::chrono::steady_clock::now();

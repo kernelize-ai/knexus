@@ -1,0 +1,175 @@
+{
+  "Name": "Wormhole",
+  "Vendor": "Other",
+  "Architecture": "Tensix+",
+  "ReleaseYear": 2023,
+  "FabricationProcess": {
+    "ProcessNode": 12,
+    "Manufacturer": "GlobalFoundries",
+    "Technology": "12LP"
+  },
+  "CoreSubsystem": {
+    "Name": "Tensix",
+    "SubUnits": [
+      {
+        "Type": "Chip",
+        "Count": 1,
+        "Size": 80,
+        "Description": "Single Wormhole die (670 mm²) containing 80 Tensix cores arranged in a 10x12 2D grid with NoC interconnect. Of the grid tiles, 80 are Tensix compute cores and the remainder are DRAM, Ethernet, PCIe, and ARC management tiles",
+        "Memory": ["GDDR6", "SRAM"],
+        "SubunitType": "Tensix Core"
+      },
+      {
+        "Type": "Tensix Core",
+        "Count": 80,
+        "Size": 5,
+        "Description": "Each Tensix core contains 5 Baby RISC-V CPUs (Data Movement 0, Data Movement 1, Unpack, Math, Pack), a matrix unit (FPU), a vector unit (SFPU), pack/unpack units, 2 NoC router interfaces, and 1.5 MB of local SRAM. n150 cards expose 72 cores; n300 cards expose 64 per die (128 total across 2 dies)",
+        "Memory": ["SRAM (L1)"],
+        "SubunitType": "Baby RISC-V"
+      },
+      {
+        "Type": "Baby RISC-V",
+        "Count": 5,
+        "Size": 1,
+        "Description": "Small in-order RISC-V cores within each Tensix responsible for instruction dispatch and control. Roles: Data Movement 0 (reader/RISC0), Data Movement 1 (writer/RISC1), Unpack (RISC2), Math (RISC3), Pack (RISC4). These cores operate concurrently enabling native pipelining and data movement/compute overlap"
+      },
+      {
+        "Type": "Matrix Unit (FPU)",
+        "Count": 1,
+        "Size": 1,
+        "Description": "Dedicated matrix multiply unit per Tensix core, operates on 32x32 tiles natively. Supports FP8, FP16, BF16, BLOCKFP2/4/8, TF32, and INT8 precisions"
+      },
+      {
+        "Type": "Vector Unit (SFPU)",
+        "Count": 1,
+        "Size": 32,
+        "Description": "32-wide vector processing unit per Tensix core for element-wise unary and binary operations such as activation functions, reductions, and transcendentals"
+      },
+      {
+        "Type": "DRAM Controller",
+        "Count": 6,
+        "Size": 1,
+        "Description": "6 GDDR6 DRAM controllers, each managing 2 GB (2 channels of 1 GB each) for a total of 12 GB per die. Multiple DRAM tiles on the NoC can map to the same controller for improved connectivity"
+      },
+      {
+        "Type": "Ethernet Controller",
+        "Count": 16,
+        "Size": 1,
+        "Description": "16 Ethernet cores on die, each supporting 100 Gbps for chip-to-chip interconnect, providing 1.6 Tbps total bisection bandwidth for scale-out"
+      },
+      {
+        "Type": "PCIe Controller",
+        "Count": 1,
+        "Size": 1,
+        "Description": "PCIe 4.0 x16 host interface controller"
+      },
+      {
+        "Type": "ARC Management Core",
+        "Count": 1,
+        "Size": 1,
+        "Description": "System management core for power management, thermal monitoring, and firmware control"
+      }
+    ]
+  },
+  "MemorySubsystem": {
+    "SupportedMemoryTypes": ["GDDR6"],
+    "MemoryTypes": [
+      {
+        "Type": "SRAM (L1 per Tensix Core)",
+        "Size": 1536,
+        "BankCount": 1,
+        "description": "1.5 MB of local SRAM per Tensix core. Not a cache — no automatic caching, eviction, or coherence. Data must be explicitly managed via NoC transfers. Used for kernel code, circular buffers, tile storage, and inter-core data exchange. Total on-chip SRAM: 120 MB across 80 cores per die"
+      },
+      {
+        "Type": "GDDR6 (Off-chip DRAM)",
+        "Size": 12582912,
+        "BankCount": 6,
+        "MaxMemoryBandwidth": 288,
+        "maxBusWidth": 192,
+        "description": "12 GB GDDR6 at 12 GT/s across 6 DRAM controllers per die (2 channels of 1 GB each per controller). n150 cards have 12 GB total, n300 cards have 24 GB total (12 GB per die). Accessed explicitly by Tensix cores via NoC"
+      },
+      {
+        "Type": "Instruction Cache (per Baby RISC-V)",
+        "Size": 2,
+        "BankCount": 1,
+        "description": "Small 0.5–2 KiB per-core instruction cache (approximately 128–512 instructions) to reduce repeated SRAM fetches during kernel execution"
+      },
+      {
+        "Type": "Private RISC-V Memory",
+        "Size": 4,
+        "BankCount": 1,
+        "description": "Small private memory region per Baby RISC-V core for stack and local variables. Isolated per core; shared SRAM is accessible to all cores at identical addresses"
+      }
+    ]
+  },
+  "KernelModel": {
+    "LLVMTarget": "riscv32",
+    "LLVMTriple": "riscv32-unknown-elf",
+    "LLVMFeatures": [
+      {
+        "Name": "rv32im",
+        "Description": "RISC-V 32-bit base integer ISA with multiply extension for Baby RISC-V cores"
+      }
+    ],
+    "SubUnits": [
+      {
+        "Type": "TT-Metalium",
+        "Version": "1.0"
+      },
+      {
+        "Type": "TT-NN",
+        "Version": "1.0"
+      },
+      {
+        "Type": "TT-Forge",
+        "Version": "1.0"
+      }
+    ]
+  },
+  "SpecializedHardware": {
+    "RayTracingAccelerators": {
+      "Present": false
+    },
+    "AiAccelerators": {
+      "Present": true,
+      "Name": "Tensix Matrix Engine (FPU)",
+      "Count": 80,
+      "SupportedPrecisions": ["FP32", "FP16", "BF16", "INT8", "INT4", "Other"],
+      "Performance": {
+        "fp16TopsPerGPU": 74,
+        "int8TopsPerGPU": 262
+      }
+    },
+    "videoCodecs": {
+      "encoders": [],
+      "decoders": []
+    }
+  },
+  "PowerEfficiency": {
+    "BaseClock": 1000,
+    "BoostClock": 1000,
+    "MaxTDP": 160,
+    "PowerStates": [
+      {
+        "Name": "Active",
+        "Description": "Full power state with all Tensix cores and DRAM controllers active, up to 160W TBP (n150) or 300W TBP (n300 dual-die)"
+      },
+      {
+        "Name": "Idle",
+        "Description": "Reduced power state when no workloads are running"
+      }
+    ],
+    "ClockGating": true,
+    "DynamicVoltageFrequencyScaling": true
+  },
+  "PciExpress": {
+    "Version": "4.0",
+    "Lanes": 16,
+    "Bandwidth": 32
+  },
+  "MultiGpuSupport": {
+    "Technologies": ["Other"],
+    "MaxGpus": 32,
+    "InterconnectBandwidth": 200
+  }
+}

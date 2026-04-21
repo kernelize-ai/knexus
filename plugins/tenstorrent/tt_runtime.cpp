@@ -77,12 +77,14 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint device_property_id,
 
   switch (device_property_id) {
     case NP_Keys: {
-      nxs_long keys[] = {NP_Name, NP_Type, NP_Architecture, NP_Size};
-      return rt::getPropertyVec(property_value, property_value_size, keys, 4);
+      nxs_long keys[] = {NP_Name, NP_Vendor, NP_Type, NP_Architecture, NP_Size};
+      return rt::getPropertyVec(property_value, property_value_size, keys, 5);
     }
     case NP_Name: {
       // return getStr(property_value, property_value_size, device->core);
     }
+    case NP_Vendor:
+      return rt::getPropertyStr(property_value, property_value_size, "tenstorrent");
     case NP_Type:
       return rt::getPropertyStr(property_value, property_value_size, "npu");
     case NP_Architecture: {

@@ -45,7 +45,7 @@ class TTLibrary {
   typedef std::vector<uint32_t> CompileTimeArgs;
   typedef std::array<uint32_t, NXS_KERNEL_MAX_ARGS> RunTimeArgs;
 
-  void jitProgram(ttm::Program &program, const ttm::CoreRange &cores, const CompileTimeArgs &compile_time_args);
+  nxs_status jitProgram(std::shared_ptr<ttmd::MeshDevice> device, ttm::Program &program, const ttm::CoreRange &cores, const CompileTimeArgs &ctas);
   void setupCommonRuntime(ttm::Program &program, const RunTimeArgs &run_time_args);
   void setupCoreRuntime(ttm::Program &program, const ttm::CoreCoord &core, const RunTimeArgs &run_time_args);
 };

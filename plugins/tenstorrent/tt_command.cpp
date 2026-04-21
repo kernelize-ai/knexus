@@ -11,15 +11,10 @@
  * @brief Barrier for CPU fibers
  * @return void
  ***********************************************************************/
-nxs_status TTCommand::runCommand(nxs_int stream, ttmd::MeshWorkload &workload,
+nxs_status TTCommand::runCommand(TTDevice *device, nxs_int stream, ttmd::MeshWorkload &workload,
                                  ttmd::MeshCoordinateRange &dev_range, ttm::CoreRange &cores) {
   NXSLOG_INFO("runCommand {} - {},{}", (intptr_t)kernel, cores.start_coord.x,
              cores.start_coord.y);
-
-  if (getArgsCount() >= 32) {
-    NXSLOG_ERROR("Too many arguments for kernel");
-    return NXS_InvalidCommand;
-  }
 
   assert(kernel);
   auto *library = kernel->getLibrary();
@@ -34,7 +29,7 @@ nxs_status TTCommand::runCommand(nxs_int stream, ttmd::MeshWorkload &workload,
     TT_NOBJ_CHECK(cb_config, ttm::CircularBufferConfig, (tile_count * tile_size_bytes), {{cb_index, data_format}});
     TT_CHECK(cb_config.set_page_size, cb_index, tile_size_bytes);
     return cb_config;
-  };  
+  }; 
 
   size_t tile_size = 1024;
 
@@ -44,7 +39,7 @@ nxs_status TTCommand::runCommand(nxs_int stream, ttmd::MeshWorkload &workload,
       size_t tile_count = *(nxs_int*)consts[i].value;
       size_t tile_size_bytes = tile_size * getDataTypeSize(cst.settings);
       auto data_format = getDataFormat(consts[i].settings);
-      NXSLOG_INFO("CB size ({}): {}, format={}", i, tile_size_bytes,
+      NXSLOG_INFO("CB size ({}): tile_count={}, tile_size_bytes={}, format={}", i, tile_count, tile_size_bytes,
                  static_cast<int>(data_format));
       auto cb_config = make_cb_config(static_cast<tt::CBIndex>(i), tile_count, tile_size_bytes, data_format);
       TT_CHECK(ttm::CreateCircularBuffer, program, cores, cb_config);
@@ -59,7 +54,8 @@ nxs_status TTCommand::runCommand(nxs_int stream, ttmd::MeshWorkload &workload,
   ctas.push_back(ttm::CreateSemaphore(program, cores, 0));
 
   // jit the programs
-  library->jitProgram(program, cores, ctas);
+  nxs_status status = library->jitProgram(device->get(), program, cores, ctas);
+  if (!nxs_success(status)) return status;
 
   // collect uniform args
   TTLibrary::RunTimeArgs rt_args;
