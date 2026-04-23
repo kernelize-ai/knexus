@@ -69,7 +69,7 @@ nxs_status TTCommand::runCommand(TTDevice *device, nxs_int stream, ttmd::MeshWor
 
   // compute persistent grid size
   int total_grid_size = grid_size.x * grid_size.y * grid_size.z;
-  int persistent_grid_stride = std::max(1, total_grid_size / (int)cores.size());
+  int persistent_grid_stride = rt::cdiv(total_grid_size, (int)cores.size());
   NXSLOG_INFO("Total grid size: {}, cores: {}, persistent grid stride: {}", total_grid_size, cores.size(), persistent_grid_stride);
 
   library->setupCommonRuntime(program, rt_args);

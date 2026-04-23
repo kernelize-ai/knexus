@@ -16,10 +16,6 @@ static bool compareShapes(nxs_buffer_layout shape1, nxs_buffer_layout shape2) {
   return true;
 }
 
-static nxs_ulong cdiv(nxs_ulong a, nxs_ulong b) {
-  return (a + b - 1) / b;
-}
-
 TTBuffer::TTBuffer(TTDevice *dev, nxs_buffer_layout shape,
                    void *data_ptr, nxs_uint settings)
   : Buffer(shape, data_ptr, settings), device(dev), address(0) {
@@ -34,14 +30,14 @@ TTBuffer::TTBuffer(TTDevice *dev, nxs_buffer_layout shape,
   if (shape.rank == 1) {
     // pad up to the nearest tile size
     tilizedShape.rank = 2;
-    tilizedShape.dim[0] = cdiv(shape.dim[0], tileWidth * tileWidth) * tileWidth;
+    tilizedShape.dim[0] = rt::cdiv(shape.dim[0], tileWidth * tileWidth) * tileWidth;
     tilizedShape.dim[1] = tileWidth;
     rowCount = tileWidth;
     paddedSize = tilizedShape.dim[0] * tilizedShape.dim[1];
   } else {
     tilizedShape.rank = shape.rank;
     for (nxs_uint i = 0; i < shape.rank; i++) {
-      tilizedShape.dim[i] = cdiv(shape.dim[i], tileWidth) * tileWidth;
+      tilizedShape.dim[i] = rt::cdiv(shape.dim[i], tileWidth) * tileWidth;
       NXSLOG_INFO("TTBuffer: dim[{}]={}", i, tilizedShape.dim[i]);
       paddedSize *= tilizedShape.dim[i];
       if (i != 0) rowCount *= tilizedShape.dim[i];
