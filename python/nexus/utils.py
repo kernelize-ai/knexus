@@ -66,7 +66,7 @@ def get_data_type(obj):
     Raises:
         ValueError: If the tensor is not a numpy or torch tensor.
     """
-    if isinstance(obj, nexus.buffer):
+    if isinstance(obj, nexus.Buffer):
         return obj.dtype
     if isinstance(obj, nexus.data_type.nxs_data_type):
         return obj
