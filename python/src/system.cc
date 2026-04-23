@@ -148,7 +148,7 @@ static Buffer make_buffer(py::object tensor, Device device = Device(),
                           nxs_uint settings = 0) {
   // TODO: track ownership of the py::object tensor (release on destruction of
   // Buffer)
-  static auto nexus_buffer = import_from("nexus", "buffer");
+  static auto nexus_buffer = import_from("nexus", "Buffer");
   if (PyObject_IsInstance(tensor.ptr(), nexus_buffer)) {
     // TODO: check for matching device
     auto buffer = tensor.cast<Buffer>();
@@ -249,7 +249,9 @@ static T get_prop(Tobj &self, const nxs_property prop) {
 // Object class generation
 template <typename T>
 static py::class_<T> make_object_class(py::module &m, const std::string &name, const std::string &doc = "") {
-  return py::class_<T>(m, name.c_str(), py::module_local(), doc.c_str())
+  // Global registration (no py::module_local) so other extension modules (e.g. torch_nexus)
+  // can return/pass nexus::Device, Runtime, Buffer, etc. without their own duplicate bindings.
+  return py::class_<T>(m, name.c_str(), doc.c_str())
       .def("__bool__", [](T &self) { return (bool)self; })
       .def("get_property_str",
            [](T &self, const std::string &name) {
@@ -296,7 +298,7 @@ static py::class_<T> make_object_class(py::module &m, const std::string &name, c
 
 template <typename T>
 static py::class_<Objects<T>> make_objects_class(py::module &m, const std::string &name, const std::string &doc = "") {
-  return py::class_<Objects<T>>(m, name.c_str(), py::module_local(), doc.c_str())
+  return py::class_<Objects<T>>(m, name.c_str(), doc.c_str())
       .def("__bool__", [](Objects<T> &self) { return (bool)self; })
       .def("__getitem__", [](Objects<T> &self, int idx) { return self.get(idx); })
       .def("__len__", [](Objects<T> &self) { return self.size(); })
@@ -466,7 +468,7 @@ void pynexus::init_system_bindings(py::module &m) {
   //////////////////////////////////////////////////////////////////////////
 
   // Properties Object
-  py::class_<Info>(m, "info", py::module_local(), "Hierarchical property tree returned by Nexus info queries.")
+  py::class_<Info>(m, "Info", py::module_local(), "Hierarchical property tree returned by Nexus info queries.")
       .def("__bool__", [](Info &self) { return (bool)self; })
       .def(
           "get",
@@ -482,7 +484,7 @@ void pynexus::init_system_bindings(py::module &m) {
           py::arg("path") = std::vector<std::string_view>(),
           "Lookup a JSON node by path segments (for example ['runtime', 'devices']).");
 
-  py::class_<Layout>(m, "layout", py::module_local(), "Tensor layout descriptor (dtype, rank, dimensions, and element count).")
+  py::class_<Layout>(m, "Layout", py::module_local(), "Tensor layout descriptor (dtype, rank, dimensions, and element count).")
     .def("dtype", [](Layout &self) { return self.getDataType(); }, "Return the element data type.")
     .def("data_type", [](Layout &self) { return self.getDataType(); }, "Alias for dtype().")
     .def_property_readonly("dtype", [](Layout &self) { return self.getDataType(); })
@@ -493,7 +495,7 @@ void pynexus::init_system_bindings(py::module &m) {
     .def("numel", [](Layout &self) { return self.getNumElements(); }, "Return total number of elements.")
     .def_property_readonly("numel", [](Layout &self) { return self.getNumElements(); });
   
-  make_object_class<Buffer>(m, "buffer", "Memory buffer for data transfer between host and device.")
+  make_object_class<Buffer>(m, "Buffer", "Memory buffer for data transfer between host and device.")
     .def("shape", [](Buffer &self) { return self.getLayout(); }, "Return buffer layout.")
     .def("layout", [](Buffer &self) { return self.getLayout(); }, "Return buffer layout.")
     .def("numel", [](Buffer &self) { return self.getLayout().getNumElements(); }, "Return number of elements.")
@@ -510,15 +512,15 @@ void pynexus::init_system_bindings(py::module &m) {
       }
       return self.copy(data_ptr.ptr);
     });
-  make_objects_class<Buffer>(m, "buffers", "Collection of memory buffers.");
+  make_objects_class<Buffer>(m, "Buffers", "Collection of memory buffers.");
 
-  make_object_class<Kernel>(m, "kernel", "Compiled kernel function.")
+  make_object_class<Kernel>(m, "Kernel", "Compiled kernel function.")
     .def("get_info", [](Kernel &self) {
     return self.getInfo();
   });
-  make_objects_class<Kernel>(m, "kernels", "Collection of compiled kernel functions.");
+  make_objects_class<Kernel>(m, "Kernels", "Collection of compiled kernel functions.");
 
-  make_object_class<Library>(m, "library", "Container for compiled kernels and functions.")
+  make_object_class<Library>(m, "Library", "Container for compiled kernels and functions.")
       .def("get_info", [](Library &self) { return self.getInfo(); })
       .def("get_kernel",
            [](Library &self, const std::string &name) {
@@ -526,12 +528,12 @@ void pynexus::init_system_bindings(py::module &m) {
            })
       .def("get_kernels", [](Library &self) { return self.getKernels(); });
 
-  make_object_class<Stream>(m, "stream", "Command stream for executing commands.");
-  make_object_class<Event>(m, "event", "Synchronization primitive for coordinating execution between host and device.")
+  make_object_class<Stream>(m, "Stream", "Command stream for executing commands.");
+  make_object_class<Event>(m, "Event", "Synchronization primitive for coordinating execution between host and device.")
       .def("signal", [](Event &self, int signal_value) { return self.signal(signal_value); }, py::arg("signal_value") = 1)
       .def("wait", [](Event &self, int wait_value) { return self.wait(wait_value); }, py::arg("wait_value") = 1);
 
-  make_object_class<Command>(m, "command", "Individual kernel execution command.")
+  make_object_class<Command>(m, "Command", "Individual kernel execution command.")
       .def("get_event", [](Command &self) { return self.getEvent(); })
       .def("get_kernel", [](Command &self) { return self.getKernel(); })
       .def("set_arg", [](Command &self, int index, py::object value, const char *name, nxs_data_type data_type) -> nxs_status {
@@ -554,9 +556,9 @@ void pynexus::init_system_bindings(py::module &m) {
         "Finalize launch geometry. grid/block accept [x], [x,y], or [x,y,z]."
       );
 
-  make_objects_class<Command>(m, "commands", "Collection of kernel execution commands.");
+  make_objects_class<Command>(m, "Commands", "Collection of kernel execution commands.");
 
-  make_object_class<Schedule>(m, "schedule", "Command schedule for organizing and executing commands.")
+  make_object_class<Schedule>(m, "Schedule", "Command schedule for organizing and executing commands.")
       .def(
           "create_command",
           [](Schedule &self, Kernel kernel, std::vector<Buffer> buffers,
@@ -614,12 +616,12 @@ void pynexus::init_system_bindings(py::module &m) {
           py::arg("stream") = Stream(), py::arg("blocking") = true);
 
   // Object Containers
-  make_objects_class<Library>(m, "librarys", "Collection of library objects.");
-  make_objects_class<Schedule>(m, "schedules", "Collection of schedule objects.");
-  make_objects_class<Stream>(m, "streams", "Collection of stream objects.");
-  make_objects_class<Event>(m, "events", "Collection of event objects.");
+  make_objects_class<Library>(m, "Librarys", "Collection of library objects.");
+  make_objects_class<Schedule>(m, "Schedules", "Collection of schedule objects.");
+  make_objects_class<Stream>(m, "Streams", "Collection of stream objects.");
+  make_objects_class<Event>(m, "Events", "Collection of event objects.");
 
-  make_object_class<Device>(m, "device", "Physical device for executing commands.")
+  make_object_class<Device>(m, "Device", "Physical device for executing commands.")
       .def("get_info", [](Device &self) { return self.getInfo(); })
       .def("create_buffer",
            [](Device &self, py::object tensor) {
@@ -678,15 +680,15 @@ void pynexus::init_system_bindings(py::module &m) {
            [](Device &self) { return self.createSchedule(); })
       .def("get_schedules", [](Device &self) { return self.getSchedules(); });
 
-  make_objects_class<Device>(m, "devices", "Collection of device objects.");
-  make_objects_class<Runtime>(m, "runtimes", "Collection of runtime objects.");
+  make_objects_class<Device>(m, "Devices", "Collection of device objects.");
+  make_objects_class<Runtime>(m, "Runtimes", "Collection of runtime objects.");
 
-  make_object_class<Runtime>(m, "runtime", "Runtime environment for executing commands.")
+  make_object_class<Runtime>(m, "Runtime", "Runtime environment for executing commands.")
       .def("get_device",
            [](Runtime &self, nxs_int id) { return self.getDevice(id); })
       .def("get_devices", [](Runtime &self) { return self.getDevices(); });
 
-  make_objects_class<Info>(m, "infos", "Collection of info objects.");
+  make_objects_class<Info>(m, "Infos", "Collection of info objects.");
 
   // query
   m.def("get_runtime", [](const std::string &name) { return nexus::getSystem().getRuntime(name); },

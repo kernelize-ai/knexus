@@ -138,11 +138,11 @@ class Objects {
     objects->push_back(obj);
     return objects->size() - 1;
   }
-  Tobject get(nxs_int idx) const {
+  Tobject get(nxs_uint idx) const {
     if (idx >= 0 && idx < objects->size()) return (*objects)[idx];
     return Tobject();
   }
-  Tobject operator[](nxs_int idx) const { return get(idx); }
+  Tobject operator[](nxs_uint idx) const { return get(idx); }
 
   void clear() { objects->clear(); }
 
