@@ -10,7 +10,7 @@ float TTSchedule::getTime() const {
 }
 
 bool placeCommand(nxs_uint cmdSize, ttm::CoreRange &cmdRange, ttm::CoreRange &devRange, size_t rowLen) {
-  auto numRows = (cmdSize / rowLen) + !!(cmdSize % rowLen);
+  auto numRows = rt::cdiv(cmdSize, rowLen);
   auto tail = cmdSize % rowLen;
 
   if (devRange.end_coord.y <= devRange.start_coord.y) {

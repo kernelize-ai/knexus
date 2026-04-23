@@ -99,6 +99,12 @@ static std::string print_value(T value, Args... args) {
   return print_value(value) + print_value(args...);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+//  Math utilities
+static inline size_t cdiv(size_t a, size_t b) {
+  return (a + b - 1) / b;
+}
+
 }  // namespace rt
 }  // namespace nxs
 
