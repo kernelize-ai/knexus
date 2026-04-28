@@ -1,7 +1,7 @@
 #define NEXUS_LOG_MODULE "buffer"
+#include <nexus/log.h>
 
 #include <nexus/buffer.h>
-#include <nexus/log.h>
 #include <nexus/system.h>
 
 #include <cstring>
@@ -22,11 +22,6 @@ detail::BufferImpl::BufferImpl(detail::Impl base, const Layout &layout, const ch
     size_bytes /= 8;
   }
   setData(size_bytes, _hostData);
-}
-
-detail::BufferImpl::~BufferImpl() {
-  NXSLOG_TRACE("DTOR: {}", getId());
-  (void)release();
 }
 
 nxs_status detail::BufferImpl::releaseAPI() {

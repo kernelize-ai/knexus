@@ -1,8 +1,8 @@
 #define NEXUS_LOG_MODULE "device"
+#include <nexus/log.h>
 
 #include <nexus/buffer.h>
 #include <nexus/device_db.h>
-#include <nexus/log.h>
 #include <nexus/runtime.h>
 #include <nexus/utility.h>
 
@@ -37,23 +37,12 @@ detail::DeviceImpl::DeviceImpl(detail::Impl base) : detail::Impl(base) {
     NXSLOG_WARN("device properties not found");
 }
 
-detail::DeviceImpl::~DeviceImpl() {
-  NXSLOG_TRACE("DTOR: {}", getId());
+void detail::DeviceImpl::releaseChildren() {
   buffers.clear();
   events.clear();
   schedules.clear();
   streams.clear();
   libraries.clear();
-  (void)release();
-}
-
-void detail::DeviceImpl::releaseChild(Impl *obj) {
-  if (!obj) return;
-  buffers.removeByImpl(obj);
-  libraries.removeByImpl(obj);
-  schedules.removeByImpl(obj);
-  streams.removeByImpl(obj);
-  events.removeByImpl(obj);
 }
 
 std::optional<Property> detail::DeviceImpl::getProperty(nxs_int prop) const {

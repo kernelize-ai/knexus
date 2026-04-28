@@ -1,9 +1,9 @@
 #define NEXUS_LOG_MODULE "schedule"
+#include <nexus/log.h>
 
 #include <nexus/command.h>
 #include <nexus/event.h>
 #include <nexus/kernel.h>
-#include <nexus/log.h>
 #include <nexus/schedule.h>
 #include <nexus/stream.h>
 
@@ -17,21 +17,17 @@ ScheduleImpl::ScheduleImpl(detail::Impl base) : detail::Impl(base) {
   NXSLOG_INFO("Schedule: {}", getId());
 }
 
-ScheduleImpl::~ScheduleImpl() {
-  NXSLOG_INFO("~Schedule: {}", getId());
+void ScheduleImpl::releaseChildren() {
+  for (auto &command : commands) {
+    command.release();
+  }
   commands.clear();
-  (void)release();
 }
 
 nxs_status ScheduleImpl::releaseAPI() {
   auto *rt = getParentOfType<RuntimeImpl>();
   if (!rt) return NXS_InvalidObject;
   return (nxs_status)rt->runAPIFunction<NF_nxsReleaseSchedule>(getId());
-}
-
-void ScheduleImpl::releaseChild(Impl *obj) {
-  if (!obj) return;
-  commands.removeByImpl(obj);
 }
 
 std::optional<Property> ScheduleImpl::getProperty(nxs_int prop) const {

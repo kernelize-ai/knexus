@@ -14,15 +14,9 @@ namespace detail {
 class SystemImpl : public detail::Impl {
  public:
   SystemImpl(int);
-  ~SystemImpl();
 
+  void releaseChildren() override;
   std::optional<Property> getProperty(nxs_int) const { return std::nullopt; }
-
-  void releaseChild(Impl *obj) override {
-    if (!obj) return;
-    runtimes.removeByImpl(obj);
-    buffers.removeByImpl(obj);
-  }
 
   Runtime getRuntime(int idx) const { return runtimes.get(idx); }
   Runtime getRuntime(const std::string &name) { 

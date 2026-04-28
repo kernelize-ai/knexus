@@ -1,6 +1,6 @@
 #define NEXUS_LOG_MODULE "stream"
-
 #include <nexus/log.h>
+
 #include <nexus/stream.h>
 
 #include "_device_impl.h"
@@ -13,11 +13,6 @@ class StreamImpl : public Impl {
   /// @brief Construct a Platform for the current system
   StreamImpl(detail::Impl base) : detail::Impl(base) {
     NXSLOG_TRACE("Stream: {}", getId());
-  }
-
-  ~StreamImpl() {
-    NXSLOG_TRACE("~Stream: {}", getId());
-    (void)release();
   }
 
   nxs_status releaseAPI() override {

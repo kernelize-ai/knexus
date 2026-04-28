@@ -1,9 +1,9 @@
 #define NEXUS_LOG_MODULE "runtime"
+#include <nexus/log.h>
 
 #include <assert.h>
 #include <dlfcn.h>
 #include <nexus/device_db.h>
-#include <nexus/log.h>
 #include <nexus/runtime.h>
 
 #include "_runtime_impl.h"
@@ -19,15 +19,11 @@ RuntimeImpl::RuntimeImpl(Impl base, const std::string &path)
 }
 
 RuntimeImpl::~RuntimeImpl() {
-  NXSLOG_TRACE("DTOR: {}", pluginLibraryPath);
-  devices.clear();
-  (void)release();
   if (library != nullptr) dlclose(library);
 }
 
-void RuntimeImpl::releaseChild(Impl *obj) {
-  if (!obj) return;
-  devices.removeByImpl(obj);
+void RuntimeImpl::releaseChildren() {
+  devices.clear();
 }
 
 Device RuntimeImpl::getDevice(nxs_int deviceId) const {

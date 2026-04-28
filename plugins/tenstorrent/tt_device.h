@@ -9,7 +9,7 @@ class TTDevice {
   int device_id;
   std::shared_ptr<ttmd::MeshDevice> device;
  public:
-  TTDevice(int device_id = 0) : device_id(device_id) { initDevice(); }
+  TTDevice(int device_id = -1) : device_id(device_id) { initDevice(); }
   virtual ~TTDevice() { release(); }
 
   nxs_status release() {
@@ -17,9 +17,9 @@ class TTDevice {
     return NXS_Success;
   }
 
-  std::shared_ptr<ttmd::MeshDevice> get() { initDevice(); return device; }
+  std::shared_ptr<ttmd::MeshDevice> get() { return device; }
 
-  ttmd::MeshCommandQueue& getCQ() { initDevice(); return device->mesh_command_queue(); }
+  ttmd::MeshCommandQueue& getCQ() { return device->mesh_command_queue(); }
 
   ttmd::MeshCoordinateRange getRange() {
     initDevice();
@@ -29,8 +29,8 @@ class TTDevice {
 
  private:
   bool initDevice() {
-    if (device) return true;
-    TT_OBJ_CHECK(device, ttmd::MeshDevice::create_unit_mesh, device_id);
+    if (device || device_id < 0) return true;
+    TT_OBJ_CHECK(device, ttmd::MeshDevice::create_unit_mesh, device_id + 2);
     NXSLOG_INFO("Create TTDevice: {}", device_id);
     return true;
   }

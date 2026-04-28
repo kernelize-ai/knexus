@@ -186,6 +186,7 @@ nxs_status TTBuffer::copyToHost(void *host_buf) {
 
 nxs_status TTBuffer::freeBuffer() {
   if (buffer) {
+    NXSLOG_INFO("TTBuffer: freeBuffer: address={}", address);
     buffer->deallocate();
     address = 0;
     buffer = nullptr;

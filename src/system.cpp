@@ -1,8 +1,8 @@
 #define NEXUS_LOG_MODULE "system"
+#include <nexus/log.h>
 
 #include <nexus/system.h>
 #include <nexus/utility.h>
-#include <nexus/log.h>
 
 #include "_system_impl.h"
 
@@ -20,8 +20,11 @@ SystemImpl::SystemImpl(int) {
                   });
 }
 
-SystemImpl::~SystemImpl() {
-  NXSLOG_TRACE("DTOR");
+void SystemImpl::releaseChildren() {
+  runtimeMap.clear();
+  runtimes.clear();
+  catalogs.clear();
+  buffers.clear();
 }
 
 Buffer SystemImpl::createBuffer(const Layout &layout, const void *hostData,

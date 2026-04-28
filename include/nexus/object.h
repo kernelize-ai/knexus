@@ -19,7 +19,7 @@ class Impl {
  public:
   Impl(Impl *_owner = nullptr, nxs_int _id = -1, nxs_uint _settings = 0)
       : owner(_owner), id(_id), settings(_settings) {}
-  virtual ~Impl() {}
+  virtual ~Impl() { release(); }
 
   nxs_int getId() const { return id; }
 
@@ -32,17 +32,17 @@ class Impl {
 
   nxs_status release() {
     if (nxs_valid_id(id)) {
+      releaseChildren();
       nxs_status status = releaseAPI();
-      if (owner) owner->releaseChild(this);
-      owner = nullptr;
       id = NXS_InvalidObject;
+      owner = nullptr;
       settings = 0;
       return status;
     }
     return NXS_InvalidObject;
   }
+  virtual void releaseChildren() {}
   virtual nxs_status releaseAPI() { return NXS_Success; }
-  virtual void releaseChild(Impl *child) {}
 
   template <typename T = Impl>
   T *getParent() const {
