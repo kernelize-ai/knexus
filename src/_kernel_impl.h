@@ -14,8 +14,6 @@ class KernelImpl : public Impl {
 
   ~KernelImpl();
 
-  void release();
-
   std::optional<Property> getProperty(nxs_int prop) const;
 
   Info getInfo() const { return info; }

@@ -22,14 +22,6 @@ SystemImpl::SystemImpl(int) {
 
 SystemImpl::~SystemImpl() {
   NXSLOG_TRACE("DTOR");
-  // for (auto rt : runtimes)
-  //   rt.release();
-  // for (auto buf : buffers)
-  //   buf.release();
-}
-
-std::optional<Property> SystemImpl::getProperty(nxs_int prop) const {
-  return std::nullopt;
 }
 
 Buffer SystemImpl::createBuffer(const Layout &layout, const void *hostData,

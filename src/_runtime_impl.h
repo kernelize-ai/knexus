@@ -24,8 +24,8 @@ class RuntimeImpl : public Impl {
   RuntimeImpl(Impl base, const std::string &path);
   ~RuntimeImpl();
 
-  void release();
-
+  void releaseChild(Impl *child) override;
+  
   std::optional<Property> getProperty(nxs_int prop) const;
 
   Devices getDevices() const { return devices; }

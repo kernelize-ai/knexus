@@ -17,12 +17,13 @@ class StreamImpl : public Impl {
 
   ~StreamImpl() {
     NXSLOG_TRACE("~Stream: {}", getId());
-    release();
+    (void)release();
   }
 
-  void release() {
+  nxs_status releaseAPI() override {
     auto *rt = getParentOfType<RuntimeImpl>();
-    nxs_int kid = rt->runAPIFunction<NF_nxsReleaseStream>(getId());
+    if (!rt) return NXS_InvalidObject;
+    return (nxs_status)rt->runAPIFunction<NF_nxsReleaseStream>(getId());
   }
 
   std::optional<Property> getProperty(nxs_int prop) const {

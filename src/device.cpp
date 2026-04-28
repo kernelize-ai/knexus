@@ -39,16 +39,21 @@ detail::DeviceImpl::DeviceImpl(detail::Impl base) : detail::Impl(base) {
 
 detail::DeviceImpl::~DeviceImpl() {
   NXSLOG_TRACE("DTOR: {}", getId());
-  release();
-}
-
-void detail::DeviceImpl::release() {
-  // Tear down order is important for backend plugins
   buffers.clear();
-
+  events.clear();
   schedules.clear();
   streams.clear();
   libraries.clear();
+  (void)release();
+}
+
+void detail::DeviceImpl::releaseChild(Impl *obj) {
+  if (!obj) return;
+  buffers.removeByImpl(obj);
+  libraries.removeByImpl(obj);
+  schedules.removeByImpl(obj);
+  streams.removeByImpl(obj);
+  events.removeByImpl(obj);
 }
 
 std::optional<Property> detail::DeviceImpl::getProperty(nxs_int prop) const {

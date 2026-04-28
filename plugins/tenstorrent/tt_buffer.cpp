@@ -184,3 +184,11 @@ nxs_status TTBuffer::copyToHost(void *host_buf) {
   return NXS_Success;
 }
 
+nxs_status TTBuffer::freeBuffer() {
+  if (buffer) {
+    buffer->deallocate();
+    address = 0;
+    buffer = nullptr;
+  }
+  return NXS_Success;
+}

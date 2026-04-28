@@ -4,6 +4,7 @@
 #include <nexus-api.h>
 #include <nexus/property.h>
 
+#include <algorithm>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -28,6 +29,20 @@ class Impl {
   void setSettings(nxs_uint _settings) { settings = _settings; }
   void setSetting(nxs_uint setting) { settings |= setting; }
   void removeSetting(nxs_uint setting) { settings &= ~setting; }
+
+  nxs_status release() {
+    if (nxs_valid_id(id)) {
+      nxs_status status = releaseAPI();
+      if (owner) owner->releaseChild(this);
+      owner = nullptr;
+      id = NXS_InvalidObject;
+      settings = 0;
+      return status;
+    }
+    return NXS_InvalidObject;
+  }
+  virtual nxs_status releaseAPI() { return NXS_Success; }
+  virtual void releaseChild(Impl *child) {}
 
   template <typename T = Impl>
   T *getParent() const {
@@ -60,6 +75,9 @@ class Object {
     return reinterpret_cast<const detail::Impl *>(impl.get());
   }
 
+  template <typename U>
+  friend class Objects;
+
  public:
   template <typename... Args>
   Object(detail::Impl owner, Args... args)
@@ -89,7 +107,13 @@ class Object {
     return nullptr;
   }
 
-  void release() { impl.reset(); }
+  void release() {
+    if (impl) {
+      auto *impl_p = reinterpret_cast<detail::Impl *>(impl.get());
+      impl_p->release();
+      impl.reset();
+    }
+  }
 
   nxs_int getId() const {
     if (auto *impl = getImpl()) return impl->getId();
@@ -145,6 +169,13 @@ class Objects {
   Tobject operator[](nxs_uint idx) const { return get(idx); }
 
   void clear() { objects->clear(); }
+
+  void removeByImpl(const detail::Impl *impl) {
+    if (!objects || !impl) return;
+    auto &v = *objects;
+    v.erase(std::remove_if(v.begin(), v.end(), [impl](const Tobject &o) { return o.getImpl() == impl; }),
+            v.end());
+  }
 
   typename ObjectVec::iterator begin() const { return objects->begin(); }
   typename ObjectVec::iterator end() const { return objects->end(); }

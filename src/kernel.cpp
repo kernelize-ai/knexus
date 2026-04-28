@@ -19,12 +19,7 @@ KernelImpl::KernelImpl(Impl base, const std::string &kName, Info info)
 
 KernelImpl::~KernelImpl() {
   NXSLOG_TRACE("DTOR: {}", getId());
-  release();
-}
-
-void KernelImpl::release() {
-  auto *rt = getParentOfType<RuntimeImpl>();
-  // nxs_int kid = rt->runAPIFunction<NF_nxsReleaseKernel>(getId());
+  (void)release();
 }
 
 std::optional<Property> KernelImpl::getProperty(nxs_int prop) const {

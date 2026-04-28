@@ -329,21 +329,18 @@ extern "C" nxs_status NXS_API_CALL nxsFillBuffer(nxs_int buffer_id,
 /*
  * Release a buffer on the device.
  */
-/*
 extern "C" nxs_status NXS_API_CALL
 nxsReleaseBuffer(
   nxs_int buffer_id
 )
 {
   auto rt = getRuntime();
-  auto buf = rt->dropObject<MTL::Buffer>(buffer_id);
-  if (!buf)
-    return NXS_InvalidBuildOptions; // fix
-
-  (*buf)->release();
+  auto buf = rt->get<rt::Buffer>(buffer_id);
+  if (!buf) return NXS_InvalidBuffer;
+  CUDA_CHECK(NXS_InvalidBuffer, cudaFree, buf->get());
+  rt->dropObject(buffer_id);
   return NXS_Success;
 }
-*/
 
 /*
  * Allocate a buffer on the device.

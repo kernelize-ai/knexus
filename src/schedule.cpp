@@ -19,13 +19,19 @@ ScheduleImpl::ScheduleImpl(detail::Impl base) : detail::Impl(base) {
 
 ScheduleImpl::~ScheduleImpl() {
   NXSLOG_INFO("~Schedule: {}", getId());
-  release();
+  commands.clear();
+  (void)release();
 }
 
-void ScheduleImpl::release() {
-  commands.clear();
+nxs_status ScheduleImpl::releaseAPI() {
   auto *rt = getParentOfType<RuntimeImpl>();
-  nxs_int kid = rt->runAPIFunction<NF_nxsReleaseSchedule>(getId());
+  if (!rt) return NXS_InvalidObject;
+  return (nxs_status)rt->runAPIFunction<NF_nxsReleaseSchedule>(getId());
+}
+
+void ScheduleImpl::releaseChild(Impl *obj) {
+  if (!obj) return;
+  commands.removeByImpl(obj);
 }
 
 std::optional<Property> ScheduleImpl::getProperty(nxs_int prop) const {

@@ -52,6 +52,7 @@ class TTRuntime : public rt::Runtime {
   nxs_status releaseBuffer(nxs_int buffer_id) {
     auto buf = get<TTBuffer>(buffer_id);
     if (!buf) return NXS_InvalidBuffer;
+    buf->freeBuffer();
     buffer_pool.release(buf);
     if (!dropObject(buffer_id)) return NXS_InvalidBuffer;
     return NXS_Success;

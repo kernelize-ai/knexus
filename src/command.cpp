@@ -32,10 +32,8 @@ class CommandImpl : public Impl {
 
   ~CommandImpl() {
     NXSLOG_TRACE("DTOR: {}", getId());
-    release();
+    (void)release();
   }
-
-  void release() {}
 
   std::optional<Property> getProperty(nxs_int prop) const {
     auto *rt = getParentOfType<RuntimeImpl>();

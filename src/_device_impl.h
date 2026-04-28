@@ -24,7 +24,7 @@ class DeviceImpl : public Impl {
   DeviceImpl(Impl base);
   virtual ~DeviceImpl();
 
-  void release();
+  void releaseChild(Impl *child) override;
 
   RuntimeImpl *getParent() const { return Impl::getParent<RuntimeImpl>(); }
 

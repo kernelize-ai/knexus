@@ -6,6 +6,8 @@
 #include <nexus/info.h>
 #include <nexus/runtime.h>
 
+#include <unordered_map>
+
 namespace nexus {
 namespace detail {
 
@@ -14,7 +16,13 @@ class SystemImpl : public detail::Impl {
   SystemImpl(int);
   ~SystemImpl();
 
-  std::optional<Property> getProperty(nxs_int prop) const;
+  std::optional<Property> getProperty(nxs_int) const { return std::nullopt; }
+
+  void releaseChild(Impl *obj) override {
+    if (!obj) return;
+    runtimes.removeByImpl(obj);
+    buffers.removeByImpl(obj);
+  }
 
   Runtime getRuntime(int idx) const { return runtimes.get(idx); }
   Runtime getRuntime(const std::string &name) { 
@@ -31,7 +39,7 @@ class SystemImpl : public detail::Impl {
   Runtimes getRuntimes() const { return runtimes; }
   Infos getCatalogs() const { return catalogs; }
   Buffers getBuffers() const { return buffers; }
-  
+
  private:
   // set of runtimes
   Runtimes runtimes;

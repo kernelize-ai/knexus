@@ -11,7 +11,7 @@ class BufferImpl : public Impl {
 
   ~BufferImpl();
 
-  void release();
+  nxs_status releaseAPI() override;
 
   std::optional<Property> getProperty(nxs_int prop) const;
 

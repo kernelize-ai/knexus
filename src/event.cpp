@@ -18,13 +18,15 @@ class EventImpl : public Impl {
 
   ~EventImpl() {
     NXSLOG_TRACE("DTOR: {}", getId());
-    release();
+    (void)release();
   }
 
-  void release() {
+  nxs_status releaseAPI() override {
     auto *rt = getParentOfType<RuntimeImpl>();
-    nxs_int kid = rt->runAPIFunction<NF_nxsReleaseEvent>(getId());
+    if (!rt) return NXS_InvalidObject;
+    return (nxs_status)rt->runAPIFunction<NF_nxsReleaseEvent>(getId());
   }
+  void releaseChild(Impl *) override {}
 
   std::optional<Property> getProperty(nxs_int prop) const {
     auto *rt = getParentOfType<RuntimeImpl>();

@@ -20,12 +20,14 @@ RuntimeImpl::RuntimeImpl(Impl base, const std::string &path)
 
 RuntimeImpl::~RuntimeImpl() {
   NXSLOG_TRACE("DTOR: {}", pluginLibraryPath);
-  release();
+  devices.clear();
+  (void)release();
   if (library != nullptr) dlclose(library);
 }
 
-void RuntimeImpl::release() {
-  devices.clear();
+void RuntimeImpl::releaseChild(Impl *obj) {
+  if (!obj) return;
+  devices.removeByImpl(obj);
 }
 
 Device RuntimeImpl::getDevice(nxs_int deviceId) const {

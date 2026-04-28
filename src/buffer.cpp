@@ -26,12 +26,17 @@ detail::BufferImpl::BufferImpl(detail::Impl base, const Layout &layout, const ch
 
 detail::BufferImpl::~BufferImpl() {
   NXSLOG_TRACE("DTOR: {}", getId());
-  release();
+  (void)release();
 }
 
-void detail::BufferImpl::release() {
+nxs_status detail::BufferImpl::releaseAPI() {
+  nxs_status status = NXS_Success;
+  if (auto *rt = getParentOfType<RuntimeImpl>()) {
+    status = (nxs_status)rt->runAPIFunction<NF_nxsReleaseBuffer>(getId());
+  }
   size_bytes = 0;
   data = nullptr;
+  return status;
 }
 
 void *detail::BufferImpl::getVoidData() const {

@@ -253,6 +253,8 @@ static py::class_<T> make_object_class(py::module &m, const std::string &name, c
   // can return/pass nexus::Device, Runtime, Buffer, etc. without their own duplicate bindings.
   return py::class_<T>(m, name.c_str(), doc.c_str())
       .def("__bool__", [](T &self) { return (bool)self; })
+      .def("__del__", [](T &self) { self.release(); })
+      .def("release", [](T &self) { self.release(); })
       .def("get_property_str",
            [](T &self, const std::string &name) {
              return get_prop<std::string>(self, nxsGetPropEnum(name.c_str()));

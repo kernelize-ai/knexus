@@ -175,9 +175,7 @@ extern "C" nxs_status NXS_API_CALL nxsCopyBuffer(nxs_int buffer_id,
  * @return Error status or Succes.
  ***********************************************************************/
 extern "C" nxs_status NXS_API_CALL nxsReleaseBuffer(nxs_int buffer_id) {
-  auto rt = getRuntime();
-  NXSLOG_INFO("releaseBuffer {}", buffer_id);
-  return rt->releaseBuffer(buffer_id);
+  return getRuntime()->releaseBuffer(buffer_id);
 }
 
 /************************************************************************
