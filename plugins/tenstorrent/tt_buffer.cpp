@@ -131,6 +131,7 @@ nxs_status TTBuffer::copyToHostUntilize(T *data_ptr) {
   std::vector<T> buf_v(paddedSize);
   auto &cq = device->getCQ();
   TT_CHECK(ttmd::EnqueueReadMeshBuffer, cq, buf_v, buffer, true);
+  TT_CHECK(ttmd::Finish, cq);
 
   if (getShape().rank == 1) {
     auto *tbuf_p = buf_v.data();

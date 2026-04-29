@@ -4,7 +4,6 @@
 #include <nexus-api.h>
 #include <nexus/property.h>
 
-#include <algorithm>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -169,13 +168,6 @@ class Objects {
   Tobject operator[](nxs_uint idx) const { return get(idx); }
 
   void clear() { objects->clear(); }
-
-  void removeByImpl(const detail::Impl *impl) {
-    if (!objects || !impl) return;
-    auto &v = *objects;
-    v.erase(std::remove_if(v.begin(), v.end(), [impl](const Tobject &o) { return o.getImpl() == impl; }),
-            v.end());
-  }
 
   typename ObjectVec::iterator begin() const { return objects->begin(); }
   typename ObjectVec::iterator end() const { return objects->end(); }

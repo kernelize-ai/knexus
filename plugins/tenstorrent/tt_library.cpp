@@ -21,19 +21,19 @@ nxs_status TTLibrary::jitProgram(std::shared_ptr<ttmd::MeshDevice> device, ttm::
         return kernel_str;
     };
     std::string reader_kernel_str = load_kernel_str("READER_KERNEL");
-    TT_NOBJ_CHECK(reader_kernel, ttm::CreateKernelFromString,
+    TT_OBJ_CHECK(reader_kernel, ttm::CreateKernelFromString,
         program, reader_kernel_str, cores,
         ttm::DataMovementConfig{.processor = ttm::DataMovementProcessor::RISCV_1,
                         .noc = ttm::NOC::RISCV_1_default,
                         .compile_args = ctas});
     std::string writer_kernel_str = load_kernel_str("WRITER_KERNEL");
-    TT_NOBJ_CHECK(writer_kernel, ttm::CreateKernelFromString,
+    TT_OBJ_CHECK(writer_kernel, ttm::CreateKernelFromString,
         program, writer_kernel_str, cores,
         ttm::DataMovementConfig{.processor = ttm::DataMovementProcessor::RISCV_0,
                         .noc = ttm::NOC::RISCV_0_default,
                         .compile_args = ctas});
     std::string compute_kernel_str = load_kernel_str("COMPUTE_KERNEL");
-    TT_NOBJ_CHECK(compute_kernel, ttm::CreateKernelFromString,
+    TT_OBJ_CHECK(compute_kernel, ttm::CreateKernelFromString,
         program, compute_kernel_str, cores,
         ttm::ComputeConfig{.math_fidelity = MathFidelity::HiFi4, .compile_args = ctas});
 

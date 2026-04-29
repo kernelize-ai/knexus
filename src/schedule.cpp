@@ -18,9 +18,6 @@ ScheduleImpl::ScheduleImpl(detail::Impl base) : detail::Impl(base) {
 }
 
 void ScheduleImpl::releaseChildren() {
-  for (auto &command : commands) {
-    command.release();
-  }
   commands.clear();
 }
 
