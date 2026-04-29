@@ -1,6 +1,6 @@
 #define NEXUS_LOG_MODULE "info"
-
 #include <nexus/log.h>
+
 #include <nexus/info.h>
 
 #include <fstream>

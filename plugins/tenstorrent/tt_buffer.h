@@ -38,6 +38,8 @@ class TTBuffer : public nxs::rt::Buffer {
 
   nxs_status copyToHost(void *host_buf);
 
+  nxs_status freeBuffer();
+
   constexpr static nxs_ulong tileWidth = 32;
 
 };

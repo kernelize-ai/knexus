@@ -1,7 +1,7 @@
 #define NEXUS_LOG_MODULE "kernel"
+#include <nexus/log.h>
 
 #include <nexus/kernel.h>
-#include <nexus/log.h>
 
 #include "_kernel_impl.h"
 #include "_runtime_impl.h"
@@ -15,16 +15,6 @@ namespace detail {
 KernelImpl::KernelImpl(Impl base, const std::string &kName, Info info)
     : Impl(base), kernelName(kName), info(info) {
   NXSLOG_TRACE("CTOR: {} - {}", getId(), kernelName);
-}
-
-KernelImpl::~KernelImpl() {
-  NXSLOG_TRACE("DTOR: {}", getId());
-  release();
-}
-
-void KernelImpl::release() {
-  auto *rt = getParentOfType<RuntimeImpl>();
-  // nxs_int kid = rt->runAPIFunction<NF_nxsReleaseKernel>(getId());
 }
 
 std::optional<Property> KernelImpl::getProperty(nxs_int prop) const {

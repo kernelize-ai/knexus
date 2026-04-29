@@ -81,10 +81,11 @@ nxs_status TTSchedule::run(nxs_int stream, nxs_uint run_settings) {
     start_time = std::chrono::steady_clock::now();
   }
 
-  TT_CHECK(ttmd::EnqueueMeshWorkload, cq, workload, run_settings & NXS_ExecutionSettings_NonBlocking);
-  TT_CHECK(ttmd::Finish, cq); // TODO: check if non-blocking is set
+  bool non_blocking = (bool)(run_settings & NXS_ExecutionSettings_NonBlocking);
+  TT_CHECK(ttmd::EnqueueMeshWorkload, cq, workload, non_blocking);
 
   if (settings & NXS_ExecutionSettings_Timing) {
+    TT_CHECK(ttmd::Finish, cq);
     end_time = std::chrono::steady_clock::now();
   }
   return NXS_Success;

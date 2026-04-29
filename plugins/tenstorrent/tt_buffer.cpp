@@ -131,6 +131,7 @@ nxs_status TTBuffer::copyToHostUntilize(T *data_ptr) {
   std::vector<T> buf_v(paddedSize);
   auto &cq = device->getCQ();
   TT_CHECK(ttmd::EnqueueReadMeshBuffer, cq, buf_v, buffer, true);
+  TT_CHECK(ttmd::Finish, cq);
 
   if (getShape().rank == 1) {
     auto *tbuf_p = buf_v.data();
@@ -184,3 +185,12 @@ nxs_status TTBuffer::copyToHost(void *host_buf) {
   return NXS_Success;
 }
 
+nxs_status TTBuffer::freeBuffer() {
+  if (buffer) {
+    NXSLOG_INFO("TTBuffer: freeBuffer: address={}", address);
+    buffer->deallocate();
+    address = 0;
+    buffer = nullptr;
+  }
+  return NXS_Success;
+}

@@ -1,8 +1,8 @@
 #define NEXUS_LOG_MODULE "device"
+#include <nexus/log.h>
 
 #include <nexus/buffer.h>
 #include <nexus/device_db.h>
-#include <nexus/log.h>
 #include <nexus/runtime.h>
 #include <nexus/utility.h>
 
@@ -37,15 +37,9 @@ detail::DeviceImpl::DeviceImpl(detail::Impl base) : detail::Impl(base) {
     NXSLOG_WARN("device properties not found");
 }
 
-detail::DeviceImpl::~DeviceImpl() {
-  NXSLOG_TRACE("DTOR: {}", getId());
-  release();
-}
-
-void detail::DeviceImpl::release() {
-  // Tear down order is important for backend plugins
+void detail::DeviceImpl::releaseChildren() {
   buffers.clear();
-
+  events.clear();
   schedules.clear();
   streams.clear();
   libraries.clear();

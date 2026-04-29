@@ -1,6 +1,6 @@
 #define NEXUS_LOG_MODULE "stream"
-
 #include <nexus/log.h>
+
 #include <nexus/stream.h>
 
 #include "_device_impl.h"
@@ -15,14 +15,10 @@ class StreamImpl : public Impl {
     NXSLOG_TRACE("Stream: {}", getId());
   }
 
-  ~StreamImpl() {
-    NXSLOG_TRACE("~Stream: {}", getId());
-    release();
-  }
-
-  void release() {
+  nxs_status releaseAPI() override {
     auto *rt = getParentOfType<RuntimeImpl>();
-    nxs_int kid = rt->runAPIFunction<NF_nxsReleaseStream>(getId());
+    if (!rt) return NXS_InvalidObject;
+    return (nxs_status)rt->runAPIFunction<NF_nxsReleaseStream>(getId());
   }
 
   std::optional<Property> getProperty(nxs_int prop) const {

@@ -18,7 +18,7 @@ class Impl {
  public:
   Impl(Impl *_owner = nullptr, nxs_int _id = -1, nxs_uint _settings = 0)
       : owner(_owner), id(_id), settings(_settings) {}
-  virtual ~Impl() {}
+  virtual ~Impl() { release(); }
 
   nxs_int getId() const { return id; }
 
@@ -28,6 +28,20 @@ class Impl {
   void setSettings(nxs_uint _settings) { settings = _settings; }
   void setSetting(nxs_uint setting) { settings |= setting; }
   void removeSetting(nxs_uint setting) { settings &= ~setting; }
+
+  nxs_status release() {
+    if (nxs_valid_id(id)) {
+      releaseChildren();
+      nxs_status status = releaseAPI();
+      id = NXS_InvalidObject;
+      owner = nullptr;
+      settings = 0;
+      return status;
+    }
+    return NXS_InvalidObject;
+  }
+  virtual void releaseChildren() {}
+  virtual nxs_status releaseAPI() { return NXS_Success; }
 
   template <typename T = Impl>
   T *getParent() const {
@@ -60,6 +74,9 @@ class Object {
     return reinterpret_cast<const detail::Impl *>(impl.get());
   }
 
+  template <typename U>
+  friend class Objects;
+
  public:
   template <typename... Args>
   Object(detail::Impl owner, Args... args)
@@ -89,7 +106,13 @@ class Object {
     return nullptr;
   }
 
-  void release() { impl.reset(); }
+  void release() {
+    if (impl) {
+      auto *impl_p = reinterpret_cast<detail::Impl *>(impl.get());
+      impl_p->release();
+      impl.reset();
+    }
+  }
 
   nxs_int getId() const {
     if (auto *impl = getImpl()) return impl->getId();

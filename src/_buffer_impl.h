@@ -9,9 +9,7 @@ class BufferImpl : public Impl {
  public:
   BufferImpl(Impl base, const Layout &layout, const char *_hostData);
 
-  ~BufferImpl();
-
-  void release();
+  nxs_status releaseAPI() override;
 
   std::optional<Property> getProperty(nxs_int prop) const;
 

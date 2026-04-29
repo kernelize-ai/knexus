@@ -1,8 +1,8 @@
 #define NEXUS_LOG_MODULE "system"
+#include <nexus/log.h>
 
 #include <nexus/system.h>
 #include <nexus/utility.h>
-#include <nexus/log.h>
 
 #include "_system_impl.h"
 
@@ -20,16 +20,11 @@ SystemImpl::SystemImpl(int) {
                   });
 }
 
-SystemImpl::~SystemImpl() {
-  NXSLOG_TRACE("DTOR");
-  // for (auto rt : runtimes)
-  //   rt.release();
-  // for (auto buf : buffers)
-  //   buf.release();
-}
-
-std::optional<Property> SystemImpl::getProperty(nxs_int prop) const {
-  return std::nullopt;
+void SystemImpl::releaseChildren() {
+  runtimeMap.clear();
+  runtimes.clear();
+  catalogs.clear();
+  buffers.clear();
 }
 
 Buffer SystemImpl::createBuffer(const Layout &layout, const void *hostData,

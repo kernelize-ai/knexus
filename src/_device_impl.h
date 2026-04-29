@@ -22,11 +22,10 @@ class DeviceImpl : public Impl {
   Events events;
  public:
   DeviceImpl(Impl base);
-  virtual ~DeviceImpl();
-
-  void release();
 
   RuntimeImpl *getParent() const { return Impl::getParent<RuntimeImpl>(); }
+
+  void releaseChildren() override;
 
   // Get Runtime Property Value
   std::optional<Property> getProperty(nxs_int prop) const;

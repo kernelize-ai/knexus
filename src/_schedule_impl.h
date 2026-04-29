@@ -11,9 +11,9 @@ class ScheduleImpl : public Impl {
  public:
   /// @brief Construct a Platform for the current system
   ScheduleImpl(Impl base);
-  ~ScheduleImpl();
 
-  void release();
+  void releaseChildren() override;
+  nxs_status releaseAPI() override;
 
   std::optional<Property> getProperty(nxs_int prop) const;
 

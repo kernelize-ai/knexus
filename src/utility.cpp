@@ -1,7 +1,7 @@
 #define NEXUS_LOG_MODULE "utility"
+#include <nexus/log.h>
 
 #include <nexus/utility.h>
-#include <nexus/log.h>
 
 #include <filesystem>
 #include <iostream>

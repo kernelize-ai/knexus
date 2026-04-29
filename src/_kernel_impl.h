@@ -12,10 +12,6 @@ class KernelImpl : public Impl {
   /// @brief Construct a Platform for the current system
   KernelImpl(Impl base, const std::string &kName, Info info);
 
-  ~KernelImpl();
-
-  void release();
-
   std::optional<Property> getProperty(nxs_int prop) const;
 
   Info getInfo() const { return info; }

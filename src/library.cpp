@@ -1,5 +1,4 @@
 #define NEXUS_LOG_MODULE "library"
-
 #include <nexus/log.h>
 
 #include "_info_impl.h"
@@ -32,15 +31,14 @@ LibraryImpl::LibraryImpl(Impl base, Info info) : Impl(base), info(info) {
   }
 }
 
-LibraryImpl::~LibraryImpl() {
-  NXSLOG_TRACE("DTOR: {}", getId());
-  release();
+void LibraryImpl::releaseChildren() {
+  kernels.clear();
 }
 
-void LibraryImpl::release() {
-  kernels.clear();
+nxs_status LibraryImpl::releaseAPI() {
   auto *rt = getParentOfType<RuntimeImpl>();
-  nxs_int kid = rt->runAPIFunction<NF_nxsReleaseLibrary>(getId());
+  if (!rt) return NXS_InvalidObject;
+  return (nxs_status)rt->runAPIFunction<NF_nxsReleaseLibrary>(getId());
 }
 
 std::optional<Property> detail::LibraryImpl::getProperty(nxs_int prop) const {

@@ -1,8 +1,8 @@
 #define NEXUS_LOG_MODULE "device_info"
+#include <nexus/log.h>
 
 #include <dirent.h>
 #include <nexus/device_db.h>
-#include <nexus/log.h>
 #include <nexus/utility.h>
 
 #include <fstream>

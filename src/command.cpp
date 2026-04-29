@@ -1,7 +1,7 @@
 #define NEXUS_LOG_MODULE "command"
+#include <nexus/log.h>
 
 #include <nexus/command.h>
-#include <nexus/log.h>
 
 #include "_schedule_impl.h"
 
@@ -29,13 +29,6 @@ class CommandImpl : public Impl {
   CommandImpl(Impl owner, Event event) : Impl(owner), event(event) {
     NXSLOG_TRACE("CTOR: {}", getId());
   }
-
-  ~CommandImpl() {
-    NXSLOG_TRACE("DTOR: {}", getId());
-    release();
-  }
-
-  void release() {}
 
   std::optional<Property> getProperty(nxs_int prop) const {
     auto *rt = getParentOfType<RuntimeImpl>();

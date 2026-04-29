@@ -16,9 +16,8 @@ class LibraryImpl : public Impl {
   LibraryImpl(Impl base);
   LibraryImpl(Impl base, Info info);
 
-  ~LibraryImpl();
-
-  void release();
+  void releaseChildren() override;
+  nxs_status releaseAPI() override;
 
   std::optional<Property> getProperty(nxs_int prop) const;
 

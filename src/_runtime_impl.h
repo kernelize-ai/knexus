@@ -22,9 +22,9 @@ namespace detail {
 class RuntimeImpl : public Impl {
  public:
   RuntimeImpl(Impl base, const std::string &path);
-  ~RuntimeImpl();
+  virtual ~RuntimeImpl();
 
-  void release();
+  void releaseChildren() override;
 
   std::optional<Property> getProperty(nxs_int prop) const;
 
@@ -38,14 +38,15 @@ class RuntimeImpl : public Impl {
   }
 
   template <nxs_function Tfn, typename... Args>
-  nxs_int runAPIFunction(Args... args) {
+  nxs_int runAPIFunction(nxs_int id, Args... args) {
     nxs_int apiResult = NXS_InvalidDevice;  // invalid runtime
     if (auto *fn = getFunction<Tfn>()) {
-      apiResult = (*fn)(args...);
+      NXSLOG_TRACE("runAPIFunction: {} - id {}", nxsGetFuncName(Tfn), id);
+      apiResult = (*fn)(id, args...);
       if (nxs_failed(apiResult))
         NXSLOG_ERROR("{}: {}", nxsGetFuncName(Tfn), nxsGetStatusName(apiResult));
       else
-        NXSLOG_TRACE("{}: {}", nxsGetFuncName(Tfn), apiResult);
+        NXSLOG_TRACE("{}: id {} - result {}", nxsGetFuncName(Tfn), id, apiResult);
     } else {
       NXSLOG_ERROR("{}: API not present", nxsGetFuncName(Tfn));
     }
