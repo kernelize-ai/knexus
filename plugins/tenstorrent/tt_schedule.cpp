@@ -54,35 +54,37 @@ nxs_status TTSchedule::run(nxs_int stream, nxs_uint run_settings) {
 
   // map commands across cores
   auto *device = getDevice();
-  auto device_range = device->getRange();
   auto &cq = device->getCQ();
-  ttmd::MeshWorkload workload;
 
-  // get current device size
-  TT_NOBJ_CHECK(devGrid, device->get()->compute_with_storage_grid_size);
-  NXSLOG_INFO("Device grid: {},{}", devGrid.x, devGrid.y);
+  if (workload.get_programs().empty()) {
+    auto device_range = device->getRange();
 
-//  TODO: use split_work_to_cores utility function to distribute commands across cores
-//  NXSLOG_INFO("Core range set: ", coreRangeSet.bounding_box().start_coord.x, ",", coreRangeSet.bounding_box().start_coord.y, " - ", coreRangeSet.bounding_box().end_coord.x, ",", coreRangeSet.bounding_box().end_coord.y);
+    // get current device size
+    TT_NOBJ_CHECK(devGrid, device->get()->compute_with_storage_grid_size);
+    NXSLOG_INFO("Device grid: {},{}", devGrid.x, devGrid.y);
 
-  ttm::CoreRange devRange = {{0,0}, {devGrid.x - 1, devGrid.y - 1}};
-  for (auto cmd : getCommands()) {
-    ttm::CoreRange cmdCores {{0,0}, {0,0}};
-    if (!placeCommand(cmd->getGridSize(), cmdCores, devRange, devGrid.x)) {
-      //assert(0); // enqueue and start another workload
+  //  TODO: use split_work_to_cores utility function to distribute commands across cores
+  //  NXSLOG_INFO("Core range set: ", coreRangeSet.bounding_box().start_coord.x, ",", coreRangeSet.bounding_box().start_coord.y, " - ", coreRangeSet.bounding_box().end_coord.x, ",", coreRangeSet.bounding_box().end_coord.y);
+
+    ttm::CoreRange devRange = {{0,0}, {devGrid.x - 1, devGrid.y - 1}};
+    for (auto cmd : getCommands()) {
+      ttm::CoreRange cmdCores {{0,0}, {0,0}};
+      if (!placeCommand(cmd->getGridSize(), cmdCores, devRange, devGrid.x)) {
+        //assert(0); // enqueue and start another workload
+      }
+      NXSLOG_INFO("placeCommand: cmdCores={},{} - {},{}", cmdCores.start_coord.x,
+                cmdCores.start_coord.y, cmdCores.end_coord.x, cmdCores.end_coord.y);
+      auto status = cmd->runCommand(device, stream, workload, device_range, cmdCores);
+      if (!nxs_success(status)) return status;
     }
-    NXSLOG_INFO("placeCommand: cmdCores={},{} - {},{}", cmdCores.start_coord.x,
-               cmdCores.start_coord.y, cmdCores.end_coord.x, cmdCores.end_coord.y);
-    auto status = cmd->runCommand(device, stream, workload, device_range, cmdCores);
-    if (!nxs_success(status)) return status;
+
+    if (settings & NXS_ExecutionSettings_Timing) {
+      start_time = std::chrono::steady_clock::now();
+    }
   }
 
-  if (settings & NXS_ExecutionSettings_Timing) {
-    start_time = std::chrono::steady_clock::now();
-  }
-
-  bool non_blocking = (bool)(run_settings & NXS_ExecutionSettings_NonBlocking);
-  TT_CHECK(ttmd::EnqueueMeshWorkload, cq, workload, non_blocking);
+  bool non_blocking = run_settings & NXS_ExecutionSettings_NonBlocking;
+  TT_CHECK(ttmd::EnqueueMeshWorkload, cq, workload, !non_blocking);
 
   if (settings & NXS_ExecutionSettings_Timing) {
     TT_CHECK(ttmd::Finish, cq);

@@ -30,7 +30,7 @@ class TTDevice {
  private:
   bool initDevice() {
     if (device || device_id < 0) return true;
-    TT_OBJ_CHECK(device, ttmd::MeshDevice::create_unit_mesh, device_id + 2);
+    TT_OBJ_CHECK(device, ttmd::MeshDevice::create_unit_mesh, device_id + 1);
     NXSLOG_INFO("Create TTDevice: {}", device_id);
     return true;
   }

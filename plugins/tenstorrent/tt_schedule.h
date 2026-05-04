@@ -13,6 +13,8 @@ class TTSchedule : public nxs::rt::Schedule<TTCommand, TTDevice *, nxs_int> {
   std::chrono::steady_clock::time_point start_time;
   std::chrono::steady_clock::time_point end_time;
 
+  ttmd::MeshWorkload workload;
+
  public:
   TTSchedule(TTDevice *device = nullptr, nxs_uint settings = 0)
       : Schedule(device, settings) {}
