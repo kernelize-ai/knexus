@@ -612,10 +612,12 @@ void pynexus::init_system_bindings(py::module &m) {
       .def("get_commands", [](Schedule &self) { return self.getCommands(); })
       .def(
           "run",
-          [](Schedule &self, Stream &stream, nxs_bool blocking) {
-            return self.run(stream, blocking);
+          [](Schedule &self, Stream &stream, nxs_bool non_blocking) {
+            nxs_uint settings = 0;
+            if (non_blocking) settings |= NXS_ExecutionSettings_NonBlocking;
+            return self.run(stream, settings);
           },
-          py::arg("stream") = Stream(), py::arg("blocking") = true);
+          py::arg("stream") = Stream(), py::arg("non_blocking") = false);
 
   // Object Containers
   make_objects_class<Library>(m, "Librarys", "Collection of library objects.");

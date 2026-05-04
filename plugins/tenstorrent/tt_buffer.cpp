@@ -86,8 +86,11 @@ nxs_status TTBuffer::tilizeAndCopyToDevice(T *data_ptr, bool blocking) {
     buf_v = tilize_nfaces(buf_v, tilizedShape.dim[0], rowCount);
   }
 
+  // tt-metal queue ops may overlap execution if non-blocking
+  // we force blocking to avoid this
+  // TODO: determine when to fence/barrier based on data dependencies
   auto &cq = device->getCQ();
-  TT_CHECK(ttmd::EnqueueWriteMeshBuffer, cq, buffer, buf_v, blocking);
+  TT_CHECK(ttmd::EnqueueWriteMeshBuffer, cq, buffer, buf_v, true);
   if (blocking) {
     TT_CHECK(ttmd::Finish, cq);
   }
