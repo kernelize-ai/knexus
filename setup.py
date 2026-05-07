@@ -88,6 +88,7 @@ class CMakeBuildPy(build_py):
     def run(self) -> None:
         self._copy_device_lib_to_package()
         self._copy_headers_to_package()
+        self._copy_third_party_headers_to_package()
 
         self.run_command('build_ext')
         return super().run()
@@ -117,6 +118,22 @@ class CMakeBuildPy(build_py):
             shutil.copytree(source_include, target_include)
         else:
             raise RuntimeError(f"Warning: {source_include} not found in repo root")
+
+    def _copy_third_party_headers_to_package(self):
+        """Copy required third-party headers into package layout."""
+        source_spdlog_include = os.path.join('third_party', 'spdlog', 'include')
+        target_spdlog_include = os.path.join(
+            'python', 'nexus', 'third_party', 'spdlog', 'include'
+        )
+
+        if os.path.exists(source_spdlog_include):
+            target_spdlog_root = os.path.join('python', 'nexus', 'third_party', 'spdlog')
+            if os.path.exists(target_spdlog_root):
+                shutil.rmtree(target_spdlog_root)
+            os.makedirs(os.path.dirname(target_spdlog_include), exist_ok=True)
+            shutil.copytree(source_spdlog_include, target_spdlog_include)
+        else:
+            raise RuntimeError(f"Warning: {source_spdlog_include} not found in repo root")
 
 class CMakeBuild(build_ext):
         
@@ -282,6 +299,7 @@ setup(
         'device_lib/**/*',
         'runtime_libs/**/*',
         'include/**/*',
+        'third_party/**/*',
     ]},
     ext_modules=[CMakeExtension("nexus", ".")],
     cmdclass={
