@@ -71,6 +71,13 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Add CUDA to PATH
+        run: |
+          CUDA_BIN=$(find /usr/local/cuda*/bin /usr/cuda*/bin 2>/dev/null -name nvcc | head -1 | xargs dirname || true)
+          if [ -n "$CUDA_BIN" ]; then
+            echo "$CUDA_BIN" >> $GITHUB_PATH
+          fi
+
       - name: CUDA toolchain sanity check
         run: |
           nvcc --version
@@ -108,10 +115,8 @@ jobs:
     name: Tenstorrent plugin
     runs-on: ubuntu-24.04
     env:
-      TT_METALIUM_TAG: "v0.71.0-dev20260506"
-      TT_METALIUM_DEB_VERSION: "0.71.0.dev20260506"
-      TT_METALIUM_DEB_SHA256: "cd71d5a6339428b0bce4799b94da723afd6efa598385a92d408cfbc17f00ded1"
-      TT_METALIUM_DEV_DEB_SHA256: "8445e24306e2e5e5fa3f533d0be1923d1148f5de150848d917e215024aa39db5"
+      TT_METALIUM_TAG: "v0.71.0-rc1"
+      TT_METALIUM_DEB_VERSION: "0.71.0.rc1"
 
     steps:
       - uses: actions/checkout@v4
@@ -133,45 +138,18 @@ jobs:
           path: tt-metalium-debs/
           key: tt-metalium-debs-${{ env.TT_METALIUM_DEB_VERSION }}-ubuntu24.04
 
-      - name: Fetch and verify TT Metalium .deb packages
-        env:
-          MAX_CHECKSUM_ATTEMPTS: "3"
+      - name: Fetch TT Metalium .deb packages
+        if: steps.tt-deb-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           mkdir -p tt-metalium-debs
           base_url="https://github.com/tenstorrent/tt-metal/releases/download/${TT_METALIUM_TAG}"
-
-          # Args: url path expected_sha256
-          curl_until_sha256_ok() {
-            local url="$1" path="$2" want="$3"
-            local attempt=1
-            while [ "$attempt" -le "${MAX_CHECKSUM_ATTEMPTS}" ]; do
-              rm -f "$path"
-              curl --retry 5 --retry-delay 3 --retry-all-errors -fsSL -o "$path" "$url"
-              if echo "${want}  ${path}" | sha256sum -c -; then
-                return 0
-              fi
-              attempt=$((attempt + 1))
-              sleep 2
-            done
-            echo "Checksum failed after ${MAX_CHECKSUM_ATTEMPTS} download attempts: $path" >&2
-            return 1
-          }
-
-          if echo "${TT_METALIUM_DEB_SHA256}  tt-metalium-debs/tt-metalium.deb" | sha256sum -c - 2>/dev/null \
-            && echo "${TT_METALIUM_DEV_DEB_SHA256}  tt-metalium-debs/tt-metalium-dev.deb" | sha256sum -c - 2>/dev/null; then
-            echo "Using cached .deb files (checksum OK)"
-          else
-            rm -f tt-metalium-debs/tt-metalium.deb tt-metalium-debs/tt-metalium-dev.deb
-            curl_until_sha256_ok \
-              "${base_url}/tt-metalium_${TT_METALIUM_DEB_VERSION}.ubuntu24.04_amd64.deb" \
-              tt-metalium-debs/tt-metalium.deb \
-              "${TT_METALIUM_DEB_SHA256}"
-            curl_until_sha256_ok \
-              "${base_url}/tt-metalium-dev_${TT_METALIUM_DEB_VERSION}.ubuntu24.04_amd64.deb" \
-              tt-metalium-debs/tt-metalium-dev.deb \
-              "${TT_METALIUM_DEV_DEB_SHA256}"
-          fi
+          curl --retry 5 --retry-delay 3 --retry-all-errors -fsSL \
+            -o tt-metalium-debs/tt-metalium.deb \
+            "${base_url}/tt-metalium_${TT_METALIUM_DEB_VERSION}.ubuntu24.04_amd64.deb"
+          curl --retry 5 --retry-delay 3 --retry-all-errors -fsSL \
+            -o tt-metalium-debs/tt-metalium-dev.deb \
+            "${base_url}/tt-metalium-dev_${TT_METALIUM_DEB_VERSION}.ubuntu24.04_amd64.deb"
 
       - name: Install TT Metalium
         run: |
@@ -315,13 +293,15 @@ jobs:
         env:
           NEXUS_BUILD_REL: "1"
           MACOSX_DEPLOYMENT_TARGET: "15.0"
+          ARCHFLAGS: "-arch arm64"
+          _PYTHON_HOST_PLATFORM: "macosx-15.0-arm64"
           MAX_JOBS: "4"
         run: python -m build --wheel --no-isolation
 
       - name: delocate-wheel
         run: |
           mkdir -p wheelhouse
-          delocate-wheel -w wheelhouse dist/*.whl
+          delocate-wheel --require-archs arm64 -w wheelhouse dist/*.whl
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
