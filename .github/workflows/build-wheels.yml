@@ -71,6 +71,19 @@ jobs:
         with:
           submodules: recursive
 
+      - name: CUDA environment diagnostics
+        run: |
+          echo "=== PATH ==="
+          echo "$PATH"
+          echo "=== CUDA env vars ==="
+          env | grep -i cuda || echo "(none)"
+          echo "=== /usr/local/ contents ==="
+          ls /usr/local/ || true
+          echo "=== find nvcc (broad) ==="
+          find /usr /opt /cuda -name nvcc -type f 2>/dev/null || echo "(not found)"
+          echo "=== nvidia-smi ==="
+          nvidia-smi 2>/dev/null || echo "(not available)"
+
       - name: Add CUDA to PATH
         run: |
           # Check env vars set by the runner, then fall back to common install locations.
@@ -95,9 +108,7 @@ jobs:
             echo "Found nvcc at: $cuda_bin"
             echo "$cuda_bin" >> $GITHUB_PATH
           else
-            echo "::error::nvcc not found. Runner CUDA paths checked:"
-            find /usr/local /usr/cuda* /opt/cuda* -name nvcc 2>/dev/null || true
-            echo "CUDA env vars: CUDA_HOME=${CUDA_HOME:-unset} CUDA_PATH=${CUDA_PATH:-unset} CUDA_ROOT=${CUDA_ROOT:-unset}"
+            echo "::error::nvcc not found. See 'CUDA environment diagnostics' step above."
             exit 1
           fi
 
