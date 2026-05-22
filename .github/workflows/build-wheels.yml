@@ -73,9 +73,32 @@ jobs:
 
       - name: Add CUDA to PATH
         run: |
-          CUDA_BIN=$(find /usr/local/cuda*/bin /usr/cuda*/bin 2>/dev/null -name nvcc | head -1 | xargs dirname || true)
-          if [ -n "$CUDA_BIN" ]; then
-            echo "$CUDA_BIN" >> $GITHUB_PATH
+          # Check env vars set by the runner, then fall back to common install locations.
+          # Use -printf '%h\n' to avoid the "dirname: missing operand" issue when nothing is found.
+          cuda_bin=""
+          for candidate in \
+            "${CUDA_HOME:-}/bin" \
+            "${CUDA_PATH:-}/bin" \
+            "${CUDA_ROOT:-}/bin"; do
+            if [ -n "$candidate" ] && [ "$candidate" != "/bin" ] && [ -x "${candidate}/nvcc" ]; then
+              cuda_bin="$candidate"
+              break
+            fi
+          done
+
+          if [ -z "$cuda_bin" ]; then
+            cuda_bin=$(find /usr/local/cuda*/bin /usr/cuda*/bin /opt/cuda*/bin 2>/dev/null \
+              -name nvcc -printf '%h\n' | head -1 || true)
+          fi
+
+          if [ -n "$cuda_bin" ]; then
+            echo "Found nvcc at: $cuda_bin"
+            echo "$cuda_bin" >> $GITHUB_PATH
+          else
+            echo "::error::nvcc not found. Runner CUDA paths checked:"
+            find /usr/local /usr/cuda* /opt/cuda* -name nvcc 2>/dev/null || true
+            echo "CUDA env vars: CUDA_HOME=${CUDA_HOME:-unset} CUDA_PATH=${CUDA_PATH:-unset} CUDA_ROOT=${CUDA_ROOT:-unset}"
+            exit 1
           fi
 
       - name: CUDA toolchain sanity check
@@ -136,7 +159,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: tt-metalium-debs/
-          key: tt-metalium-debs-${{ env.TT_METALIUM_DEB_VERSION }}-ubuntu24.04
+          # Bump the suffix (v2, v3, …) to bust a poisoned cache entry.
+          key: tt-metalium-debs-${{ env.TT_METALIUM_DEB_VERSION }}-ubuntu24.04-v2
 
       - name: Fetch TT Metalium .deb packages
         if: steps.tt-deb-cache.outputs.cache-hit != 'true'
@@ -144,12 +168,21 @@ jobs:
           set -euo pipefail
           mkdir -p tt-metalium-debs
           base_url="https://github.com/tenstorrent/tt-metal/releases/download/${TT_METALIUM_TAG}"
+          echo "Downloading tt-metalium.deb…"
           curl --retry 5 --retry-delay 3 --retry-all-errors -fsSL \
+            -w "  size=%{size_download} bytes  time=%{time_total}s\n" \
             -o tt-metalium-debs/tt-metalium.deb \
             "${base_url}/tt-metalium_${TT_METALIUM_DEB_VERSION}.ubuntu24.04_amd64.deb"
+          echo "Downloading tt-metalium-dev.deb…"
           curl --retry 5 --retry-delay 3 --retry-all-errors -fsSL \
+            -w "  size=%{size_download} bytes  time=%{time_total}s\n" \
             -o tt-metalium-debs/tt-metalium-dev.deb \
             "${base_url}/tt-metalium-dev_${TT_METALIUM_DEB_VERSION}.ubuntu24.04_amd64.deb"
+          # Verify integrity before the cache post-step saves the files.
+          # A CDN can silently return a partial body with HTTP 200 that curl accepts.
+          dpkg-deb --info tt-metalium-debs/tt-metalium.deb > /dev/null
+          dpkg-deb --info tt-metalium-debs/tt-metalium-dev.deb > /dev/null
+          echo "Both .deb files verified OK"
 
       - name: Install TT Metalium
         run: |
