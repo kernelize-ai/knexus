@@ -35,7 +35,7 @@ nxs_status TTLibrary::jitProgram(std::shared_ptr<ttmd::MeshDevice> device, ttm::
     std::string compute_kernel_str = load_kernel_str("COMPUTE_KERNEL");
     TT_OBJ_CHECK(compute_kernel, ttm::CreateKernelFromString,
         program, compute_kernel_str, cores,
-        ttm::ComputeConfig{.math_fidelity = MathFidelity::HiFi4, .compile_args = ctas});
+        ttm::ComputeConfig{.math_fidelity = ttm::MathFidelity::HiFi4, .compile_args = ctas});
 
     try {
       TT_CHECK(ttm::detail::CompileProgram, device->get_devices()[0], program);
