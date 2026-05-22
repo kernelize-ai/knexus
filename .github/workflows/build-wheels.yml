@@ -71,46 +71,16 @@ jobs:
         with:
           submodules: recursive
 
-      - name: CUDA environment diagnostics
-        run: |
-          echo "=== PATH ==="
-          echo "$PATH"
-          echo "=== CUDA env vars ==="
-          env | grep -i cuda || echo "(none)"
-          echo "=== /usr/local/ contents ==="
-          ls /usr/local/ || true
-          echo "=== find nvcc (broad) ==="
-          find /usr /opt /cuda -name nvcc -type f 2>/dev/null || echo "(not found)"
-          echo "=== nvidia-smi ==="
-          nvidia-smi 2>/dev/null || echo "(not available)"
-
-      - name: Add CUDA to PATH
-        run: |
-          # Check env vars set by the runner, then fall back to common install locations.
-          # Use -printf '%h\n' to avoid the "dirname: missing operand" issue when nothing is found.
-          cuda_bin=""
-          for candidate in \
-            "${CUDA_HOME:-}/bin" \
-            "${CUDA_PATH:-}/bin" \
-            "${CUDA_ROOT:-}/bin"; do
-            if [ -n "$candidate" ] && [ "$candidate" != "/bin" ] && [ -x "${candidate}/nvcc" ]; then
-              cuda_bin="$candidate"
-              break
-            fi
-          done
-
-          if [ -z "$cuda_bin" ]; then
-            cuda_bin=$(find /usr/local/cuda*/bin /usr/cuda*/bin /opt/cuda*/bin 2>/dev/null \
-              -name nvcc -printf '%h\n' | head -1 || true)
-          fi
-
-          if [ -n "$cuda_bin" ]; then
-            echo "Found nvcc at: $cuda_bin"
-            echo "$cuda_bin" >> $GITHUB_PATH
-          else
-            echo "::error::nvcc not found. See 'CUDA environment diagnostics' step above."
-            exit 1
-          fi
+      - name: Install CUDA toolkit
+        # The NVIDIA GPU-Optimized runner image ships the driver but not the
+        # compiler toolkit.  Install the minimal subset needed to build the plugin:
+        # nvcc (compiler), cudart-dev (runtime headers/lib), nvml-dev (NVML headers).
+        # libcuda.so and libnvidia-ml.so are already present via the driver.
+        uses: Jimver/cuda-toolkit@v0.2.22
+        with:
+          cuda: '12.8.0'
+          method: 'network'
+          sub-packages: '["nvcc", "cudart-dev", "nvml-dev"]'
 
       - name: CUDA toolchain sanity check
         run: |
@@ -190,17 +160,22 @@ jobs:
             -o tt-metalium-debs/tt-metalium-dev.deb \
             "${base_url}/tt-metalium-dev_${TT_METALIUM_DEB_VERSION}.ubuntu24.04_amd64.deb"
           # Verify integrity before the cache post-step saves the files.
-          # A CDN can silently return a partial body with HTTP 200 that curl accepts.
-          dpkg-deb --info tt-metalium-debs/tt-metalium.deb > /dev/null
-          dpkg-deb --info tt-metalium-debs/tt-metalium-dev.deb > /dev/null
-          echo "Both .deb files verified OK"
+          # --info only reads the control section; --extract exercises the full data archive.
+          tmp_check=$(mktemp -d)
+          dpkg-deb --extract tt-metalium-debs/tt-metalium.deb     "$tmp_check/main" > /dev/null
+          dpkg-deb --extract tt-metalium-debs/tt-metalium-dev.deb  "$tmp_check/dev"  > /dev/null
+          rm -rf "$tmp_check"
+          echo "Both .deb files verified OK (full extract)"
 
       - name: Install TT Metalium
         run: |
-          # apt resolves transitive deps (e.g. nlohmann-json for -dev); plain dpkg -i does not.
-          sudo apt-get install -y \
-            ./tt-metalium-debs/tt-metalium.deb \
-            ./tt-metalium-debs/tt-metalium-dev.deb
+          # apt-get install ./local.deb uses libapt-pkg's ar parser which trips on the
+          # zstd-compressed members in these debs.  dpkg -i uses its own ar parser and
+          # works correctly; apt-get install -f then pulls in any missing dependencies.
+          sudo dpkg -i \
+            tt-metalium-debs/tt-metalium.deb \
+            tt-metalium-debs/tt-metalium-dev.deb
+          sudo apt-get install -f -y
 
       - name: Build tt_plugin
         env:
