@@ -10,6 +10,9 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
   build_base_wheel:
     name: Linux base wheel (${{ matrix.python-version }})
@@ -246,6 +249,8 @@ jobs:
           wheel pack unpacked/*/ -d assembled/
 
       # Third-party GPU/NPU stacks stay on the host; avoid vendoring libcudart, libcuda, TT libs.
+      # Boost is a transitive dep of the TT plugin and must also be excluded — it lives on the
+      # host alongside the TT Metal stack and has a distro-specific tagged soname.
       - name: auditwheel repair merged wheel
         run: |
           mkdir -p final
@@ -255,6 +260,7 @@ jobs:
             --exclude 'libnvidia*.so*' \
             --exclude 'libtt*.so*' \
             --exclude 'libdevice*.so*' \
+            --exclude 'libboost*.so*' \
             --wheel-dir final \
             assembled/*.whl
 
