@@ -145,7 +145,6 @@ jobs:
         uses: actions/cache@v4
         with:
           path: tt-metalium-debs/
-          # Bump the suffix (v2, v3, …) to bust a poisoned cache entry.
           key: tt-metalium-debs-${{ env.TT_METALIUM_DEB_VERSION }}-ubuntu24.04-v2
 
       - name: Fetch TT Metalium .deb packages
@@ -174,9 +173,6 @@ jobs:
 
       - name: Install TT Metalium
         run: |
-          # apt-get install ./local.deb uses libapt-pkg's ar parser which trips on the
-          # zstd-compressed members in these debs.  dpkg -i uses its own ar parser and
-          # works correctly; apt-get install -f then pulls in any missing dependencies.
           sudo dpkg -i \
             tt-metalium-debs/tt-metalium.deb \
             tt-metalium-debs/tt-metalium-dev.deb
@@ -239,7 +235,6 @@ jobs:
           name: linux-tenstorrent-plugin
           path: tt-plugin/
 
-      # wheel pack regenerates RECORD
       - name: Merge plugins into wheel
         run: |
           wheel unpack base-wheel/*.whl -d unpacked/
@@ -248,9 +243,6 @@ jobs:
           mkdir -p assembled
           wheel pack unpacked/*/ -d assembled/
 
-      # Third-party GPU/NPU stacks stay on the host; avoid vendoring libcudart, libcuda, TT libs.
-      # Boost is a transitive dep of the TT plugin and must also be excluded — it lives on the
-      # host alongside the TT Metal stack and has a distro-specific tagged soname.
       - name: auditwheel repair merged wheel
         run: |
           mkdir -p final
