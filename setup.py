@@ -227,6 +227,12 @@ class CMakeBuild(build_ext):
                 "-DCMAKE_CXX_FLAGS=-fsanitize=address",
             ]
 
+        if check_env_flag("NEXUS_REQUIRE_CUDA"):
+            cmake_args += ["-DNEXUS_REQUIRE_CUDA=ON"]
+
+        if check_env_flag("NEXUS_REQUIRE_TT"):
+            cmake_args += ["-DNEXUS_REQUIRE_TT=ON"]
+
         env = os.environ.copy()
         cmake_dir = get_cmake_dir()
         subprocess.check_call(["cmake", ext.sourcedir] + cmake_args, cwd=cmake_dir, env=env)
@@ -281,7 +287,7 @@ CLASSIFIERS = BASE_CLASSIFIERS + PYTHON_CLASSIFIERS
 
 setup(
     name=os.environ.get("NEXUS_WHEEL_NAME", "knexus"),
-    version="0.1.0",
+    version="0.2.0",
     author="Simon Waters, Matthew Leon, Alex Baden",
     author_email="simon@kernelize.ai",
     description="",

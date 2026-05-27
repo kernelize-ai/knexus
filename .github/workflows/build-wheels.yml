@@ -1,6 +1,7 @@
 name: Build Wheels
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -9,122 +10,349 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
-  build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+  build_base_wheel:
+    name: Linux base wheel (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [nexus-cuda-runner, macos-latest]
-        
+        python-version: ["3.11", "3.12", "3.13"]
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
 
-      - name: Cache cibuildwheel tools
-        if: runner.os == 'macOS'
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build \
+            python3-dev python3-pybind11 \
+            libc++-dev libc++abi-dev \
+            libboost-all-dev git
+
+      - name: Install Python build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install build auditwheel
+
+      - name: Build wheel
+        env:
+          NEXUS_BUILD_REL: "1"
+          MAX_JOBS: "4"
+        run: python -m build --wheel --no-isolation
+
+      - name: auditwheel repair
+        run: |
+          mkdir -p wheelhouse
+          auditwheel repair --wheel-dir wheelhouse dist/*.whl
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-base-py${{ matrix.python-version }}
+          path: wheelhouse/*.whl
+          retention-days: 7
+
+  build_cuda_plugin:
+    name: CUDA plugin
+    runs-on: nexus-cuda-runner
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install CUDA toolkit
+        # The NVIDIA GPU-Optimized runner image ships the driver but not the
+        # compiler toolkit.  Install the minimal subset needed to build the plugin:
+        # nvcc (compiler), cudart-dev (runtime headers/lib), nvml-dev (NVML headers).
+        # libcuda.so and libnvidia-ml.so are already present via the driver.
+        uses: Jimver/cuda-toolkit@v0.2.22
+        with:
+          cuda: '12.8.0'
+          method: 'network'
+          sub-packages: '["nvcc", "cudart-dev", "nvml-dev"]'
+
+      - name: CUDA toolchain sanity check
+        run: |
+          nvcc --version
+          which nvcc
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build git \
+            libboost-all-dev \
+            python3-dev python3-pybind11
+
+      - name: Build cuda_plugin
+        env:
+          NEXUS_REQUIRE_CUDA: "1"
+        run: |
+          cmake -B build-cuda -S . \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DNEXUS_BUILD_PYTHON_MODULE=OFF \
+            -DNEXUS_BUILD_TESTS=OFF \
+            -DNEXUS_BUILD_PLUGINS=ON \
+            -DNEXUS_REQUIRE_CUDA=ON
+          cmake --build build-cuda --target cuda_plugin -j$(nproc)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-cuda-plugin
+          path: build-cuda/runtime_libs/libcuda_plugin.so
+          retention-days: 7
+
+  # TT Metalium: runtime + dev .deb from https://github.com/tenstorrent/tt-metal/releases
+  build_tt_plugin:
+    name: Tenstorrent plugin
+    runs-on: ubuntu-24.04
+    env:
+      TT_METALIUM_TAG: "v0.71.0-rc1"
+      TT_METALIUM_DEB_VERSION: "0.71.0.rc1"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build git \
+            libboost-all-dev \
+            nlohmann-json3-dev \
+            python3-dev python3-pybind11
+
+      - name: Cache TT Metalium .deb
+        id: tt-deb-cache
+        uses: actions/cache@v4
+        with:
+          path: tt-metalium-debs/
+          key: tt-metalium-debs-${{ env.TT_METALIUM_DEB_VERSION }}-ubuntu24.04-v2
+
+      - name: Fetch TT Metalium .deb packages
+        if: steps.tt-deb-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p tt-metalium-debs
+          base_url="https://github.com/tenstorrent/tt-metal/releases/download/${TT_METALIUM_TAG}"
+          echo "Downloading tt-metalium.deb…"
+          curl --retry 5 --retry-delay 3 --retry-all-errors -fsSL \
+            -w "  size=%{size_download} bytes  time=%{time_total}s\n" \
+            -o tt-metalium-debs/tt-metalium.deb \
+            "${base_url}/tt-metalium_${TT_METALIUM_DEB_VERSION}.ubuntu24.04_amd64.deb"
+          echo "Downloading tt-metalium-dev.deb…"
+          curl --retry 5 --retry-delay 3 --retry-all-errors -fsSL \
+            -w "  size=%{size_download} bytes  time=%{time_total}s\n" \
+            -o tt-metalium-debs/tt-metalium-dev.deb \
+            "${base_url}/tt-metalium-dev_${TT_METALIUM_DEB_VERSION}.ubuntu24.04_amd64.deb"
+          # Verify integrity before the cache post-step saves the files.
+          # --info only reads the control section; --extract exercises the full data archive.
+          tmp_check=$(mktemp -d)
+          dpkg-deb --extract tt-metalium-debs/tt-metalium.deb     "$tmp_check/main" > /dev/null
+          dpkg-deb --extract tt-metalium-debs/tt-metalium-dev.deb  "$tmp_check/dev"  > /dev/null
+          rm -rf "$tmp_check"
+          echo "Both .deb files verified OK (full extract)"
+
+      - name: Install TT Metalium
+        run: |
+          sudo dpkg -i \
+            tt-metalium-debs/tt-metalium.deb \
+            tt-metalium-debs/tt-metalium-dev.deb
+          sudo apt-get install -f -y
+
+      - name: Build tt_plugin
+        env:
+          TT_METAL_CMAKE_PATH: /usr
+          NEXUS_REQUIRE_TT: "1"
+        run: |
+          cmake -B build-tt -S . \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DNEXUS_BUILD_PYTHON_MODULE=OFF \
+            -DNEXUS_BUILD_TESTS=OFF \
+            -DNEXUS_BUILD_PLUGINS=ON \
+            -DNEXUS_REQUIRE_TT=ON
+          cmake --build build-tt --target tt_plugin -j$(nproc)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-tenstorrent-plugin
+          path: build-tt/runtime_libs/libtt_plugin.so
+          retention-days: 7
+
+  assemble_linux_wheel:
+    name: Linux assembled wheel (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    needs: [build_base_wheel, build_cuda_plugin, build_tt_plugin]
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install wheel and auditwheel
+        run: python -m pip install wheel auditwheel
+
+      - name: Download linux-base wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-base-py${{ matrix.python-version }}
+          path: base-wheel/
+
+      - name: Download cuda plugin
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-cuda-plugin
+          path: cuda-plugin/
+
+      - name: Download tenstorrent plugin
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-tenstorrent-plugin
+          path: tt-plugin/
+
+      - name: Merge plugins into wheel
+        run: |
+          wheel unpack base-wheel/*.whl -d unpacked/
+          cp cuda-plugin/libcuda_plugin.so unpacked/*/nexus/runtime_libs/
+          cp tt-plugin/libtt_plugin.so unpacked/*/nexus/runtime_libs/
+          mkdir -p assembled
+          wheel pack unpacked/*/ -d assembled/
+
+      - name: auditwheel repair merged wheel
+        run: |
+          mkdir -p final
+          auditwheel repair \
+            --exclude 'libcuda.so*' \
+            --exclude 'libcudart.so*' \
+            --exclude 'libnvidia*.so*' \
+            --exclude 'libtt*.so*' \
+            --exclude 'libdevice*.so*' \
+            --exclude 'libboost*.so*' \
+            --wheel-dir final \
+            assembled/*.whl
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-final-py${{ matrix.python-version }}
+          path: final/*.whl
+          retention-days: 30
+
+  build_macos_wheel:
+    name: macOS wheel (${{ matrix.python-version }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache virtualenv.pyz
         id: cibw-cache
         uses: actions/cache@v4
         with:
           path: ~/Library/Caches/cibuildwheel
           key: ${{ runner.os }}-cibuildwheel-v20.26.6
 
-      - name: Pre-load virtualenv tool
-        if: runner.os == 'macOS' && steps.cibw-cache.outputs.cache-hit != 'true'
+      - name: Bootstrap virtualenv.pyz cache
+        if: steps.cibw-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p ~/Library/Caches/cibuildwheel
           curl --retry 10 --retry-delay 5 --retry-all-errors -L \
             "https://github.com/pypa/get-virtualenv/blob/20.26.6/public/virtualenv.pyz?raw=true" \
             -o ~/Library/Caches/cibuildwheel/virtualenv-20.26.6.pyz
 
-      - name: Ensure pip is installed
-        run: |
-          python -m ensurepip --upgrade || true
-          python -m pip install --upgrade pip setuptools wheel
-
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake ninja-build python3 python3-dev python3-pip python3-pybind11 python-is-python3
-          sudo apt-get install -y libc++-dev libc++abi-dev git libboost-all-dev
-
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
+      - name: Install system dependencies
         run: |
           brew update
           brew uninstall cmake || true
-          brew install cmake ninja python@3.11 pybind11 boost
+          brew install cmake ninja python@${{ matrix.python-version }} pybind11 boost
 
-      - name: Install cibuildwheel
-        run: python -m pip install cibuildwheel==2.21.3
+      - name: Install Python build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install build delocate
 
-      - name: Build wheels
-        run: python -m cibuildwheel --output-dir wheelhouse
+      - name: Build wheel
         env:
-          CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-* cp313-*"
-          CIBW_SKIP: "*-musllinux_* pp* *-manylinux_i686"
-          # CIBW_ARCHS_MACOS: "x86_64 arm64"
-          CIBW_ARCHS_MACOS: "arm64"
-          CIBW_ARCHS_LINUX: "x86_64"
-          CIBW_MANYLINUX_X86_64_IMAGE: "quay.io/pypa/manylinux_2_28_x86_64"
-          # Install build dependencies in the build environment
-          CIBW_BEFORE_ALL_LINUX: >
-            pip install -r requirements.txt &&
-            dnf install -y boost boost-devel
-          CIBW_BEFORE_BUILD_MACOS: >
-            brew update &&
-            brew install boost &&
-            pip install -r requirements.txt
-          # Set environment variables for build
-          CIBW_ENVIRONMENT: "MAX_JOBS=4"
-          CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=15.0 MAX_JOBS=4"
-          # Test the wheel after building (optional - can be disabled if tests don't run well in isolation)
-          CIBW_TEST_COMMAND: "python -c 'import nexus; print(nexus.__file__)'"
-          CIBW_TEST_SKIP: "*"
-          # Build in parallel
-          CIBW_BUILD_VERBOSITY: 1
+          NEXUS_BUILD_REL: "1"
+          MACOSX_DEPLOYMENT_TARGET: "15.0"
+          ARCHFLAGS: "-arch arm64"
+          _PYTHON_HOST_PLATFORM: "macosx-15.0-arm64"
+          MAX_JOBS: "4"
+        run: python -m build --wheel --no-isolation
 
-      - name: Upload wheels
+      - name: delocate-wheel
+        run: |
+          mkdir -p wheelhouse
+          delocate-wheel --require-archs arm64 -w wheelhouse dist/*.whl
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}-${{ strategy.job-index }}
-          path: ./wheelhouse/*.whl
+          name: macos-py${{ matrix.python-version }}
+          path: wheelhouse/*.whl
           retention-days: 30
 
   build_sdist:
-    name: Build source distribution
+    name: Source distribution
     runs-on: ubuntu-latest
     permissions:
       contents: read
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
-      - name: Install build dependencies
+      - name: Install build backend
         run: |
           python -m pip install --upgrade pip
-          pip install build
+          python -m pip install build
 
       - name: Build sdist
         run: python -m build --sdist
 
-      - name: Upload sdist
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: sdist
@@ -132,19 +360,24 @@ jobs:
           retention-days: 30
 
   upload_all:
-    name: Upload if release
-    needs: [build_wheels, build_sdist]
+    name: Publish to PyPI
     runs-on: ubuntu-latest
+    needs:
+      - assemble_linux_wheel
+      - build_macos_wheel
+      - build_sdist
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     permissions:
       id-token: write
-    
+
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
+
+      - name: List dist/
+        run: ls -lh dist/
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
