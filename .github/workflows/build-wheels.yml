@@ -373,6 +373,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
+          pattern: "{linux-final-py*,macos-py*,sdist}"
           path: dist
           merge-multiple: true
 
