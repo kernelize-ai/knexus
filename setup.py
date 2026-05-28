@@ -287,7 +287,7 @@ CLASSIFIERS = BASE_CLASSIFIERS + PYTHON_CLASSIFIERS
 
 setup(
     name=os.environ.get("NEXUS_WHEEL_NAME", "knexus"),
-    version="0.2.0",
+    version="0.2.1",
     author="Simon Waters, Matthew Leon, Alex Baden",
     author_email="simon@kernelize.ai",
     description="",
