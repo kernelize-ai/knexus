@@ -67,7 +67,7 @@ jobs:
 
   build_cuda_plugin:
     name: CUDA plugin
-    runs-on: knexus-cuda-runner
+    runs-on: nexus-cuda-runner
 
     steps:
       - uses: actions/checkout@v4
