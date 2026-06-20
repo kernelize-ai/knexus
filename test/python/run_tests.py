@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test runner for Nexus Python unit tests.
+Test runner for KNexus Python unit tests.
 """
 
 import unittest
@@ -8,7 +8,7 @@ import sys
 import os
 import argparse
 
-# Add the project root to the path to import nexus
+# Add the project root to the path to import knexus
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'python'))
 
 def run_tests(test_pattern=None, verbose=False):
@@ -57,7 +57,7 @@ def run_tests(test_pattern=None, verbose=False):
 
 def main():
     """Main function to run tests."""
-    parser = argparse.ArgumentParser(description='Run Nexus Python unit tests')
+    parser = argparse.ArgumentParser(description='Run KNexus Python unit tests')
     parser.add_argument('--pattern', '-p', 
                        help='Test pattern to run (e.g., TestSystem.test_system_creation)')
     parser.add_argument('--verbose', '-v', action='store_true',

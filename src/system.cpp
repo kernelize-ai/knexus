@@ -1,18 +1,18 @@
-#define NEXUS_LOG_MODULE "system"
-#include <nexus/log.h>
+#define KNEXUS_LOG_MODULE "system"
+#include <knexus/log.h>
 
-#include <nexus/system.h>
-#include <nexus/utility.h>
+#include <knexus/system.h>
+#include <knexus/utility.h>
 
 #include "_system_impl.h"
 
-using namespace nexus;
-using namespace nexus::detail;
+using namespace knexus;
+using namespace knexus::detail;
 
 /// @brief Construct a Platform for the current system
 SystemImpl::SystemImpl(int) {
   NXSLOG_TRACE("CTOR");
-  iterateEnvPaths("NEXUS_RUNTIME_PATH", "./runtime_libs",
+  iterateEnvPaths("KNEXUS_RUNTIME_PATH", "./runtime_libs",
                   [&](const std::string &path, const std::string &name) {
                     Runtime rt(detail::Impl(this, runtimes.size()), path);
                     runtimes.add(rt);
@@ -64,36 +64,36 @@ Info SystemImpl::loadCatalog(const std::string &catalogPath) {
 System::System(int i) : Object(i) {}
 
 std::optional<Property> System::getProperty(nxs_int prop) const {
-  NEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
+  KNEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
 }
 
-Buffers System::getBuffers() const { NEXUS_OBJ_MCALL(Buffers(), getBuffers); }
+Buffers System::getBuffers() const { KNEXUS_OBJ_MCALL(Buffers(), getBuffers); }
 
-Runtimes System::getRuntimes() const { NEXUS_OBJ_MCALL(Runtimes(), getRuntimes); }
+Runtimes System::getRuntimes() const { KNEXUS_OBJ_MCALL(Runtimes(), getRuntimes); }
 
 Infos System::getCatalogs() const {
-  NEXUS_OBJ_MCALL(Infos(), getCatalogs);
+  KNEXUS_OBJ_MCALL(Infos(), getCatalogs);
 }
 
-Runtime System::getRuntime(int idx) const { NEXUS_OBJ_MCALL(Runtime(), getRuntime, idx); }
-Runtime System::getRuntime(const std::string &name) { NEXUS_OBJ_MCALL(Runtime(), getRuntime, name); }
+Runtime System::getRuntime(int idx) const { KNEXUS_OBJ_MCALL(Runtime(), getRuntime, idx); }
+Runtime System::getRuntime(const std::string &name) { KNEXUS_OBJ_MCALL(Runtime(), getRuntime, name); }
 
 Info System::loadCatalog(const std::string &catalogPath) {
-  NEXUS_OBJ_MCALL(Info(), loadCatalog, catalogPath);
+  KNEXUS_OBJ_MCALL(Info(), loadCatalog, catalogPath);
 }
 
 Buffer System::createBuffer(const Layout &layout, const void *hostData,
                             nxs_uint settings) {
-  NEXUS_OBJ_MCALL(Buffer(), createBuffer, layout, hostData, settings);
+  KNEXUS_OBJ_MCALL(Buffer(), createBuffer, layout, hostData, settings);
 }
 
 Buffer System::copyBuffer(Buffer buf, Device dev, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(Buffer(), copyBuffer, buf, dev, settings);
+  KNEXUS_OBJ_MCALL(Buffer(), copyBuffer, buf, dev, settings);
 }
 
 /// @brief Get the System Platform
 /// @return
-nexus::System nexus::getSystem() {
+knexus::System knexus::getSystem() {
   static System s_system(0);
   return s_system;
 }

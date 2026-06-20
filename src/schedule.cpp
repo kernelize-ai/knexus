@@ -1,16 +1,16 @@
-#define NEXUS_LOG_MODULE "schedule"
-#include <nexus/log.h>
+#define KNEXUS_LOG_MODULE "schedule"
+#include <knexus/log.h>
 
-#include <nexus/command.h>
-#include <nexus/event.h>
-#include <nexus/kernel.h>
-#include <nexus/schedule.h>
-#include <nexus/stream.h>
+#include <knexus/command.h>
+#include <knexus/event.h>
+#include <knexus/kernel.h>
+#include <knexus/schedule.h>
+#include <knexus/stream.h>
 
 #include "_schedule_impl.h"
 
-using namespace nexus;
-using namespace nexus::detail;
+using namespace knexus;
+using namespace knexus::detail;
 
 /// @brief Construct a Platform for the current system
 ScheduleImpl::ScheduleImpl(detail::Impl base) : detail::Impl(base) {
@@ -87,32 +87,32 @@ nxs_status ScheduleImpl::run(Stream stream, nxs_uint settings) {
 Schedule::Schedule(detail::Impl base) : Object(base) {}
 
 std::optional<Property> Schedule::getProperty(nxs_int prop) const {
-  NEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
+  KNEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
 }
 
 Command Schedule::createCommand(Kernel kern, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(Command(), createCommand, kern, settings);
+  KNEXUS_OBJ_MCALL(Command(), createCommand, kern, settings);
 }
 
 Command Schedule::createSignalCommand(nxs_int signal_value, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(Command(), createSignalCommand, signal_value, settings);
+  KNEXUS_OBJ_MCALL(Command(), createSignalCommand, signal_value, settings);
 }
 
 Command Schedule::createSignalCommand(Event event, nxs_int signal_value,
                                       nxs_uint settings) {
-  NEXUS_OBJ_MCALL(Command(), createSignalCommand, event, signal_value,
+  KNEXUS_OBJ_MCALL(Command(), createSignalCommand, event, signal_value,
                   settings);
 }
 
 Command Schedule::createWaitCommand(Event event, nxs_int wait_value,
                                     nxs_uint settings) {
-  NEXUS_OBJ_MCALL(Command(), createWaitCommand, event, wait_value, settings);
+  KNEXUS_OBJ_MCALL(Command(), createWaitCommand, event, wait_value, settings);
 }
 
 nxs_status Schedule::run(Stream stream, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(NXS_InvalidSchedule, run, stream, settings);
+  KNEXUS_OBJ_MCALL(NXS_InvalidSchedule, run, stream, settings);
 }
 
 Commands Schedule::getCommands() const {
-  NEXUS_OBJ_MCALL(Commands(), getCommands);
+  KNEXUS_OBJ_MCALL(Commands(), getCommands);
 }

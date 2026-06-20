@@ -1,18 +1,18 @@
 #include <pybind11/pybind11.h>
 
-#include "pynexus.h"
+#include "pyknexus.h"
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(libnexus, m) {
+PYBIND11_MODULE(libknexus, m) {
   m.doc() = R"pbdoc(
-        Nexus - Python API
+        KNexus - Python API
         -----------------------
 
-        .. currentmodule:: nexus
+        .. currentmodule:: knexus
 
         .. autosummary::
            :toctree: _generate
@@ -22,7 +22,7 @@ PYBIND11_MODULE(libnexus, m) {
     )pbdoc";
 
   // remove extra 'system' module (its redundant)
-  pynexus::init_system_bindings(m);
+  pyknexus::init_system_bindings(m);
 
 #ifdef VERSION_INFO
   m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);

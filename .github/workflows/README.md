@@ -1,6 +1,6 @@
 # GitHub Actions Workflows
 
-This directory contains GitHub Actions workflows for building and testing the nexus project.
+This directory contains GitHub Actions workflows for building and testing the knexus project.
 
 ## Workflows
 
@@ -35,8 +35,8 @@ An extended build workflow with additional configurations:
 ## Build Configuration
 
 Both workflows configure CMake with the following options:
-- `NEXUS_BUILD_PYTHON_MODULE=ON`: Builds Python bindings
-- `NEXUS_BUILD_PLUGINS=ON`: Builds runtime plugins (Metal on macOS, CUDA/HIP on Linux)
+- `KNEXUS_BUILD_PYTHON_MODULE=ON`: Builds Python bindings
+- `KNEXUS_BUILD_PLUGINS=ON`: Builds runtime plugins (Metal on macOS, CUDA/HIP on Linux)
 - `CMAKE_BUILD_TYPE`: Set to Debug or Release based on matrix configuration
 
 ## Dependencies
@@ -56,7 +56,7 @@ To run the same build process locally:
 sudo apt-get install build-essential cmake python3 python3-dev python3-pip libc++-dev libc++abi-dev
 python3 -m pip install pybind11
 mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DNEXUS_BUILD_PYTHON_MODULE=ON -DNEXUS_BUILD_PLUGINS=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release -DKNEXUS_BUILD_PYTHON_MODULE=ON -DKNEXUS_BUILD_PLUGINS=ON
 make -j$(nproc)
 ctest --output-on-failure
 ```
@@ -65,7 +65,7 @@ ctest --output-on-failure
 ```bash
 brew install cmake python@3.11 pybind11
 mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DNEXUS_BUILD_PYTHON_MODULE=ON -DNEXUS_BUILD_PLUGINS=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release -DKNEXUS_BUILD_PYTHON_MODULE=ON -DKNEXUS_BUILD_PLUGINS=ON
 make -j$(sysctl -n hw.ncpu)
 ctest --output-on-failure
 ```
@@ -75,7 +75,7 @@ ctest --output-on-failure
 # Install Visual Studio 2022 with C++ workload
 python -m pip install pybind11
 mkdir build && cd build
-cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DNEXUS_BUILD_PYTHON_MODULE=ON -DNEXUS_BUILD_PLUGINS=ON
+cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DKNEXUS_BUILD_PYTHON_MODULE=ON -DKNEXUS_BUILD_PLUGINS=ON
 cmake --build . --config Release --parallel
 ctest --output-on-failure -C Release
 ``` 

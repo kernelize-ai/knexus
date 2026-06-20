@@ -1,7 +1,7 @@
 #ifndef RT_UTILITIES_H
 #define RT_UTILITIES_H
 
-#include <nexus-api.h>
+#include <knexus-api.h>
 
 #include <cstring>
 #include <iomanip>

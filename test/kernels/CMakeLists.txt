@@ -1,4 +1,4 @@
-project(nexus-test)
+project(knexus-test)
 
 set(CPU_TARGETS)
 set(METAL_TARGETS)

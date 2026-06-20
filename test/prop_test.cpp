@@ -1,14 +1,14 @@
-#include <nexus.h>
+#include <knexus.h>
 
 #include <iostream>
 #include <fstream>
 #include <numeric>
 
-std::vector<std::string_view> nexusArgs;
+std::vector<std::string_view> knexusArgs;
 
 int main() {
 
-  auto sys = nexus::getSystem();
+  auto sys = knexus::getSystem();
   auto rt = sys.getRuntime(1);
 
   auto count = rt.getDeviceCount();
@@ -36,7 +36,7 @@ int main() {
   auto queId = dev0.createCommandList();
   std::cout << "    CList: " << queId << std::endl;
 
-  auto dev = nexus::lookupDevice("amd-gpu-gfx942");
+  auto dev = knexus::lookupDevice("amd-gpu-gfx942");
   if (dev) {
     {
       const char *key = "name";

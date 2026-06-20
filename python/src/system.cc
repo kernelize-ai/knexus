@@ -1,23 +1,23 @@
-#define NEXUS_LOG_MODULE "pynexus"
-#define NEXUS_LOG_NAME "pynexus"
-#include <nexus/log.h>
+#define KNEXUS_LOG_MODULE "pyknexus"
+#define KNEXUS_LOG_NAME "pyknexus"
+#include <knexus/log.h>
 
 #include <Python.h>
-#include <nexus-api.h>
-#include <nexus.h>
+#include <knexus-api.h>
+#include <knexus.h>
 #include <pybind11/stl.h>
 
 #include <iostream>
 #include <pybind11_json/pybind11_json.hpp>
 
 #include "../src/_info_impl.h"
-#include "pynexus.h"
+#include "pyknexus.h"
 
 namespace py = pybind11;
 
-using namespace nexus;
+using namespace knexus;
 
-// Extracted metadata for a Python object that can back a Nexus buffer.
+// Extracted metadata for a Python object that can back a KNexus buffer.
 // Objects are expected to expose tensor-like attributes (data_ptr/shape/device).
 struct DevPtr {
   char *ptr = nullptr;
@@ -50,7 +50,7 @@ static DevPtr getPointer(PyObject *obj) {
       result.device_id = 0;
     }
     Py_DECREF(device_m);
-    if (result.runtime_name == "nexus") {
+    if (result.runtime_name == "knexus") {
       return result;
     }
   }
@@ -88,10 +88,10 @@ static DevPtr getPointer(PyObject *obj) {
     PyObject *dtype_tuple = PyTuple_New(1);
     PyTuple_SetItem(dtype_tuple, 0, obj);
     Py_INCREF(obj); // is this necessary? crashes without it
-    PyObject *nexus_module = PyImport_ImportModule("nexus");
-    PyObject *get_data_type_func = PyObject_GetAttrString(nexus_module, "get_data_type");
+    PyObject *knexus_module = PyImport_ImportModule("knexus");
+    PyObject *get_data_type_func = PyObject_GetAttrString(knexus_module, "get_data_type");
     PyObject *dtype_ret = PyObject_CallObject(get_data_type_func, dtype_tuple);
-    Py_DECREF(nexus_module);
+    Py_DECREF(knexus_module);
     Py_DECREF(get_data_type_func);
     Py_DECREF(dtype_tuple);
     if (dtype_ret) {
@@ -140,16 +140,16 @@ PyObject *import_from(const char *module_name, const char *var_name) {
 }
 
 
-// Create a Nexus Buffer from:
-// - an existing Nexus buffer,
+// Create a KNexus Buffer from:
+// - an existing KNexus buffer,
 // - a Python tensor-like object (CPU or runtime-backed device tensor),
 // optionally copying into `device` when requested.
 static Buffer make_buffer(py::object tensor, Device device = Device(),
                           nxs_uint settings = 0) {
   // TODO: track ownership of the py::object tensor (release on destruction of
   // Buffer)
-  static auto nexus_buffer = import_from("nexus", "Buffer");
-  if (PyObject_IsInstance(tensor.ptr(), nexus_buffer)) {
+  static auto knexus_buffer = import_from("knexus", "Buffer");
+  if (PyObject_IsInstance(tensor.ptr(), knexus_buffer)) {
     // TODO: check for matching device
     auto buffer = tensor.cast<Buffer>();
     if (device && device != buffer.getParentImpl()) {
@@ -159,24 +159,24 @@ static Buffer make_buffer(py::object tensor, Device device = Device(),
   }
 
   auto data_ptr = getPointer(tensor.ptr());
-  if (data_ptr.runtime_name == "nexus") {
-    // call torch.nexus.get_nexus_buffer(obj)
-    auto get_nexus_buffer = import_from("torch.nexus", "get_nexus_buffer");
-    PyObject *get_nexus_buffer_ret = PyObject_CallFunctionObjArgs(get_nexus_buffer, tensor.ptr(), NULL);
-    Py_DECREF(get_nexus_buffer);
-    if (!get_nexus_buffer_ret) {
+  if (data_ptr.runtime_name == "knexus") {
+    // call torch.knexus.get_knexus_buffer(obj)
+    auto get_knexus_buffer = import_from("torch.knexus", "get_knexus_buffer");
+    PyObject *get_knexus_buffer_ret = PyObject_CallFunctionObjArgs(get_knexus_buffer, tensor.ptr(), NULL);
+    Py_DECREF(get_knexus_buffer);
+    if (!get_knexus_buffer_ret) {
       PyErr_Print();
-      throw std::runtime_error("Failed to get Nexus buffer");
+      throw std::runtime_error("Failed to get KNexus buffer");
     }
-    auto buffer = pybind11::cast<Buffer>(get_nexus_buffer_ret);
-    Py_DECREF(get_nexus_buffer_ret);
+    auto buffer = pybind11::cast<Buffer>(get_knexus_buffer_ret);
+    Py_DECREF(get_knexus_buffer_ret);
     return buffer;
   }
   if (data_ptr.shape.getRank() == 0) { // is size 0 legal?
     return Buffer();
   }
   if (!data_ptr.runtime_name.empty() && data_ptr.device_id != -1) {
-    auto buffer_runtime = nexus::getSystem().getRuntime(data_ptr.runtime_name);
+    auto buffer_runtime = knexus::getSystem().getRuntime(data_ptr.runtime_name);
     if (buffer_runtime) {
       auto dp_device = buffer_runtime.getDevice(data_ptr.device_id);
       if (!dp_device) {
@@ -194,7 +194,7 @@ static Buffer make_buffer(py::object tensor, Device device = Device(),
   if (device) {
     return device.createBuffer(data_ptr.shape, data_ptr.ptr, settings);
   }
-  return nexus::getSystem().createBuffer(data_ptr.shape, data_ptr.ptr, settings);
+  return knexus::getSystem().createBuffer(data_ptr.shape, data_ptr.ptr, settings);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -249,8 +249,8 @@ static T get_prop(Tobj &self, const nxs_property prop) {
 // Object class generation
 template <typename T>
 static py::class_<T> make_object_class(py::module &m, const std::string &name, const std::string &doc = "") {
-  // Global registration (no py::module_local) so other extension modules (e.g. torch_nexus)
-  // can return/pass nexus::Device, Runtime, Buffer, etc. without their own duplicate bindings.
+  // Global registration (no py::module_local) so other extension modules (e.g. torch_knexus)
+  // can return/pass knexus::Device, Runtime, Buffer, etc. without their own duplicate bindings.
   return py::class_<T>(m, name.c_str(), doc.c_str())
       .def("__bool__", [](T &self) { return (bool)self; })
       .def("__del__", [](T &self) { self.release(); })
@@ -350,16 +350,16 @@ static nxs_status set_argument(Command &self, int index, py::object value,
     return self.setArgument(index, val, name, settings);
   }
   else if (value.is_none()) {
-    auto none_buf = nexus::getSystem().createBuffer(0, nullptr, NXS_BufferSettings_OnDevice);
+    auto none_buf = knexus::getSystem().createBuffer(0, nullptr, NXS_BufferSettings_OnDevice);
     return self.setArgument(index, none_buf, name, settings);
   }
   return NXS_InvalidArgValue;
 }
 
 //////////////////////////////////////////////////////////////////////////
-// pynexus::init_system_bindings -- add bindings for system objects
+// pyknexus::init_system_bindings -- add bindings for system objects
 // - this is the main entry point for the system module
-void pynexus::init_system_bindings(py::module &m) {
+void pyknexus::init_system_bindings(py::module &m) {
   using ret = py::return_value_policy;
   using namespace pybind11::literals;
 
@@ -466,11 +466,11 @@ void pynexus::init_system_bindings(py::module &m) {
   dataTypeEnum.export_values();
 
   //////////////////////////////////////////////////////////////////////////
-  // Add Nexus Object types and methods
+  // Add KNexus Object types and methods
   //////////////////////////////////////////////////////////////////////////
 
   // Properties Object
-  py::class_<Info>(m, "Info", py::module_local(), "Hierarchical property tree returned by Nexus info queries.")
+  py::class_<Info>(m, "Info", py::module_local(), "Hierarchical property tree returned by KNexus info queries.")
       .def("__bool__", [](Info &self) { return (bool)self; })
       .def(
           "get",
@@ -695,26 +695,26 @@ void pynexus::init_system_bindings(py::module &m) {
   make_objects_class<Info>(m, "Infos", "Collection of info objects.");
 
   // query
-  m.def("get_runtime", [](const std::string &name) { return nexus::getSystem().getRuntime(name); },
+  m.def("get_runtime", [](const std::string &name) { return knexus::getSystem().getRuntime(name); },
         "Lookup runtime by name.");
-  m.def("get_runtimes", []() { return nexus::getSystem().getRuntimes(); },
+  m.def("get_runtimes", []() { return knexus::getSystem().getRuntimes(); },
         "Return all registered runtimes.");
-  m.def("get_device_info", []() { return *nexus::getDeviceInfoDB(); },
+  m.def("get_device_info", []() { return *knexus::getDeviceInfoDB(); },
         "Return the global device info database.");
   m.def("lookup_device_info",
-        [](const std::string &name) { return nexus::lookupDeviceInfo(name); },
+        [](const std::string &name) { return knexus::lookupDeviceInfo(name); },
         "Lookup a device-info entry by name.");
 
   m.def("load_catalog", [](const std::string &catalog_path) {
-    return nexus::getSystem().loadCatalog(catalog_path);
+    return knexus::getSystem().loadCatalog(catalog_path);
   }, "Load a catalog JSON file.");
-  m.def("get_catalogs", []() { return nexus::getSystem().getCatalogs(); },
+  m.def("get_catalogs", []() { return knexus::getSystem().getCatalogs(); },
         "Return currently loaded catalogs.");
 
   // create System Buffers
   m.def("create_buffer",
-        [](size_t size) { return nexus::getSystem().createBuffer(size); },
+        [](size_t size) { return knexus::getSystem().createBuffer(size); },
         "Create a host/system buffer by byte size.");
   m.def("create_buffer", [](py::object tensor) { return make_buffer(tensor); },
-        "Create a Nexus buffer from a tensor-like Python object.");
+        "Create a KNexus buffer from a tensor-like Python object.");
 }

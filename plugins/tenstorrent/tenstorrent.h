@@ -3,8 +3,8 @@
 
 #define NXSAPI_LOG_MODULE "tt_rt"
 #define NXSAPI_LOG_MODULE_COLOR "\033[96m"
-#include <nexus-api.h>
-#include <nexus-api/nxs_log.h>
+#include <knexus-api.h>
+#include <knexus-api/nxs_log.h>
 
 #include <rt_utilities.h>
 

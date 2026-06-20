@@ -45,8 +45,8 @@ dist/
 __pycache__/
 *.py[cod]
 .pytest_cache
-python/nexus/device_lib
-python/nexus/include
+python/knexus/device_lib
+python/knexus/include
 
 *.egg-info
 
@@ -56,3 +56,6 @@ python/nexus/include
 # Cmake files
 cmake/*
 !cmake/FindCPUINFO.cmake
+
+# Virtual Environment
+.venv/

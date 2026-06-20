@@ -1,25 +1,25 @@
 /*
- * Nexus Metal Runtime Plugin
+ * KNexus Metal Runtime Plugin
  * 
- * This file implements the Nexus API for Apple Metal GPU computing.
- * It provides a mapping from the Nexus unified GPU computing API to
+ * This file implements the KNexus API for Apple Metal GPU computing.
+ * It provides a mapping from the KNexus unified GPU computing API to
  * Apple's Metal framework, enabling cross-platform GPU applications
  * to run on macOS and iOS devices with Metal-capable GPUs.
  * 
  * ====================================================================
- * NEXUS API TO METAL API MAPPING
+ * KNEXUS API TO METAL API MAPPING
  * ====================================================================
  * 
  * Core Concepts:
  * --------------
- * Nexus Runtime    -> Metal Runtime (singleton managing all Metal devices)
- * Nexus Device     -> MTL::Device (represents a Metal GPU device)
- * Nexus Buffer     -> MTL::Buffer (GPU memory buffer)
- * Nexus Library    -> MTL::Library (compiled Metal shader library)
- * Nexus Kernel     -> MTL::ComputePipelineState (compiled compute pipeline)
- * Nexus Stream     -> MTL::CommandQueue (command submission queue)
- * Nexus Schedule   -> MTL::CommandBuffer (command buffer for execution)
- * Nexus Command    -> MTL::ComputeCommandEncoder (compute command encoder)
+ * KNexus Runtime    -> Metal Runtime (singleton managing all Metal devices)
+ * KNexus Device     -> MTL::Device (represents a Metal GPU device)
+ * KNexus Buffer     -> MTL::Buffer (GPU memory buffer)
+ * KNexus Library    -> MTL::Library (compiled Metal shader library)
+ * KNexus Kernel     -> MTL::ComputePipelineState (compiled compute pipeline)
+ * KNexus Stream     -> MTL::CommandQueue (command submission queue)
+ * KNexus Schedule   -> MTL::CommandBuffer (command buffer for execution)
+ * KNexus Command    -> MTL::ComputeCommandEncoder (compute command encoder)
  * 
  * API Function Mappings:
  * ----------------------
@@ -69,7 +69,7 @@
  *   * Optionally waits for completion (blocking mode)
  * 
  * Resource Management:
- * - All Nexus objects are tracked in a global object registry
+ * - All KNexus objects are tracked in a global object registry
  * - Object IDs are used for cross-API object references
  * - Automatic cleanup via RAII and explicit release calls
  * 
@@ -92,7 +92,7 @@
  * 
  * 4. Error Handling:
  *    - Basic error checking with Metal error objects
- *    - Limited error propagation to Nexus API
+ *    - Limited error propagation to KNexus API
  *    - Some error codes may not map directly
  * 
  * 5. Performance Considerations:
@@ -143,8 +143,8 @@
 
 #define NXSAPI_LOG_MODULE "metal_rt"
 #define NXSAPI_LOG_MODULE_COLOR "\033[95m"
-#include <nexus-api.h>
-#include <nexus-api/nxs_log.h>
+#include <knexus-api.h>
+#include <knexus-api/nxs_log.h>
 
 #include <rt_runtime.h>
 #include <rt_command.h>

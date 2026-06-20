@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit tests for Nexus Buffer class and memory operations.
+Unit tests for KNexus Buffer class and memory operations.
 """
 
 import unittest
@@ -8,30 +8,30 @@ import numpy as np
 import sys
 import os
 
-# Add the project root to the path to import nexus
+# Add the project root to the path to import knexus
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'python'))
 
 try:
-    import nexus
+    import knexus
 except ImportError:
-    print("Warning: nexus module not found. Tests will be skipped.")
-    nexus = None
+    print("Warning: knexus module not found. Tests will be skipped.")
+    knexus = None
 
 def get_first_runtime_with_device():
-    runtimes = nexus.get_runtimes()
+    runtimes = knexus.get_runtimes()
     for runtime in runtimes:
         devices = runtime.get_devices()
         if devices:
             return runtime, devices[0]
     return None, None
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestBuffer(unittest.TestCase):
     """Test cases for the Buffer class."""
 
     def setUp(self):
         """Set up test fixtures."""
-        self.runtimes = nexus.get_runtimes()
+        self.runtimes = knexus.get_runtimes()
         self.runtime, self.device = get_first_runtime_with_device()
 
     def test_buffer_creation_system(self):
@@ -130,7 +130,7 @@ class TestBuffer(unittest.TestCase):
 
     def test_buffer_copy_between_devices(self):
         """Test copying buffers between devices."""
-        runtimes = nexus.get_runtimes()
+        runtimes = knexus.get_runtimes()
         runtime1, device1 = None, None
         runtime2, device2 = None, None
         found = 0
@@ -151,13 +151,13 @@ class TestBuffer(unittest.TestCase):
             self.assertEqual(buffer2.get_size(), buffer1.get_size())
 
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestBufferOperations(unittest.TestCase):
     """Test cases for buffer operations and memory management."""
 
     def setUp(self):
         """Set up test fixtures."""
-        self.runtimes = nexus.get_runtimes()
+        self.runtimes = knexus.get_runtimes()
         self.runtime, self.device = get_first_runtime_with_device()
 
     def test_multiple_buffers(self):

@@ -1,7 +1,7 @@
 #ifndef RT_BUFFER_H
 #define RT_BUFFER_H
 
-#include <nexus-api.h>
+#include <knexus-api.h>
 
 #include <cstring>
 

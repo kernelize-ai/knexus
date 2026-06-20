@@ -1,6 +1,6 @@
-# Nexus Python Unit Tests
+# KNexus Python Unit Tests
 
-This directory contains comprehensive unit tests for the Nexus Python API.
+This directory contains comprehensive unit tests for the KNexus Python API.
 
 ## Test Structure
 
@@ -18,11 +18,11 @@ The test suite is organized into the following modules:
 
 ### Prerequisites
 
-1. Build the Nexus framework with Python bindings:
+1. Build the KNexus framework with Python bindings:
    ```bash
-   cd /path/to/nexus
+   cd /path/to/knexus
    mkdir build && cd build
-   cmake .. -DNEXUS_BUILD_PYTHON_MODULE=ON
+   cmake .. -DKNEXUS_BUILD_PYTHON_MODULE=ON
    make
    ```
 
@@ -71,9 +71,9 @@ python -m unittest test_basic -v
 
 ### Graceful Degradation
 
-The tests are designed to work even when the Nexus framework is not fully implemented:
+The tests are designed to work even when the KNexus framework is not fully implemented:
 
-- Tests are skipped if the `nexus` module is not available
+- Tests are skipped if the `knexus` module is not available
 - Tests handle missing functionality gracefully
 - Error conditions are tested and expected
 
@@ -117,13 +117,13 @@ Tests work across different platforms:
 
 ## API Structure
 
-The Nexus Python API follows this structure:
+The KNexus Python API follows this structure:
 
 ```python
-import nexus
+import knexus
 
 # Get available runtimes
-runtimes = nexus.get_runtimes()
+runtimes = knexus.get_runtimes()
 
 # Get devices from a runtime
 for runtime in runtimes:
@@ -141,7 +141,7 @@ Tests use a helper function to find the first runtime with a valid device:
 ```python
 def get_first_runtime_with_device():
     """Helper function to get the first runtime that has at least one device."""
-    runtimes = nexus.get_runtimes()
+    runtimes = knexus.get_runtimes()
     for runtime in runtimes:
         devices = runtime.get_devices()
         if len(devices) > 0:
@@ -151,13 +151,13 @@ def get_first_runtime_with_device():
 
 ## Expected Behavior
 
-### When Nexus is Available
+### When KNexus is Available
 
 - All tests should run and pass
 - Kernel execution tests may fail if no kernel libraries are available
 - Performance tests may be limited by available memory
 
-### When Nexus is Not Available
+### When KNexus is Not Available
 
 - Tests are skipped with appropriate warnings
 - No errors are thrown
@@ -174,7 +174,7 @@ def get_first_runtime_with_device():
 To add new tests:
 
 1. Create a new test file following the naming convention `test_*.py`
-2. Use the `@unittest.skipIf(nexus is None, "nexus module not available")` decorator
+2. Use the `@unittest.skipIf(knexus is None, "knexus module not available")` decorator
 3. Add proper error handling for missing functionality
 4. Update `run_tests.py` to include the new test module
 
@@ -193,28 +193,28 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'python'))
 
 try:
-    import nexus
+    import knexus
 except ImportError:
-    print("Warning: nexus module not found. Tests will be skipped.")
-    nexus = None
+    print("Warning: knexus module not found. Tests will be skipped.")
+    knexus = None
 
 def get_first_runtime_with_device():
     """Helper function to get the first runtime that has at least one device."""
-    runtimes = nexus.get_runtimes()
+    runtimes = knexus.get_runtimes()
     for runtime in runtimes:
         devices = runtime.get_devices()
         if len(devices) > 0:
             return runtime, devices[0]
     return None, None
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestNewFeature(unittest.TestCase):
     """Test cases for new feature."""
     
     def setUp(self):
         """Set up test fixtures."""
         self.runtime, self.device = get_first_runtime_with_device()
-        self.runtimes = nexus.get_runtimes()
+        self.runtimes = knexus.get_runtimes()
     
     def test_new_feature(self):
         """Test new feature functionality."""
@@ -232,9 +232,9 @@ if __name__ == '__main__':
 
 If you get import errors:
 
-1. Ensure Nexus is built with Python bindings
-2. Check that the Python path includes the Nexus module
-3. Verify that `libnexus.so` (or equivalent) is in the Python module directory
+1. Ensure KNexus is built with Python bindings
+2. Check that the Python path includes the KNexus module
+3. Verify that `libknexus.so` (or equivalent) is in the Python module directory
 
 ### Missing Dependencies
 
@@ -246,9 +246,9 @@ pip install numpy
 
 ### API Changes
 
-The tests have been updated to use the current Nexus API:
+The tests have been updated to use the current KNexus API:
 
-- Use `nexus.get_runtimes()` instead of `nexus.get_system()`
+- Use `knexus.get_runtimes()` instead of `knexus.get_system()`
 - Access devices through runtime objects
 - Use the helper function `get_first_runtime_with_device()` for consistent device access
 

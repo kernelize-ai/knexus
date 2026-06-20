@@ -2,7 +2,7 @@
 
 #include <assert.h>
 #include <dlfcn.h>
-#include <nexus-api.h>
+#include <knexus-api.h>
 #include <rt_buffer.h>
 #include <rt_object.h>
 #include <rt_runtime.h>

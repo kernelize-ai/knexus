@@ -1,13 +1,13 @@
-#ifndef _NEXUS_LIBRARY_IMPL_H
-#define _NEXUS_LIBRARY_IMPL_H
+#ifndef _KNEXUS_LIBRARY_IMPL_H
+#define _KNEXUS_LIBRARY_IMPL_H
 
-#include <nexus/info.h>
-#include <nexus/kernel.h>
-#include <nexus/library.h>
+#include <knexus/info.h>
+#include <knexus/kernel.h>
+#include <knexus/library.h>
 
 #include <unordered_map>
 
-namespace nexus {
+namespace knexus {
 namespace detail {
 
 class LibraryImpl : public Impl {
@@ -33,6 +33,6 @@ class LibraryImpl : public Impl {
   Info info;
 };
 }  // namespace detail
-}  // namespace nexus
+}  // namespace knexus
 
-#endif  // _NEXUS_LIBRARY_IMPL_H
+#endif  // _KNEXUS_LIBRARY_IMPL_H

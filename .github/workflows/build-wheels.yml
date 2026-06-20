@@ -49,7 +49,7 @@ jobs:
 
       - name: Build wheel
         env:
-          NEXUS_BUILD_REL: "1"
+          KNEXUS_BUILD_REL: "1"
           MAX_JOBS: "4"
         run: python -m build --wheel --no-isolation
 
@@ -67,7 +67,7 @@ jobs:
 
   build_cuda_plugin:
     name: CUDA plugin
-    runs-on: nexus-cuda-runner
+    runs-on: knexus-cuda-runner
 
     steps:
       - uses: actions/checkout@v4
@@ -100,15 +100,15 @@ jobs:
 
       - name: Build cuda_plugin
         env:
-          NEXUS_REQUIRE_CUDA: "1"
+          KNEXUS_REQUIRE_CUDA: "1"
         run: |
           cmake -B build-cuda -S . \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DNEXUS_BUILD_PYTHON_MODULE=OFF \
-            -DNEXUS_BUILD_TESTS=OFF \
-            -DNEXUS_BUILD_PLUGINS=ON \
-            -DNEXUS_REQUIRE_CUDA=ON
+            -DKNEXUS_BUILD_PYTHON_MODULE=OFF \
+            -DKNEXUS_BUILD_TESTS=OFF \
+            -DKNEXUS_BUILD_PLUGINS=ON \
+            -DKNEXUS_REQUIRE_CUDA=ON
           cmake --build build-cuda --target cuda_plugin -j$(nproc)
 
       - name: Upload artifact
@@ -181,15 +181,15 @@ jobs:
       - name: Build tt_plugin
         env:
           TT_METAL_CMAKE_PATH: /usr
-          NEXUS_REQUIRE_TT: "1"
+          KNEXUS_REQUIRE_TT: "1"
         run: |
           cmake -B build-tt -S . \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DNEXUS_BUILD_PYTHON_MODULE=OFF \
-            -DNEXUS_BUILD_TESTS=OFF \
-            -DNEXUS_BUILD_PLUGINS=ON \
-            -DNEXUS_REQUIRE_TT=ON
+            -DKNEXUS_BUILD_PYTHON_MODULE=OFF \
+            -DKNEXUS_BUILD_TESTS=OFF \
+            -DKNEXUS_BUILD_PLUGINS=ON \
+            -DKNEXUS_REQUIRE_TT=ON
           cmake --build build-tt --target tt_plugin -j$(nproc)
 
       - name: Upload artifact
@@ -238,8 +238,8 @@ jobs:
       - name: Merge plugins into wheel
         run: |
           wheel unpack base-wheel/*.whl -d unpacked/
-          cp cuda-plugin/libcuda_plugin.so unpacked/*/nexus/runtime_libs/
-          cp tt-plugin/libtt_plugin.so unpacked/*/nexus/runtime_libs/
+          cp cuda-plugin/libcuda_plugin.so unpacked/*/knexus/runtime_libs/
+          cp tt-plugin/libtt_plugin.so unpacked/*/knexus/runtime_libs/
           mkdir -p assembled
           wheel pack unpacked/*/ -d assembled/
 
@@ -310,7 +310,7 @@ jobs:
 
       - name: Build wheel
         env:
-          NEXUS_BUILD_REL: "1"
+          KNEXUS_BUILD_REL: "1"
           MACOSX_DEPLOYMENT_TARGET: "15.0"
           ARCHFLAGS: "-arch arm64"
           _PYTHON_HOST_PLATFORM: "macosx-15.0-arm64"

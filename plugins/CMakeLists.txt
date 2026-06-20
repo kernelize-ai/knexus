@@ -1,8 +1,8 @@
 
 include_directories(include)
 
-option(NEXUS_REQUIRE_CUDA "Fail build if CUDA compiler not found" OFF)
-option(NEXUS_REQUIRE_TT   "Fail build if TT Metalium not found"   OFF)
+option(KNEXUS_REQUIRE_CUDA "Fail build if CUDA compiler not found" OFF)
+option(KNEXUS_REQUIRE_TT   "Fail build if TT Metalium not found"   OFF)
 
 add_subdirectory(cpu)
 
@@ -24,8 +24,8 @@ if(LINUX)
 
     else()
 
-        if(NEXUS_REQUIRE_CUDA)
-            message(FATAL_ERROR "CUDA compiler not found but NEXUS_REQUIRE_CUDA=ON")
+        if(KNEXUS_REQUIRE_CUDA)
+            message(FATAL_ERROR "CUDA compiler not found but KNEXUS_REQUIRE_CUDA=ON")
         endif()
 
         set(CUDA_AVAILABLE FALSE)
@@ -35,8 +35,8 @@ if(LINUX)
     add_subdirectory(hip)
 
     set(TT_METAL_CMAKE_PATH_CHECK $ENV{TT_METAL_CMAKE_PATH})
-    if(NOT EXISTS "${TT_METAL_CMAKE_PATH_CHECK}" AND NEXUS_REQUIRE_TT)
-        message(FATAL_ERROR "TT Metalium not found at '${TT_METAL_CMAKE_PATH_CHECK}' but NEXUS_REQUIRE_TT=ON")
+    if(NOT EXISTS "${TT_METAL_CMAKE_PATH_CHECK}" AND KNEXUS_REQUIRE_TT)
+        message(FATAL_ERROR "TT Metalium not found at '${TT_METAL_CMAKE_PATH_CHECK}' but KNEXUS_REQUIRE_TT=ON")
     endif()
 
     add_subdirectory(tenstorrent)

@@ -1,11 +1,11 @@
-#define NEXUS_LOG_MODULE "stream"
-#include <nexus/log.h>
+#define KNEXUS_LOG_MODULE "stream"
+#include <knexus/log.h>
 
-#include <nexus/stream.h>
+#include <knexus/stream.h>
 
 #include "_device_impl.h"
 
-namespace nexus {
+namespace knexus {
 namespace detail {
 
 class StreamImpl : public Impl {
@@ -29,14 +29,14 @@ class StreamImpl : public Impl {
  private:
 };
 }  // namespace detail
-}  // namespace nexus
+}  // namespace knexus
 
-using namespace nexus;
-using namespace nexus::detail;
+using namespace knexus;
+using namespace knexus::detail;
 
 ///////////////////////////////////////////////////////////////////////////////
 Stream::Stream(detail::Impl base) : Object(base) {}
 
 std::optional<Property> Stream::getProperty(nxs_int prop) const {
-  NEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
+  KNEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
 }

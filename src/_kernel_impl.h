@@ -1,10 +1,10 @@
-#ifndef _NEXUS_KERNEL_IMPL_H
-#define _NEXUS_KERNEL_IMPL_H
+#ifndef _KNEXUS_KERNEL_IMPL_H
+#define _KNEXUS_KERNEL_IMPL_H
 
-#include <nexus/info.h>
-#include <nexus/kernel.h>
+#include <knexus/info.h>
+#include <knexus/kernel.h>
 
-namespace nexus {
+namespace knexus {
 namespace detail {
 
 class KernelImpl : public Impl {
@@ -21,6 +21,6 @@ class KernelImpl : public Impl {
   Info info;
 };
 }  // namespace detail
-}  // namespace nexus
+}  // namespace knexus
 
-#endif  // _NEXUS_KERNEL_IMPL_H
+#endif  // _KNEXUS_KERNEL_IMPL_H

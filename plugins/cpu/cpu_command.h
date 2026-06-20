@@ -3,7 +3,7 @@
 
 #define NXSAPI_LOG_MODULE "cpu_rt"
 #define NXSAPI_LOG_MODULE_COLOR "\033[34m"
-#include <nexus-api/nxs_log.h>
+#include <knexus-api/nxs_log.h>
 
 #include <rt_command.h>
 

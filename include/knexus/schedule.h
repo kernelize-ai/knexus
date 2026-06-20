@@ -1,0 +1,39 @@
+#ifndef KNEXUS_SCHEDULE_H
+#define KNEXUS_SCHEDULE_H
+
+#include <knexus-api.h>
+#include <knexus/command.h>
+#include <knexus/stream.h>
+#include <knexus/object.h>
+
+namespace knexus {
+
+namespace detail {
+class ScheduleImpl;
+}  // namespace detail
+
+// System class
+class Schedule : public Object<detail::ScheduleImpl> {
+ public:
+  Schedule(detail::Impl base);
+  using Object::Object;
+
+  std::optional<Property> getProperty(nxs_int prop) const override;
+
+  Command createCommand(Kernel kern, nxs_uint settings = 0);
+  Command createSignalCommand(nxs_int signal_value = 1, nxs_uint settings = 0);
+  Command createSignalCommand(Event event, nxs_int signal_value = 1,
+                              nxs_uint settings = 0);
+  Command createWaitCommand(Event event, nxs_int wait_value = 1,
+                            nxs_uint settings = 0);
+
+  nxs_status run(Stream stream = Stream(), nxs_uint settings = 0);
+
+  Commands getCommands() const;
+};
+
+typedef Objects<Schedule> Schedules;
+
+}  // namespace knexus
+
+#endif  // KNEXUS_SCHEDULE_H

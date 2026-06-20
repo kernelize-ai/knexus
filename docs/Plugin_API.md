@@ -1,10 +1,10 @@
-# Nexus Plugin API Documentation
+# KNexus Plugin API Documentation
 
-The Nexus Plugin API defines a set of C functions that must be implemented by hardware backend plugins (such as Metal, CUDA, HIP, CPU, etc.) to provide a unified, cross-platform hardware accelerator interface. This API enables the Nexus runtime to interact with different hardware backends in a consistent way.
+The KNexus Plugin API defines a set of C functions that must be implemented by hardware backend plugins (such as Metal, CUDA, HIP, CPU, etc.) to provide a unified, cross-platform hardware accelerator interface. This API enables the KNexus runtime to interact with different hardware backends in a consistent way.
 
 ## Overview
 
-- **API Location:** `include/nexus-api/nxs_functions.h` (function declarations), `include/nexus-api/_nxs_functions.h` (macro-generated)
+- **API Location:** `include/knexus-api/nxs_functions.h` (function declarations), `include/knexus-api/_nxs_functions.h` (macro-generated)
 - **Plugin Implementation Example:** `plugins/metal/metal_runtime.cpp`
 - **Language:** C/C++ (extern "C" linkage for plugin functions)
 - **Design:** Each function operates on integer handles (IDs) for devices, buffers, libraries, kernels, etc., which are managed by the plugin.
@@ -13,7 +13,7 @@ The Nexus Plugin API defines a set of C functions that must be implemented by ha
 
 ## Core Concepts
 
-| Nexus Concept      | Plugin Implementation (Metal Example)         |
+| KNexus Concept      | Plugin Implementation (Metal Example)         |
 |--------------------|----------------------------------------------|
 | Runtime            | Singleton managing all devices                |
 | Device             | Hardware device handle (e.g., MTL::Device)    |
@@ -135,7 +135,7 @@ The Nexus Plugin API defines a set of C functions that must be implemented by ha
 ## Error Handling
 
 - Functions return status codes (e.g., `NXS_Success`, `NXS_InvalidDevice`, `NXS_InvalidProperty`).
-- Plugins should map backend errors to Nexus status codes as closely as possible.
+- Plugins should map backend errors to KNexus status codes as closely as possible.
 
 ---
 
@@ -143,7 +143,7 @@ The Nexus Plugin API defines a set of C functions that must be implemented by ha
 
 To implement a new backend plugin:
 1. Implement all required API functions as extern "C" functions.
-2. Map Nexus concepts to backend-specific objects.
+2. Map KNexus concepts to backend-specific objects.
 3. Maintain an object registry for handle management.
 4. Ensure proper error handling and resource cleanup.
 
@@ -151,10 +151,10 @@ To implement a new backend plugin:
 
 ## References
 
-- **API Declarations:** `include/nexus-api/nxs_functions.h`, `include/nexus-api/_nxs_functions.h`
+- **API Declarations:** `include/knexus-api/nxs_functions.h`, `include/knexus-api/_nxs_functions.h`
 - **Example Implementation:** `plugins/metal/metal_runtime.cpp`
-- **Status Codes and Properties:** `include/nexus-api/nxs_propertys.h`, `include/nexus-api/nxs.h`
+- **Status Codes and Properties:** `include/knexus-api/nxs_propertys.h`, `include/knexus-api/nxs.h`
 
 ---
 
-**This API enables Nexus to support multiple hardware accelerators through a unified, extensible plugin interface.** 
+**This API enables KNexus to support multiple hardware accelerators through a unified, extensible plugin interface.** 

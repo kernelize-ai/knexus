@@ -1,13 +1,13 @@
-#define NEXUS_LOG_MODULE "command"
-#include <nexus/log.h>
+#define KNEXUS_LOG_MODULE "command"
+#include <knexus/log.h>
 
-#include <nexus/command.h>
+#include <knexus/command.h>
 
 #include "_schedule_impl.h"
 
-using namespace nexus;
+using namespace knexus;
 
-namespace nexus {
+namespace knexus {
 namespace detail {
 class CommandImpl : public Impl {
   typedef std::variant<Buffer, nxs_int, nxs_uint, nxs_long, nxs_ulong,
@@ -98,7 +98,7 @@ class CommandImpl : public Impl {
   std::array<ArgValue, NXS_KERNEL_MAX_CONSTS> constants;
 };
 }  // namespace detail
-}  // namespace nexus
+}  // namespace knexus
 
 ///////////////////////////////////////////////////////////////////////////////
 Command::Command(detail::Impl base, Kernel kern) : Object(base, kern) {}
@@ -106,77 +106,77 @@ Command::Command(detail::Impl base, Kernel kern) : Object(base, kern) {}
 Command::Command(detail::Impl base, Event event) : Object(base, event) {}
 
 std::optional<Property> Command::getProperty(nxs_int prop) const {
-  NEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
+  KNEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
 }
 
 Kernel Command::getKernel() const {
-  NEXUS_OBJ_MCALL(Kernel(), getKernel);
+  KNEXUS_OBJ_MCALL(Kernel(), getKernel);
 }
 
 Event Command::getEvent() const {
-  NEXUS_OBJ_MCALL(Event(), getEvent);
+  KNEXUS_OBJ_MCALL(Event(), getEvent);
 }
 
 template <>
 nxs_status Command::setArgument<Buffer>(nxs_uint index, Buffer buffer, const char *name, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(NXS_InvalidCommand, setArgument, index, buffer, name, settings);
+  KNEXUS_OBJ_MCALL(NXS_InvalidCommand, setArgument, index, buffer, name, settings);
 }
 
 template <>
 nxs_status Command::setArgument<nxs_int>(nxs_uint index, nxs_int value, const char *name, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
+  KNEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
 }
 
 template <>
 nxs_status Command::setArgument<nxs_uint>(nxs_uint index, nxs_uint value, const char *name, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
+  KNEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
 }
 
 template <>
 nxs_status Command::setArgument<nxs_long>(nxs_uint index, nxs_long value, const char *name, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
+  KNEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
 }
 
 template <>
 nxs_status Command::setArgument<nxs_ulong>(nxs_uint index, nxs_ulong value, const char *name, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
+  KNEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
 }
 
 template <>
 nxs_status Command::setArgument<nxs_float>(nxs_uint index, nxs_float value, const char *name, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
+  KNEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
 }
 
 template <>
 nxs_status Command::setArgument<nxs_double>(nxs_uint index, nxs_double value, const char *name, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
+  KNEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
 }
 
 template <>
 nxs_status Command::setArgument<nxs_short>(nxs_uint index, nxs_short value, const char *name, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
+  KNEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
 }
 
 template <>
 nxs_status Command::setArgument<nxs_ushort>(nxs_uint index, nxs_ushort value, const char *name, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
+  KNEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
 }
 
 template <>
 nxs_status Command::setArgument<nxs_char>(nxs_uint index, nxs_char value, const char *name, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
+  KNEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
 }
 
 template <>
 nxs_status Command::setArgument<nxs_uchar>(nxs_uint index, nxs_uchar value, const char *name, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
+  KNEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
 }
 
 template <>
 nxs_status Command::setArgument<bool>(nxs_uint index, bool value, const char *name, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
+  KNEXUS_OBJ_MCALL(NXS_InvalidCommand, setScalar, index, value, name, settings);
 }
 
 nxs_status Command::finalize(nxs_dim3 gridSize, nxs_dim3 groupSize, nxs_uint sharedMemorySize) {
-  NEXUS_OBJ_MCALL(NXS_InvalidCommand, finalize, gridSize, groupSize, sharedMemorySize);
+  KNEXUS_OBJ_MCALL(NXS_InvalidCommand, finalize, gridSize, groupSize, sharedMemorySize);
 }

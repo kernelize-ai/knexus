@@ -1,14 +1,14 @@
 
-#ifndef _NEXUS_SYSTEM_IMPL_H
-#define _NEXUS_SYSTEM_IMPL_H
+#ifndef _KNEXUS_SYSTEM_IMPL_H
+#define _KNEXUS_SYSTEM_IMPL_H
 
-#include <nexus/buffer.h>
-#include <nexus/info.h>
-#include <nexus/runtime.h>
+#include <knexus/buffer.h>
+#include <knexus/info.h>
+#include <knexus/runtime.h>
 
 #include <unordered_map>
 
-namespace nexus {
+namespace knexus {
 namespace detail {
 
 class SystemImpl : public detail::Impl {
@@ -42,6 +42,6 @@ class SystemImpl : public detail::Impl {
   Buffers buffers;
 };
 }  // namespace detail
-}  // namespace nexus
+}  // namespace knexus
 
-#endif  // _NEXUS_SYSTEM_IMPL_H
+#endif  // _KNEXUS_SYSTEM_IMPL_H

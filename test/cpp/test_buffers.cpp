@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <nexus.h>
+#include <knexus.h>
 #include <vector>
 
 #define SUCCESS 0
@@ -14,7 +14,7 @@ TEST_P(BufferFillTest, PatternSize) {
   std::string runtime_name = (g_argc > 1) ? g_argv[1] : "cpu";
   size_t pattern_size = GetParam();
 
-  auto sys = nexus::getSystem();
+  auto sys = knexus::getSystem();
   auto runtime = sys.getRuntime(runtime_name);
   ASSERT_TRUE(runtime && !runtime.getDevices().empty());
   auto dev = runtime.getDevice(0);
@@ -48,7 +48,7 @@ TEST_P(BufferShapeTest, Shape) {
   std::string runtime_name = (g_argc > 1) ? g_argv[1] : "cpu";
   std::vector<size_t> shape = GetParam();
 
-  auto sys = nexus::getSystem();
+  auto sys = knexus::getSystem();
   auto runtime = sys.getRuntime(runtime_name);
   ASSERT_TRUE(runtime && !runtime.getDevices().empty());
   auto dev = runtime.getDevice(0);

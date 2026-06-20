@@ -1,9 +1,9 @@
-#ifndef _NEXUS_BUFFER_IMPL_H
-#define _NEXUS_BUFFER_IMPL_H
+#ifndef _KNEXUS_BUFFER_IMPL_H
+#define _KNEXUS_BUFFER_IMPL_H
 
-#include <nexus/device.h>
+#include <knexus/device.h>
 
-namespace nexus {
+namespace knexus {
 namespace detail {
 class BufferImpl : public Impl {
  public:
@@ -36,6 +36,6 @@ class BufferImpl : public Impl {
   void *data;
 };
 }  // namespace detail
-}  // namespace nexus
+}  // namespace knexus
 
-#endif  // _NEXUS_BUFFER_IMPL_H
+#endif  // _KNEXUS_BUFFER_IMPL_H

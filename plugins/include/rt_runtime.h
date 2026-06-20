@@ -1,7 +1,7 @@
 #ifndef RT_RUNTIME_H
 #define RT_RUNTIME_H
 
-#include <nexus-api.h>
+#include <knexus-api.h>
 #include <rt_object.h>
 #include <rt_pool.h>
 

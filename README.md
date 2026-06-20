@@ -1,10 +1,10 @@
-# Nexus Device API
+# KNexus Device API
 
-The Nexus Device API provides a clean, standardized Interface to Device Discovery, Characterization and Kernel Deployment.
+The KNexus Device API provides a clean, standardized Interface to Device Discovery, Characterization and Kernel Deployment.
 
 ## Interfaces
 
-There are 4 interfaces in Nexus, 2 User APIs and 2 Vendor APIs.
+There are 4 interfaces in KNexus, 2 User APIs and 2 Vendor APIs.
 
 User APIs:
 * Python API
@@ -19,9 +19,9 @@ Vendor APIs:
 The Python API is designed to be intuitive with full device discovery, characterization and kernel execution.
 
 ```python
-import nexus
+import knexus
 
-runtimes = nexus.get_runtimes()
+runtimes = knexus.get_runtimes()
 rt0 = runtimes.get(0)
 rt0_name = rt0.get_property_str('Name')
 
@@ -32,7 +32,7 @@ buf0 = dev0.create_buffer(tensor0)
 buf1 = dev0.create_buffer((1024,1024), dtype='fp16')
 
 # Create event for synchronization
-event = dev0.create_event(nexus.event_type.Shared)
+event = dev0.create_event(knexus.event_type.Shared)
 
 sched0 = dev0.create_schedule()
 
@@ -72,7 +72,7 @@ The Runtime Plugin C-API is a thin wrapper for clean dynamic library loading to 
 // See plugins/metal/metal_runtime.cpp for example
 
 
-## Building Nexus
+## Building KNexus
 
 ### Quick Start
 
@@ -83,15 +83,15 @@ For a quick setup, see the [Quick Start Guide](docs/Quick_Start.md).
 First clone the repo with submodules:
 
 ```shell
-git clone --recursive https://github.com/kernelize-ai/nexus.git
-cd nexus
+git clone --recursive https://github.com/kernelize-ai/knexus.git
+cd knexus
 ```
 
 Then build with CMake:
 
 ```shell
 mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DNEXUS_BUILD_PYTHON_MODULE=ON -DNEXUS_BUILD_PLUGINS=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release -DKNEXUS_BUILD_PYTHON_MODULE=ON -DKNEXUS_BUILD_PLUGINS=ON
 make -j$(nproc)  # Linux/macOS
 # or
 cmake --build . --config Release --parallel  # Windows
@@ -104,7 +104,7 @@ For detailed build instructions, dependencies, and troubleshooting, see the [Bui
 For building the development package in a virtual environment:
 
 ```shell
-python3 -m venv .venv --prompt nexus
+python3 -m venv .venv --prompt knexus
 source .venv/bin/activate  # Linux/macOS
 # or
 .venv\Scripts\activate  # Windows
@@ -118,13 +118,13 @@ For building and installing the release package in a virtual environment:
 ```shell
 python -m build
 
-python3 -m venv .venv --prompt nexus
+python3 -m venv .venv --prompt knexus
 source .venv/bin/activate  # Linux/macOS
 # or
 .venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 
-pip install dist/nexus-*.whl
+pip install dist/knexus-*.whl
 ```
 
 ## Testing
@@ -139,7 +139,7 @@ ctest --output-on-failure
 For Python-specific tests:
 
 ```shell
-python test/pynexus/test.py
+python test/pyknexus/test.py
 ```
 
 ## Continuous Integration
@@ -158,4 +158,4 @@ See the [Build and CI Documentation](docs/Build_and_CI.md) for details on the CI
 - [Plugin API](docs/Plugin_API.md) - Plugin development guide
 - [JSON API](docs/JSON_API.md) - JSON interface documentation
 - [Build and CI](docs/Build_and_CI.md) - Build instructions and CI setup
-- [Logging](docs/Logging.md) - Runtime and compile-time logging controls (`NEXUS_LOG_*`, `NXSLOG_*`)
+- [Logging](docs/Logging.md) - Runtime and compile-time logging controls (`KNEXUS_LOG_*`, `NXSLOG_*`)

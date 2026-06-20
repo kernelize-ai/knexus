@@ -1,13 +1,13 @@
-#define NEXUS_LOG_MODULE "event"
-#include <nexus/log.h>
+#define KNEXUS_LOG_MODULE "event"
+#include <knexus/log.h>
 
-#include <nexus/event.h>
+#include <knexus/event.h>
 
 #include "_runtime_impl.h"
 
-using namespace nexus;
+using namespace knexus;
 
-namespace nexus {
+namespace knexus {
 namespace detail {
 class EventImpl : public Impl {
  public:
@@ -41,19 +41,19 @@ class EventImpl : public Impl {
   nxs_int value;
 };
 }  // namespace detail
-}  // namespace nexus
+}  // namespace knexus
 
 ///////////////////////////////////////////////////////////////////////////////
 Event::Event(detail::Impl base, nxs_int value) : Object(base, value) {}
 
 std::optional<Property> Event::getProperty(nxs_int prop) const {
-  NEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
+  KNEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
 }
 
 nxs_status Event::signal(nxs_int value) {
-  NEXUS_OBJ_MCALL(NXS_InvalidEvent, signal, value);
+  KNEXUS_OBJ_MCALL(NXS_InvalidEvent, signal, value);
 }
 
 nxs_status Event::wait(nxs_int value) {
-  NEXUS_OBJ_MCALL(NXS_InvalidEvent, wait, value);
+  KNEXUS_OBJ_MCALL(NXS_InvalidEvent, wait, value);
 }

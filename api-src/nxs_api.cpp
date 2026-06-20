@@ -17,7 +17,7 @@
  */
 
 
-#include <nexus-api.h>
+#include <knexus-api.h>
 #include <magic_enum/magic_enum.hpp>
 
 const char *nxsGetFuncName(nxs_int funcEnum) {
