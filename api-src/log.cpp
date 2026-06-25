@@ -1,4 +1,4 @@
-#include <nexus/log_manager.h>
+#include <knexus/log_manager.h>
 
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/null_sink.h>
@@ -18,12 +18,12 @@ bool noColorEnv() {
   return s != nullptr && s[0] != '\0';
 }
 
-// NEXUS_LOG_LEVEL: when NEXUS_LOG_ENABLE is set, minimum level to emit (stderr/stdout/file).
+// KNEXUS_LOG_LEVEL: when KNEXUS_LOG_ENABLE is set, minimum level to emit (stderr/stdout/file).
 // Names are spdlog-style: trace, debug, info, warning/warn, error/err, critical, off (case-insensitive).
 // Or an integer 0–6 matching spdlog::level_enum (trace..off). Unset defaults to trace.
 // Unknown names are treated like off (spdlog::level::from_str).
 spdlog::level::level_enum levelFromEnv() {
-  const char* s = std::getenv("NEXUS_LOG_LEVEL");
+  const char* s = std::getenv("KNEXUS_LOG_LEVEL");
   if (!s || s[0] == '\0') {
     return spdlog::level::trace;
   }
@@ -43,7 +43,7 @@ spdlog::level::level_enum levelFromEnv() {
   return spdlog::level::from_str(std::string(s));
 }
 
-std::shared_ptr<spdlog::logger> makeNexusLogger(const std::string &name,
+std::shared_ptr<spdlog::logger> makeKNexusLogger(const std::string &name,
                                                 std::shared_ptr<spdlog::sinks::sink> sink) {
   auto logger = std::make_shared<spdlog::logger>(name, std::move(sink));
   logger->set_pattern("\x1b[38;5;19m[%Y-%m-%d %H:%M:%S.%e]\x1b[38;5;0m %^%-4!l%$ | %v");
@@ -64,7 +64,7 @@ std::shared_ptr<spdlog::logger> makeDisabledLogger(const std::string &name) {
 
 }  // namespace
 
-namespace nexus {
+namespace knexus {
 
 std::string LogManager::format_module_column(const std::string& module, int module_width,
                                             const char* color_ansi) {
@@ -94,7 +94,7 @@ std::string LogManager::format_module_column(const std::string& module, int modu
 
 LogManager::LogManager(const std::string& log_name)
  : impl_(std::make_unique<Impl>()), log_name_(log_name) {
-  const char* enableEnv = std::getenv("NEXUS_LOG_ENABLE");
+  const char* enableEnv = std::getenv("KNEXUS_LOG_ENABLE");
   const bool enable = enableEnv ? (std::atoi(enableEnv) != 0) : false;
   setOpen(enable);
 }
@@ -122,7 +122,7 @@ void LogManager::openFile(const std::string& filename) {
   impl_->color_module = false;
   try {
     auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(filename, false);
-    impl_->logger = makeNexusLogger(log_name_, std::move(sink));
+    impl_->logger = makeKNexusLogger(log_name_, std::move(sink));
   } catch (const spdlog::spdlog_ex& ex) {
     std::cerr << "Failed to open log file: " << filename << " (" << ex.what() << ")\n";
     impl_->logger.reset();
@@ -135,7 +135,7 @@ void LogManager::openStdout() {
   impl_->color_module = true;
   try {
     auto sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    impl_->logger = makeNexusLogger(log_name_, std::move(sink));
+    impl_->logger = makeKNexusLogger(log_name_, std::move(sink));
   } catch (const spdlog::spdlog_ex& ex) {
     std::cerr << "Failed to create stdout logger (" << ex.what() << ")\n";
     impl_->logger.reset();
@@ -145,7 +145,7 @@ void LogManager::openStdout() {
 
 void LogManager::setOpen(bool open) {
   if (open) {
-    const char* logPath = std::getenv("NEXUS_LOG_FILE");
+    const char* logPath = std::getenv("KNEXUS_LOG_FILE");
     if (logPath && logPath[0] != '\0') {
       openFile(logPath);
     } else {
@@ -162,4 +162,4 @@ bool LogManager::isOpen() const {
 
 void LogManager::setLogFile(const std::string& filename) { openFile(filename); }
 
-}  // namespace nexus
+}  // namespace knexus

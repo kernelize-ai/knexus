@@ -1,13 +1,13 @@
-#define NEXUS_LOG_MODULE "utility"
-#include <nexus/log.h>
+#define KNEXUS_LOG_MODULE "utility"
+#include <knexus/log.h>
 
-#include <nexus/utility.h>
+#include <knexus/utility.h>
 
 #include <filesystem>
 #include <iostream>
 #include <sstream>
 
-using namespace nexus;
+using namespace knexus;
 
 static std::vector<std::string> splitPaths(const std::string& paths,
                                            char delimiter) {
@@ -20,9 +20,9 @@ static std::vector<std::string> splitPaths(const std::string& paths,
   return result;
 }
 
-void nexus::iterateEnvPaths(const char* envVar, const char* envDefault,
-                            const nexus::PathNameFn& func) {
-  // Load Runtimes from NEXUS_DEVICE_PATH
+void knexus::iterateEnvPaths(const char* envVar, const char* envDefault,
+                            const knexus::PathNameFn& func) {
+  // Load Runtimes from KNEXUS_DEVICE_PATH
   const char* env = std::getenv(envVar);
   if (!env) {
     NXSLOG_WARN("{} environment variable is not set.", envVar);
@@ -51,7 +51,7 @@ void nexus::iterateEnvPaths(const char* envVar, const char* envDefault,
 }
 
 // Base64 decoding utility
-std::vector<uint8_t> nexus::base64Decode(const std::string_view& encoded,
+std::vector<uint8_t> knexus::base64Decode(const std::string_view& encoded,
                                          size_t decoded_size) {
   static const std::string chars =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

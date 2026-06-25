@@ -1,10 +1,10 @@
-#define NEXUS_LOG_MODULE "device"
-#include <nexus/log.h>
+#define KNEXUS_LOG_MODULE "device"
+#include <knexus/log.h>
 
-#include <nexus/buffer.h>
-#include <nexus/device_db.h>
-#include <nexus/runtime.h>
-#include <nexus/utility.h>
+#include <knexus/buffer.h>
+#include <knexus/device_db.h>
+#include <knexus/runtime.h>
+#include <knexus/utility.h>
 
 #include <filesystem>
 
@@ -13,7 +13,7 @@
 #include "_info_impl.h"
 #include "_runtime_impl.h"
 
-using namespace nexus;
+using namespace knexus;
 
 #define APICALL(FUNC, ...)                                                   \
   nxs_int apiResult = getParent()->runAPIFunction<NF_##FUNC>(__VA_ARGS__)
@@ -31,7 +31,7 @@ detail::DeviceImpl::DeviceImpl(detail::Impl base) : detail::Impl(base) {
                 type->getValue<NP_Type>() + "-" +
                 arch->getValue<NP_Architecture>();
   NXSLOG_INFO("device tag: {}", devTag);
-  if (auto info = nexus::lookupDeviceInfo(devTag))
+  if (auto info = knexus::lookupDeviceInfo(devTag))
     deviceInfo = info;
   else  // load defaults
     NXSLOG_WARN("device properties not found");
@@ -189,52 +189,52 @@ Device::Device(detail::Impl base) : Object(base) {}
 
 // Get Device Property Value
 std::optional<Property> Device::getProperty(nxs_int prop) const {
-  NEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
+  KNEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
 }
 
-Info Device::getInfo() const { NEXUS_OBJ_MCALL(Info(), getInfo); }
+Info Device::getInfo() const { KNEXUS_OBJ_MCALL(Info(), getInfo); }
 
 // Runtime functions
-Librarys Device::getLibraries() const { NEXUS_OBJ_MCALL(Librarys(), getLibraries); }
+Librarys Device::getLibraries() const { KNEXUS_OBJ_MCALL(Librarys(), getLibraries); }
 
-Schedules Device::getSchedules() const { NEXUS_OBJ_MCALL(Schedules(), getSchedules); }
+Schedules Device::getSchedules() const { KNEXUS_OBJ_MCALL(Schedules(), getSchedules); }
 
-Streams Device::getStreams() const { NEXUS_OBJ_MCALL(Streams(), getStreams); }
+Streams Device::getStreams() const { KNEXUS_OBJ_MCALL(Streams(), getStreams); }
 
-Buffers Device::getBuffers() const { NEXUS_OBJ_MCALL(Buffers(), getBuffers); }
+Buffers Device::getBuffers() const { KNEXUS_OBJ_MCALL(Buffers(), getBuffers); }
 
-Events Device::getEvents() const { NEXUS_OBJ_MCALL(Events(), getEvents); }
+Events Device::getEvents() const { KNEXUS_OBJ_MCALL(Events(), getEvents); }
 
 Event Device::createEvent(nxs_event_type event_type, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(Event(), createEvent, event_type, settings);
+  KNEXUS_OBJ_MCALL(Event(), createEvent, event_type, settings);
 }
 
 Stream Device::createStream(nxs_uint settings) {
-  NEXUS_OBJ_MCALL(Stream(), createStream, settings);
+  KNEXUS_OBJ_MCALL(Stream(), createStream, settings);
 }
 
 Schedule Device::createSchedule(nxs_uint settings) {
-  NEXUS_OBJ_MCALL(Schedule(), createSchedule, settings);
+  KNEXUS_OBJ_MCALL(Schedule(), createSchedule, settings);
 }
 
 Buffer Device::createBuffer(const Layout &layout, const void *data, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(Buffer(), createBuffer, layout, data, settings);
+  KNEXUS_OBJ_MCALL(Buffer(), createBuffer, layout, data, settings);
 }
 
 Buffer Device::copyBuffer(Buffer buf, nxs_uint settings) {
-  NEXUS_OBJ_MCALL(Buffer(), copyBuffer, buf, settings);
+  KNEXUS_OBJ_MCALL(Buffer(), copyBuffer, buf, settings);
 }
 
 Library Device::loadLibrary(Info catalog, const std::string &libraryName) {
-  NEXUS_OBJ_MCALL(Library(), loadLibrary, catalog, libraryName);
+  KNEXUS_OBJ_MCALL(Library(), loadLibrary, catalog, libraryName);
 }
 
 Library Device::createLibrary(void *libraryData, size_t librarySize,
                               nxs_uint settings) {
-  NEXUS_OBJ_MCALL(Library(), createLibrary, libraryData, librarySize, settings);
+  KNEXUS_OBJ_MCALL(Library(), createLibrary, libraryData, librarySize, settings);
 }
 
 Library Device::createLibrary(const std::string &libraryPath,
                               nxs_uint settings) {
-  NEXUS_OBJ_MCALL(Library(), createLibrary, libraryPath, settings);
+  KNEXUS_OBJ_MCALL(Library(), createLibrary, libraryPath, settings);
 }

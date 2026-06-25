@@ -4,13 +4,13 @@ include_directories(../third_party/googletest)
 enable_testing()
 include(GoogleTest)
 
-function(add_nexus_it)
+function(add_knexus_it)
   set(options)
   set(oneValueArgs NAME)
   set(multiValueArgs SRCS LIBS DEFS)
   cmake_parse_arguments(_ "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-  get_property(nexus_libs GLOBAL PROPERTY NEXUS_LIBRARIES)
+  get_property(knexus_libs GLOBAL PROPERTY KNEXUS_LIBRARIES)
 
   add_test(NAME ${__NAME}
           COMMAND ${__NAME})
@@ -21,7 +21,7 @@ function(add_nexus_it)
           ${__NAME}
           PRIVATE
           GTest::gtest_main
-          ${nexus_libs}
+          ${knexus_libs}
           gmock
           ${__LIBS})
 
@@ -37,9 +37,9 @@ function(add_nexus_it)
   gtest_discover_tests(${__NAME} DISCOVERY_TIMEOUT 60)
 
   # Add the unit test to the top-level unit test target.
-  # add_dependencies(NexusIntegrationTest ${__NAME})
+  # add_dependencies(KNexusIntegrationTest ${__NAME})
 endfunction()
 
 add_subdirectory(kernels)
 add_subdirectory(cpp)
-#add_subdirectory(pynexus)
+#add_subdirectory(pyknexus)

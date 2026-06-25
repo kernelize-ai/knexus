@@ -1,14 +1,14 @@
-# Nexus Python API
+# KNexus Python API
 
-The Nexus Python API provides a modern, object-oriented interface for cross-platform hardware accelerator programming. It enables device discovery, memory management, kernel execution, and property queries in a unified way across multiple backends (CUDA, HIP, Metal, CPU, etc.).
+The KNexus Python API provides a modern, object-oriented interface for cross-platform hardware accelerator programming. It enables device discovery, memory management, kernel execution, and property queries in a unified way across multiple backends (CUDA, HIP, Metal, CPU, etc.).
 
 ## Installation
 
-1. **Build Nexus with Python bindings:**
+1. **Build KNexus with Python bindings:**
    ```bash
-   cd /path/to/nexus
+   cd /path/to/knexus
    mkdir build && cd build
-   cmake .. -DNEXUS_BUILD_PYTHON_MODULE=ON
+   cmake .. -DKNEXUS_BUILD_PYTHON_MODULE=ON
    make
    ```
 
@@ -17,9 +17,9 @@ The Nexus Python API provides a modern, object-oriented interface for cross-plat
    pip install numpy
    ```
 
-3. **Import Nexus in Python:**
+3. **Import KNexus in Python:**
    ```python
-   import nexus
+   import knexus
    ```
 
 ---
@@ -28,10 +28,10 @@ The Nexus Python API provides a modern, object-oriented interface for cross-plat
 
 ### Top-Level Functions
 
-- `nexus.get_runtimes()`: Returns a list of available runtime backends (CUDA, Metal, CPU, etc.).
-- `nexus.get_device_info()`: Returns the device info database.
-- `nexus.lookup_device_info(name)`: Lookup device info by name.
-- `nexus.create_buffer(size)` / `nexus.create_buffer(data)`: Create a system buffer from size or numpy array.
+- `knexus.get_runtimes()`: Returns a list of available runtime backends (CUDA, Metal, CPU, etc.).
+- `knexus.get_device_info()`: Returns the device info database.
+- `knexus.lookup_device_info(name)`: Lookup device info by name.
+- `knexus.create_buffer(size)` / `knexus.create_buffer(data)`: Create a system buffer from size or numpy array.
 
 ### Main Classes
 
@@ -45,7 +45,7 @@ Represents a hardware device.
 - `get_info()`: Get device properties (as a Properties object).
 - `create_buffer(data or size)`: Create a buffer on this device.
 - `copy_buffer(buffer)`: Copy a buffer to this device.
-- `create_event(event_type=nexus.event_type.Shared)`: Create an event for synchronization.
+- `create_event(event_type=knexus.event_type.Shared)`: Create an event for synchronization.
 - `get_events()`: Get all events associated with this device.
 - `load_library(filepath)`: Load a kernel library.
 - `create_schedule()`: Create a command schedule.
@@ -92,7 +92,7 @@ Represents a set of properties (device, buffer, etc.).
 
 ## Property Query Methods
 
-Nexus provides a flexible and powerful property system for querying metadata and capabilities of all major objects (Device, Buffer, Library, Kernel, Schedule, Command, etc.). The property system supports both integer property IDs (enums) and string names, as well as hierarchical property paths.
+KNexus provides a flexible and powerful property system for querying metadata and capabilities of all major objects (Device, Buffer, Library, Kernel, Schedule, Command, etc.). The property system supports both integer property IDs (enums) and string names, as well as hierarchical property paths.
 
 ### General Pattern
 
@@ -136,8 +136,8 @@ info = device.get_info()
 name = info.get_str("Name")
 vendor = info.get_str("Vendor")
 
-# By enum (from nexus.property)
-arch = info.get_str(nexus.property.Architecture)
+# By enum (from knexus.property)
+arch = info.get_str(knexus.property.Architecture)
 
 # By hierarchical path
 l2_size = info.get_int(["MemorySubsystem", "MemoryTypes", 1, "Size"])
@@ -168,28 +168,28 @@ cmd_args = command.get_property_int_vec("Arguments")
 
 - If a property is not found, a `RuntimeError` is raised.
 - Property names are case-sensitive and must match the schema or backend.
-- Enum values are available in the `nexus.property` submodule for convenience and type safety.
+- Enum values are available in the `knexus.property` submodule for convenience and type safety.
 - Hierarchical paths allow access to nested properties, such as memory subsystem details or device features.
 
 ---
 
 ## Event Types and Synchronization
 
-Nexus supports three types of events for different synchronization patterns:
+KNexus supports three types of events for different synchronization patterns:
 
 ### Event Types
 
-- **`nexus.event_type.Shared`**: Shared events for cross-queue synchronization
-- **`nexus.event_type.Signal`**: Signal events for simple completion notifications  
-- **`nexus.event_type.Fence`**: Fence events for kernel completion synchronization
+- **`knexus.event_type.Shared`**: Shared events for cross-queue synchronization
+- **`knexus.event_type.Signal`**: Signal events for simple completion notifications  
+- **`knexus.event_type.Fence`**: Fence events for kernel completion synchronization
 
 ### Basic Event Usage
 
 ```python
-import nexus
+import knexus
 
 # Create an event
-event = device.create_event(nexus.event_type.Shared)
+event = device.create_event(knexus.event_type.Shared)
 
 # Signal the event
 event.signal(1)
@@ -250,11 +250,11 @@ mem_types = info.get_str_vec(["MemorySubsystem", "SupportedMemoryTypes"])
 ## Example Usage
 
 ```python
-import nexus
+import knexus
 import numpy as np
 
 # Get available runtimes and devices
-runtimes = nexus.get_runtimes()
+runtimes = knexus.get_runtimes()
 runtime = runtimes[0]
 devices = runtime.get_devices()
 device = devices[0]
@@ -281,7 +281,7 @@ schedule.run()
 
 ## Status and Error Codes
 
-Nexus exposes status codes as enums in `nexus.status` (e.g., `nexus.status.NXS_Success`) and properties as enums in `nexus.property`.
+KNexus exposes status codes as enums in `knexus.status` (e.g., `knexus.status.NXS_Success`) and properties as enums in `knexus.property`.
 
 ---
 
@@ -297,7 +297,7 @@ Nexus exposes status codes as enums in `nexus.status` (e.g., `nexus.status.NXS_S
 
 - **Streams:** For asynchronous execution (if supported by backend).
 - **Multiple Devices:** Iterate over all runtimes and devices for multi-accelerator systems.
-- **Device Info Database:** Use `nexus.get_device_info()` and `nexus.lookup_device_info(name)` for architecture-aware programming.
+- **Device Info Database:** Use `knexus.get_device_info()` and `knexus.lookup_device_info(name)` for architecture-aware programming.
 
 ---
 
@@ -307,4 +307,4 @@ Nexus exposes status codes as enums in `nexus.status` (e.g., `nexus.status.NXS_S
 
 ---
 
-**Nexus Python API enables portable, high-performance accelerator programming with a modern, Pythonic interface.** 
+**KNexus Python API enables portable, high-performance accelerator programming with a modern, Pythonic interface.** 

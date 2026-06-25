@@ -1,26 +1,26 @@
 /*
- * Nexus HIP Runtime Plugin
+ * KNexus HIP Runtime Plugin
  *
- * This file implements the Nexus API for AMD HIP GPU computing.
- * It provides a mapping from the Nexus unified GPU computing API to
+ * This file implements the KNexus API for AMD HIP GPU computing.
+ * It provides a mapping from the KNexus unified GPU computing API to
  * AMD's HIP (Heterogeneous-Computing Interface for Portability) framework,
  * enabling cross-platform GPU applications to run on AMD GPUs and
  * other HIP-compatible platforms.
  *
  * ====================================================================
- * NEXUS API TO HIP API MAPPING
+ * KNEXUS API TO HIP API MAPPING
  * ====================================================================
  *
  * Core Concepts:
  * --------------
- * Nexus Runtime    -> HIP Runtime (managing all HIP devices)
- * Nexus Device     -> hipDevice_t (represents a HIP GPU device)
- * Nexus Buffer     -> hipDeviceptr_t (GPU memory buffer)
- * Nexus Library    -> hipModule_t (compiled HIP module/library)
- * Nexus Kernel     -> hipFunction_t (compiled kernel function)
- * Nexus Stream     -> hipStream_t (asynchronous execution stream)
- * Nexus Schedule   -> HipSchedule (command collection for execution)
- * Nexus Command    -> HipCommand (individual kernel launch command)
+ * KNexus Runtime    -> HIP Runtime (managing all HIP devices)
+ * KNexus Device     -> hipDevice_t (represents a HIP GPU device)
+ * KNexus Buffer     -> hipDeviceptr_t (GPU memory buffer)
+ * KNexus Library    -> hipModule_t (compiled HIP module/library)
+ * KNexus Kernel     -> hipFunction_t (compiled kernel function)
+ * KNexus Stream     -> hipStream_t (asynchronous execution stream)
+ * KNexus Schedule   -> HipSchedule (command collection for execution)
+ * KNexus Command    -> HipCommand (individual kernel launch command)
  *
  * API Function Mappings:
  * ----------------------
@@ -71,7 +71,7 @@
  *   * Optionally waits for completion (blocking mode)
  *
  * Resource Management:
- * - All Nexus objects are tracked in a global object registry
+ * - All KNexus objects are tracked in a global object registry
  * - Object IDs are used for cross-API object references
  * - Automatic cleanup via RAII and explicit release calls
  *
@@ -95,7 +95,7 @@
  *
  * 4. Error Handling:
  *    - HIP error checking with hipGetErrorString
- *    - Error propagation to Nexus API
+ *    - Error propagation to KNexus API
  *    - Standard HIP error codes
  *
  * 5. Performance Considerations:
@@ -144,8 +144,8 @@
 
 #include <assert.h>
 #include <hip/hip_runtime.h>
-#include <nexus-api.h>
-#include <nexus-api/nxs_log.h>
+#include <knexus-api.h>
+#include <knexus-api/nxs_log.h>
 #include <rt_buffer.h>
 #include <rt_command.h>
 #include <rt_runtime.h>

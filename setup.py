@@ -54,9 +54,9 @@ def get_env_with_keys(key: list):
     return ""
 
 def get_build_type():
-    if check_env_flag("NEXUS_BUILD_REL"):
+    if check_env_flag("KNEXUS_BUILD_REL"):
         return "Release"
-    elif check_env_flag("NEXUS_BUILD_RWDI"):
+    elif check_env_flag("KNEXUS_BUILD_RWDI"):
         return "RelWithDebInfo"
     else:
         return "Debug"
@@ -96,8 +96,8 @@ class CMakeBuildPy(build_py):
     def _copy_device_lib_to_package(self):
         source_device_lib = 'device_lib'
 
-        nexus_package_dir = 'python/nexus'
-        target_device_lib = os.path.join(nexus_package_dir, 'device_lib')
+        knexus_package_dir = 'python/knexus'
+        target_device_lib = os.path.join(knexus_package_dir, 'device_lib')
 
         if os.path.exists(source_device_lib):
             if os.path.exists(target_device_lib):
@@ -109,8 +109,8 @@ class CMakeBuildPy(build_py):
     def _copy_headers_to_package(self):
         """Copy entire include directory to package"""
         source_include = 'include'
-        nexus_package_dir = 'python/nexus'
-        target_include = os.path.join(nexus_package_dir, 'include')
+        knexus_package_dir = 'python/knexus'
+        target_include = os.path.join(knexus_package_dir, 'include')
         
         if os.path.exists(source_include):
             if os.path.exists(target_include):
@@ -123,11 +123,11 @@ class CMakeBuildPy(build_py):
         """Copy required third-party headers into package layout."""
         source_spdlog_include = os.path.join('third_party', 'spdlog', 'include')
         target_spdlog_include = os.path.join(
-            'python', 'nexus', 'third_party', 'spdlog', 'include'
+            'python', 'knexus', 'third_party', 'spdlog', 'include'
         )
 
         if os.path.exists(source_spdlog_include):
-            target_spdlog_root = os.path.join('python', 'nexus', 'third_party', 'spdlog')
+            target_spdlog_root = os.path.join('python', 'knexus', 'third_party', 'spdlog')
             if os.path.exists(target_spdlog_root):
                 shutil.rmtree(target_spdlog_root)
             os.makedirs(os.path.dirname(target_spdlog_include), exist_ok=True)
@@ -175,7 +175,7 @@ class CMakeBuild(build_ext):
         # lit is used by the test suite
         thirdparty_cmake_args = self.get_pybind11_cmake_args()
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
-        extdir = os.path.join(extdir, "nexus")
+        extdir = os.path.join(extdir, "knexus")
         c_dir = os.path.join(extdir, "_C")
         # create build directories
         if not os.path.exists(self.build_temp):
@@ -187,7 +187,7 @@ class CMakeBuild(build_ext):
             "-DCMAKE_MAKE_PROGRAM=" +
             ninja_dir,  # Pass explicit path to ninja otherwise cmake may cache a temporary path
             "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-            "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + c_dir, "-DNEXUS_BUILD_PYTHON_MODULE=ON",
+            "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + c_dir, "-DKNEXUS_BUILD_PYTHON_MODULE=ON",
             "-DPython3_EXECUTABLE:FILEPATH=" + sys.executable, "-DPython3_INCLUDE_DIR=" + python_include_dir
         ]
 
@@ -203,7 +203,7 @@ class CMakeBuild(build_ext):
             max_jobs = os.getenv("MAX_JOBS", str(2 * os.cpu_count()))
             build_args += ['-j' + max_jobs]
 
-        if check_env_flag("NEXUS_BUILD_WITH_CLANG_LLD"):
+        if check_env_flag("KNEXUS_BUILD_WITH_CLANG_LLD"):
             cmake_args += [
                 "-DCMAKE_C_COMPILER=clang",
                 "-DCMAKE_CXX_COMPILER=clang++",
@@ -221,17 +221,17 @@ class CMakeBuild(build_ext):
         # gcc's).  I was unable to configure clang to ignore the error, and I
         # also wasn't able to get libc++ to work, but that doesn't mean it's
         # impossible. :)
-        if check_env_flag("NEXUS_BUILD_WITH_ASAN"):
+        if check_env_flag("KNEXUS_BUILD_WITH_ASAN"):
             cmake_args += [
                 "-DCMAKE_C_FLAGS=-fsanitize=address",
                 "-DCMAKE_CXX_FLAGS=-fsanitize=address",
             ]
 
-        if check_env_flag("NEXUS_REQUIRE_CUDA"):
-            cmake_args += ["-DNEXUS_REQUIRE_CUDA=ON"]
+        if check_env_flag("KNEXUS_REQUIRE_CUDA"):
+            cmake_args += ["-DKNEXUS_REQUIRE_CUDA=ON"]
 
-        if check_env_flag("NEXUS_REQUIRE_TT"):
-            cmake_args += ["-DNEXUS_REQUIRE_TT=ON"]
+        if check_env_flag("KNEXUS_REQUIRE_TT"):
+            cmake_args += ["-DKNEXUS_REQUIRE_TT=ON"]
 
         env = os.environ.copy()
         cmake_dir = get_cmake_dir()
@@ -239,7 +239,7 @@ class CMakeBuild(build_ext):
         subprocess.check_call(["cmake", "--build", "."] + build_args, cwd=cmake_dir)
 
         runtime_libs_build = os.path.join(cmake_dir, "runtime_libs")
-        runtime_libs_target = os.path.join("python", "nexus", "runtime_libs")
+        runtime_libs_target = os.path.join("python", "knexus", "runtime_libs")
 
         if os.path.exists(runtime_libs_build):
             if os.path.exists(runtime_libs_target):
@@ -286,7 +286,7 @@ PYTHON_CLASSIFIERS = [
 CLASSIFIERS = BASE_CLASSIFIERS + PYTHON_CLASSIFIERS
 
 setup(
-    name=os.environ.get("NEXUS_WHEEL_NAME", "knexus"),
+    name=os.environ.get("KNEXUS_WHEEL_NAME", "knexus"),
     version="0.2.1",
     author="Simon Waters, Matthew Leon, Alex Baden",
     author_email="simon@kernelize.ai",
@@ -301,13 +301,13 @@ setup(
     entry_points=get_entry_points(),
     include_package_data=True,
     data_files=[],
-    package_data={'nexus': [
+    package_data={'knexus': [
         'device_lib/**/*',
         'runtime_libs/**/*',
         'include/**/*',
         'third_party/**/*',
     ]},
-    ext_modules=[CMakeExtension("nexus", ".")],
+    ext_modules=[CMakeExtension("knexus", ".")],
     cmdclass={
         "build_ext": CMakeBuild,
         "build_py": CMakeBuildPy,

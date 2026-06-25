@@ -1,8 +1,8 @@
-# Nexus Core API Documentation
+# KNexus Core API Documentation
 
 ## Overview
 
-Nexus is a cross-platform GPU computing framework that provides a unified API for heterogeneous computing across multiple GPU backends including CUDA, HIP, Metal, and CPU. The framework is designed to be similar to OpenCL but with modern C++ interfaces and Python bindings.
+KNexus is a cross-platform GPU computing framework that provides a unified API for heterogeneous computing across multiple GPU backends including CUDA, HIP, Metal, and CPU. The framework is designed to be similar to OpenCL but with modern C++ interfaces and Python bindings.
 
 ## Table of Contents
 
@@ -13,7 +13,7 @@ Nexus is a cross-platform GPU computing framework that provides a unified API fo
 
 ## Architecture
 
-Nexus follows a hierarchical object model:
+KNexus follows a hierarchical object model:
 
 ```
 System
@@ -30,11 +30,11 @@ System
 
 ### Objects and Ownership
 
-All Nexus objects follow a shared ownership model using `std::shared_ptr` internally. Objects have hierarchical relationships where child objects are owned by parent objects.
+All KNexus objects follow a shared ownership model using `std::shared_ptr` internally. Objects have hierarchical relationships where child objects are owned by parent objects.
 
 ### Properties System
 
-Nexus uses a flexible property system for querying device capabilities, runtime information, and object metadata. Properties can be accessed by:
+KNexus uses a flexible property system for querying device capabilities, runtime information, and object metadata. Properties can be accessed by:
 - Integer property IDs (similar to OpenCL)
 - String names
 - Hierarchical paths
@@ -52,7 +52,7 @@ Buffers are the primary memory abstraction, supporting:
 ### Main Header
 
 ```cpp
-#include <nexus.h>
+#include <knexus.h>
 ```
 
 ### Core Classes
@@ -62,7 +62,7 @@ Buffers are the primary memory abstraction, supporting:
 The top-level system object that manages all resources.
 
 ```cpp
-namespace nexus {
+namespace knexus {
     class System : Object<detail::SystemImpl> {
     public:
         System(int);
@@ -94,7 +94,7 @@ namespace nexus {
 Represents a GPU runtime (CUDA, HIP, Metal, etc.).
 
 ```cpp
-namespace nexus {
+namespace knexus {
     class Runtime : public Object<detail::RuntimeImpl, detail::SystemImpl> {
     public:
         Runtime(detail::Impl owner, const std::string& libraryPath);
@@ -120,7 +120,7 @@ namespace nexus {
 Represents a physical or virtual compute device.
 
 ```cpp
-namespace nexus {
+namespace knexus {
     class Device : public Object<detail::DeviceImpl, detail::RuntimeImpl> {
     public:
         Device(detail::Impl base);
@@ -165,7 +165,7 @@ namespace nexus {
 Synchronization primitive for coordinating execution between host and device.
 
 ```cpp
-namespace nexus {
+namespace knexus {
     class Event : public Object<detail::EventImpl> {
     public:
         Event(detail::Impl owner, nxs_int value = 1);
@@ -192,7 +192,7 @@ namespace nexus {
 Memory buffer for data transfer between host and device.
 
 ```cpp
-namespace nexus {
+namespace knexus {
     class Buffer : public Object<detail::BufferImpl, detail::SystemImpl> {
     public:
         Buffer(detail::Impl base, size_t _sz, const void *_hostData = nullptr);
@@ -224,7 +224,7 @@ namespace nexus {
 Container for compiled kernels and functions.
 
 ```cpp
-namespace nexus {
+namespace knexus {
     class Library : public Object<detail::LibraryImpl, detail::DeviceImpl> {
     public:
         Library(detail::Impl owner);
@@ -247,7 +247,7 @@ namespace nexus {
 Represents a compiled kernel function.
 
 ```cpp
-namespace nexus {
+namespace knexus {
     class Kernel : public Object<detail::KernelImpl, detail::LibraryImpl> {
     public:
         Kernel(detail::Impl owner, const std::string &kernelName);
@@ -266,7 +266,7 @@ namespace nexus {
 Command schedule for organizing and executing commands.
 
 ```cpp
-namespace nexus {
+namespace knexus {
     class Schedule : public Object<detail::ScheduleImpl, detail::DeviceImpl> {
     public:
         Schedule(detail::Impl owner);
@@ -298,7 +298,7 @@ namespace nexus {
 Individual kernel execution command.
 
 ```cpp
-namespace nexus {
+namespace knexus {
     class Command : public Object<detail::CommandImpl, detail::ScheduleImpl> {
     public:
         Command(detail::Impl owner, Kernel kern);
@@ -328,7 +328,7 @@ namespace nexus {
 ### Property System
 
 ```cpp
-namespace nexus {
+namespace knexus {
     using Prop = std::variant<nxs_long, nxs_double, std::string>;
     using PropIntVec = std::vector<nxs_long>;
     using PropFltVec = std::vector<nxs_double>;
@@ -364,7 +364,7 @@ namespace nexus {
 
 ### Event Types
 
-Nexus supports three types of events for different synchronization patterns:
+KNexus supports three types of events for different synchronization patterns:
 
 ```cpp
 enum _nxs_event_type {
@@ -459,6 +459,6 @@ enum _nxs_status {
 
 ## Conclusion
 
-Nexus provides a modern, cross-platform GPU computing framework with both C++ and Python APIs. It supports multiple GPU backends and follows familiar OpenCL-like patterns while providing modern C++ interfaces and comprehensive Python bindings.
+KNexus provides a modern, cross-platform GPU computing framework with both C++ and Python APIs. It supports multiple GPU backends and follows familiar OpenCL-like patterns while providing modern C++ interfaces and comprehensive Python bindings.
 
 For more information, see the test examples in the `test/` directory and the plugin implementations in the `plugins/` directory. 

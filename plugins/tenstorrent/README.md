@@ -1,16 +1,16 @@
-# Tenstorrent Plugin for Nexus
+# Tenstorrent Plugin for KNexus
 
-The Tenstorrent plugin provides a Nexus runtime backend for Tenstorrent AI accelerators using the TT Metalium API. This plugin enables the Nexus framework to discover, manage, and execute kernels on Tenstorrent devices through a unified interface.
+The Tenstorrent plugin provides a KNexus runtime backend for Tenstorrent AI accelerators using the TT Metalium API. This plugin enables the KNexus framework to discover, manage, and execute kernels on Tenstorrent devices through a unified interface.
 
 ## Overview
 
-This plugin implements the Nexus Plugin API (C API) to provide hardware abstraction for Tenstorrent NPUs. It maps Nexus concepts (devices, buffers, libraries, kernels, schedules, commands) to TT Metalium distributed mesh operations, enabling seamless integration of Tenstorrent accelerators into the Nexus ecosystem.
+This plugin implements the KNexus Plugin API (C API) to provide hardware abstraction for Tenstorrent NPUs. It maps KNexus concepts (devices, buffers, libraries, kernels, schedules, commands) to TT Metalium distributed mesh operations, enabling seamless integration of Tenstorrent accelerators into the KNexus ecosystem.
 
 ## Architecture
 
-### Nexus to TT Metalium Mapping
+### KNexus to TT Metalium Mapping
 
-| Nexus Concept | TT Metalium Implementation |
+| KNexus Concept | TT Metalium Implementation |
 |---------------|----------------------------|
 | Runtime | Singleton `TTRuntime` managing all devices |
 | Device | `ttmd::MeshDevice` (unit mesh device) |
@@ -42,7 +42,7 @@ This plugin implements the Nexus Plugin API (C API) to provide hardware abstract
 
 - CMake 3.x or later
 - C++ compiler with C++17 support
-- Nexus API headers (`nexus-api.h`)
+- KNexus API headers (`knexus-api.h`)
 
 ## Building
 
@@ -53,11 +53,11 @@ This plugin implements the Nexus Plugin API (C API) to provide hardware abstract
    export TT_METAL_CMAKE_PATH=/path/to/tt-metalium/installation
    ```
 
-2. Ensure Nexus API headers are available in the build system.
+2. Ensure KNexus API headers are available in the build system.
 
 ### Build Instructions
 
-The plugin is built as part of the Nexus build system. From the Nexus root directory:
+The plugin is built as part of the KNexus build system. From the KNexus root directory:
 
 ```bash
 mkdir build && cd build
@@ -81,10 +81,10 @@ If TT Metalium is not found, the plugin will not be built (warning message will 
 ### Device Discovery
 
 ```python
-import nexus
+import knexus
 
 # Get all available runtimes
-runtimes = nexus.get_runtimes()
+runtimes = knexus.get_runtimes()
 
 # Find Tenstorrent runtime (name="tt-metal")
 tt_runtime = None
@@ -111,7 +111,7 @@ data = np.array([1.0, 2.0, 3.0], dtype=np.float32)
 buffer = device.create_buffer(data) # auto-detects datatype
 
 # Create empty buffer
-buffer = device.create_buffer((1024, 1024), dtype=nexus.datatype.F16)
+buffer = device.create_buffer((1024, 1024), dtype=knexus.datatype.F16)
 
 # Copy buffer to host
 host_data = buffer.copy_to_host()
@@ -154,9 +154,9 @@ elapsed_time = schedule.get_property_float('ElapsedTime')
 
 ## Data Format Support
 
-The plugin supports the following Nexus data types, mapped to TT Metalium formats:
+The plugin supports the following KNexus data types, mapped to TT Metalium formats:
 
-| Nexus Type | TT Metalium Format |
+| KNexus Type | TT Metalium Format |
 |------------|-------------------|
 | `F32` | `Float32` |
 | `F16` | `Float16` |
@@ -242,7 +242,7 @@ The plugin automatically places commands across device cores:
 - **Tile-Based Memory**: Automatic padding to tile boundaries (1024 elements)
 - **Mesh Workloads**: Batches commands into efficient mesh workloads
 - **Timing Support**: Measures execution time when enabled
-- **Data Format Conversion**: Automatic mapping between Nexus and TT Metalium formats
+- **Data Format Conversion**: Automatic mapping between KNexus and TT Metalium formats
 
 ## Limitations
 
@@ -294,14 +294,14 @@ The plugin automatically places commands across device cores:
 
 ## Logging
 
-The plugin uses Nexus logging infrastructure with module name `"tt_runtime"`. Enable logging to see:
+The plugin uses KNexus logging infrastructure with module name `"tt_runtime"`. Enable logging to see:
 - Device discovery and initialization
 - Buffer allocation and transfers
 - Command placement and execution
 - Kernel JIT compilation
 - Error messages
 
-Set **`NEXUS_LOG_ENABLE=1`** (and optionally **`NEXUS_LOG_LEVEL`**, **`NEXUS_LOG_FILE`**) as documented in the project’s **[Logging guide](../../docs/Logging.md)**.
+Set **`KNEXUS_LOG_ENABLE=1`** (and optionally **`KNEXUS_LOG_LEVEL`**, **`KNEXUS_LOG_FILE`**) as documented in the project’s **[Logging guide](../../docs/Logging.md)**.
 
 ## Future Improvements
 
@@ -316,11 +316,11 @@ Set **`NEXUS_LOG_ENABLE=1`** (and optionally **`NEXUS_LOG_LEVEL`**, **`NEXUS_LOG
 
 ## References
 
-- **Nexus Plugin API**: See `docs/Plugin_API.md` for API documentation
+- **KNexus Plugin API**: See `docs/Plugin_API.md` for API documentation
 - **TT Metalium**: Tenstorrent's C++ API documentation
 - **Example Plugins**: See `plugins/metal/` and `plugins/hip/` for reference implementations
 
 ## License
 
-This plugin is part of the Nexus project and follows the same license terms.
+This plugin is part of the KNexus project and follows the same license terms.
 

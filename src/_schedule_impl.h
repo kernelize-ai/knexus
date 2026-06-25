@@ -1,10 +1,10 @@
 
-#ifndef _NEXUS_SCHEDULE_IMPL_H
-#define _NEXUS_SCHEDULE_IMPL_H
+#ifndef _KNEXUS_SCHEDULE_IMPL_H
+#define _KNEXUS_SCHEDULE_IMPL_H
 
 #include "_device_impl.h"
 
-namespace nexus {
+namespace knexus {
 namespace detail {
 
 class ScheduleImpl : public Impl {
@@ -32,6 +32,6 @@ class ScheduleImpl : public Impl {
   Commands commands;
 };
 }  // namespace detail
-}  // namespace nexus
+}  // namespace knexus
 
-#endif  // _NEXUS_SCHEDULE_IMPL_H
+#endif  // _KNEXUS_SCHEDULE_IMPL_H

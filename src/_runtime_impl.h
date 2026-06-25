@@ -1,8 +1,8 @@
-#ifndef _NEXUS_RUNTIME_IMPL_H
-#define _NEXUS_RUNTIME_IMPL_H
+#ifndef _KNEXUS_RUNTIME_IMPL_H
+#define _KNEXUS_RUNTIME_IMPL_H
 
-#include <nexus-api.h>
-#include <nexus/device.h>
+#include <knexus-api.h>
+#include <knexus/device.h>
 
 #include <cstring>
 #include <memory>
@@ -10,13 +10,13 @@
 #include <string>
 #include <vector>
 
-#pragma push_macro("NEXUS_LOG_MODULE")
-#undef NEXUS_LOG_MODULE
-#define NEXUS_LOG_MODULE "runtime"
-#include <nexus/log.h>
-#pragma pop_macro("NEXUS_LOG_MODULE")
+#pragma push_macro("KNEXUS_LOG_MODULE")
+#undef KNEXUS_LOG_MODULE
+#define KNEXUS_LOG_MODULE "runtime"
+#include <knexus/log.h>
+#pragma pop_macro("KNEXUS_LOG_MODULE")
 
-namespace nexus {
+namespace knexus {
 
 namespace detail {
 class RuntimeImpl : public Impl {
@@ -120,6 +120,6 @@ class RuntimeImpl : public Impl {
 };
 
 }  // namespace detail
-}  // namespace nexus
+}  // namespace knexus
 
-#endif  // _NEXUS_RUNTIME_IMPL_H
+#endif  // _KNEXUS_RUNTIME_IMPL_H

@@ -1,15 +1,15 @@
-#ifndef _NEXUS_DEVICE_IMPL_H
-#define _NEXUS_DEVICE_IMPL_H
+#ifndef _KNEXUS_DEVICE_IMPL_H
+#define _KNEXUS_DEVICE_IMPL_H
 
-#include <nexus/buffer.h>
-#include <nexus/library.h>
-#include <nexus/info.h>
-#include <nexus/runtime.h>
-#include <nexus/schedule.h>
+#include <knexus/buffer.h>
+#include <knexus/library.h>
+#include <knexus/info.h>
+#include <knexus/runtime.h>
+#include <knexus/schedule.h>
 
 #include "_runtime_impl.h"
 
-namespace nexus {
+namespace knexus {
 namespace detail {
 
 /// @class DesignImpl
@@ -55,6 +55,6 @@ class DeviceImpl : public Impl {
 };
 
 }  // namespace detail
-}  // namespace nexus
+}  // namespace knexus
 
-#endif  // _NEXUS_DESIGN_IMPL_H
+#endif  // _KNEXUS_DESIGN_IMPL_H

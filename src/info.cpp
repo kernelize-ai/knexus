@@ -1,17 +1,17 @@
-#define NEXUS_LOG_MODULE "info"
-#include <nexus/log.h>
+#define KNEXUS_LOG_MODULE "info"
+#include <knexus/log.h>
 
-#include <nexus/info.h>
+#include <knexus/info.h>
 
 #include <fstream>
 #include <mutex>
 
 #include "_info_impl.h"
 
-using namespace nexus;
-using namespace nexus::detail;
+using namespace knexus;
+using namespace knexus::detail;
 
-namespace nexus {
+namespace knexus {
 
 template <>
 std::string_view Info::Node::get<std::string_view>(
@@ -97,7 +97,7 @@ std::optional<Property> InfoImpl::getValue(json node,
     // get from json type
     propType = getNodeType(node);
   }
-  // NEXUS_LOG(NEXUS_STATUS_NOTE, "  Properties.getValue - " << propType);
+  // KNEXUS_LOG(KNEXUS_STATUS_NOTE, "  Properties.getValue - " << propType);
   switch (propType) {
     case NPT_INT:
       return Property(node.get<nxs_long>());
@@ -126,7 +126,7 @@ std::optional<Property> InfoImpl::getProp(
     try {
       auto tail = path.back();
       auto typeId = nxsGetPropEnum(tail.data());
-      // NEXUS_LOG(NEXUS_STATUS_NOTE,
+      // KNEXUS_LOG(KNEXUS_STATUS_NOTE,
       //           "  Properties.getProp - " << tail << " - " << typeId);
       auto node = getNode(path);
       if (node.is_object()) {
@@ -157,7 +157,7 @@ void InfoImpl::loadInfo() {
 }
 
 }  // namespace detail
-}  // namespace nexus
+}  // namespace knexus
 
 ///////////////////////////////////////////////////////////////////////////////
 /// @brief
@@ -169,16 +169,16 @@ Info::Info(Node &node) : Object(node) {}
 // Get top level node
 std::optional<Property> Info::getProperty(const std::string_view &name) const {
   std::vector<std::string_view> path{name};
-  NEXUS_OBJ_MCALL(std::nullopt, getProperty, path);
+  KNEXUS_OBJ_MCALL(std::nullopt, getProperty, path);
 }
 
 // Get sub-node
 std::optional<Property> Info::getProperty(
     const std::vector<std::string_view> &path) const {
-  NEXUS_OBJ_MCALL(std::nullopt, getProperty, path);
+  KNEXUS_OBJ_MCALL(std::nullopt, getProperty, path);
 }
 
 std::optional<Info::Node> Info::getNode(
     const std::vector<std::string_view> &path) const {
-  NEXUS_OBJ_MCALL(std::nullopt, getNode, path);
+  KNEXUS_OBJ_MCALL(std::nullopt, getNode, path);
 }

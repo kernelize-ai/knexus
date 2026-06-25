@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit tests for Nexus Schedule and Command classes for kernel execution.
+Unit tests for KNexus Schedule and Command classes for kernel execution.
 """
 
 import unittest
@@ -9,30 +9,30 @@ import sys
 import os
 import tempfile
 
-# Add the project root to the path to import nexus
+# Add the project root to the path to import knexus
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'python'))
 
 try:
-    import nexus
+    import knexus
 except ImportError:
-    print("Warning: nexus module not found. Tests will be skipped.")
-    nexus = None
+    print("Warning: knexus module not found. Tests will be skipped.")
+    knexus = None
 
 def get_first_runtime_with_device():
-    runtimes = nexus.get_runtimes()
+    runtimes = knexus.get_runtimes()
     for runtime in runtimes:
         devices = runtime.get_devices()
         if devices:
             return runtime, devices[0]
     return None, None
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestSchedule(unittest.TestCase):
     """Test cases for the Schedule class."""
 
     def setUp(self):
         """Set up test fixtures."""
-        self.runtimes = nexus.get_runtimes()
+        self.runtimes = knexus.get_runtimes()
         self.runtime, self.device = get_first_runtime_with_device()
         if self.device is not None:
             self.schedule = self.device.create_schedule()
@@ -68,13 +68,13 @@ class TestSchedule(unittest.TestCase):
             self.assertGreaterEqual(result, 0)
 
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestCommand(unittest.TestCase):
     """Test cases for the Command class."""
 
     def setUp(self):
         """Set up test fixtures."""
-        self.runtimes = nexus.get_runtimes()
+        self.runtimes = knexus.get_runtimes()
         self.runtime, self.device = get_first_runtime_with_device()
         if self.device is not None:
             self.schedule = self.device.create_schedule()
@@ -105,13 +105,13 @@ class TestCommand(unittest.TestCase):
                 pass
 
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestKernelExecution(unittest.TestCase):
     """Test cases for kernel execution workflow."""
 
     def setUp(self):
         """Set up test fixtures."""
-        self.runtimes = nexus.get_runtimes()
+        self.runtimes = knexus.get_runtimes()
         self.runtime, self.device = get_first_runtime_with_device()
 
     def test_kernel_execution_workflow(self):
@@ -129,7 +129,7 @@ class TestKernelExecution(unittest.TestCase):
             schedule = self.device.create_schedule()
             self.assertIsNotNone(schedule)
             try:
-                library = self.device.load_library_file("test_kernel.so")
+                library = self.device.load_library("test_kernel.so")
                 if library is not None:
                     kernel = library.get_kernel("test_kernel")
                     if kernel is not None:
@@ -189,20 +189,20 @@ class TestKernelExecution(unittest.TestCase):
                 pass
 
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestLibraryAndKernel(unittest.TestCase):
     """Test cases for Library and Kernel classes."""
 
     def setUp(self):
         """Set up test fixtures."""
-        self.runtimes = nexus.get_runtimes()
+        self.runtimes = knexus.get_runtimes()
         self.runtime, self.device = get_first_runtime_with_device()
 
     def test_library_loading(self):
         """Test library loading functionality."""
         if self.device is not None:
             try:
-                library = self.device.load_library_file("non_existent_library.so")
+                library = self.device.load_library("non_existent_library.so")
                 if library is not None:
                     self.assertTrue(hasattr(library, 'get_kernel'))
             except (FileNotFoundError, RuntimeError):
@@ -212,7 +212,7 @@ class TestLibraryAndKernel(unittest.TestCase):
         """Test kernel retrieval from library."""
         if self.device is not None:
             try:
-                library = self.device.load_library_file("test_library.so")
+                library = self.device.load_library("test_library.so")
                 if library is not None:
                     kernel = library.get_kernel("test_kernel")
                     if kernel is not None:

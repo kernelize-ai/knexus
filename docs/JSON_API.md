@@ -1,4 +1,4 @@
-# Nexus JSON API Documentation
+# KNexus JSON API Documentation
 
 This document describes the schema used to represent HW accelerator device architectures, their properties, and capabilities. The schema is defined in `schema/device_info_schema.json` and is intended for use in device description, capability reporting, and architecture-aware optimization.
 

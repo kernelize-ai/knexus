@@ -1,8 +1,8 @@
-project(nexus-api)
+project(knexus-api)
 
 set(CMAKE_CXX_VISIBILITY_PRESET default)
 
-add_library(nexus-api SHARED
+add_library(knexus-api SHARED
     buffer.cpp
     info.cpp
     kernel.cpp
@@ -18,6 +18,6 @@ add_library(nexus-api SHARED
     runtime.cpp
 )
 
-target_link_libraries(nexus-api PRIVATE nxs-api)
-target_link_libraries(nexus-api PRIVATE nlohmann_json::nlohmann_json)
-target_link_libraries(nexus-api PRIVATE ${CMAKE_DL_LIBS})
+target_link_libraries(knexus-api PRIVATE nxs-api)
+target_link_libraries(knexus-api PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(knexus-api PRIVATE ${CMAKE_DL_LIBS})

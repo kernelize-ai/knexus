@@ -1,7 +1,7 @@
-#ifndef _NEXUS_INFO_IMPL_H
-#define _NEXUS_INFO_IMPL_H
+#ifndef _KNEXUS_INFO_IMPL_H
+#define _KNEXUS_INFO_IMPL_H
 
-#include <nexus/info.h>
+#include <knexus/info.h>
 
 #include <mutex>
 #include <nlohmann/json.hpp>
@@ -10,7 +10,7 @@
 #include <vector>
 using json = nlohmann::json;
 
-namespace nexus {
+namespace knexus {
 
 class Info::Node : public json {
  public:
@@ -66,6 +66,6 @@ class InfoImpl {
 };
 
 }  // namespace detail
-}  // namespace nexus
+}  // namespace knexus
 
-#endif  // _NEXUS_INFO_IMPL_H
+#endif  // _KNEXUS_INFO_IMPL_H

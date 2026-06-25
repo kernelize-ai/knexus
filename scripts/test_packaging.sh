@@ -18,11 +18,11 @@ test_editable_package() {
   pip install -r requirements.txt
   pip install -e .
 
-  python3 test/pynexus/test-linux-cuda.py
+  python3 test/pyknexus/test-linux-cuda.py
 
   cd /tmp
 
-  python -c "import nexus; nexus.get_runtimes(); print(nexus.__file__)"
+  python -c "import knexus; knexus.get_runtimes(); print(knexus.__file__)"
 
   deactivate
 
@@ -43,7 +43,7 @@ test_release_package() {
 
   cd /tmp
 
-  python -c "import nexus; nexus.get_runtimes(); print(nexus.__file__)"
+  python -c "import knexus; knexus.get_runtimes(); print(knexus.__file__)"
 
   deactivate
 

@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
 """
-Unit tests for Nexus Properties system and device information.
+Unit tests for KNexus Properties system and device information.
 """
 
 import unittest
 import sys
 import os
 
-# Add the project root to the path to import nexus
+# Add the project root to the path to import knexus
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'python'))
 
 try:
-    import nexus
+    import knexus
 except ImportError:
-    print("Warning: nexus module not found. Tests will be skipped.")
-    nexus = None
+    print("Warning: knexus module not found. Tests will be skipped.")
+    knexus = None
 
 
 def get_first_runtime_with_device():
     """Helper function to get the first runtime that has at least one device."""
-    runtimes = nexus.get_runtimes()
+    runtimes = knexus.get_runtimes()
     for runtime in runtimes:
         devices = runtime.get_devices()
         if len(devices) > 0:
@@ -27,14 +27,14 @@ def get_first_runtime_with_device():
     return None, None
 
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestProperties(unittest.TestCase):
     """Test cases for the Properties system."""
 
     def setUp(self):
         """Set up test fixtures."""
         self.runtime, self.device = get_first_runtime_with_device()
-        self.runtimes = nexus.get_runtimes()
+        self.runtimes = knexus.get_runtimes()
 
     def test_device_info(self):
         """Test getting device information."""
@@ -74,7 +74,7 @@ class TestProperties(unittest.TestCase):
         """Test accessing system properties."""
         try:
             # Try to get a system property
-            prop = nexus.get_property(0)  # Some property ID
+            prop = knexus.get_property(0)  # Some property ID
             # If successful, should return a property or None
             if prop is not None:
                 self.assertTrue(hasattr(prop, 'get_value'))
@@ -83,13 +83,13 @@ class TestProperties(unittest.TestCase):
             pass
 
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestDeviceDiscovery(unittest.TestCase):
     """Test cases for device discovery and information."""
 
     def setUp(self):
         """Set up test fixtures."""
-        self.runtimes = nexus.get_runtimes()
+        self.runtimes = knexus.get_runtimes()
 
     def test_device_enumeration(self):
         """Test that devices can be enumerated with information."""
@@ -128,14 +128,14 @@ class TestDeviceDiscovery(unittest.TestCase):
                     pass
 
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestPropertyTypes(unittest.TestCase):
     """Test cases for different property types."""
 
     def setUp(self):
         """Set up test fixtures."""
         self.runtime, self.device = get_first_runtime_with_device()
-        self.runtimes = nexus.get_runtimes()
+        self.runtimes = knexus.get_runtimes()
 
     def test_property_value_types(self):
         """Test different property value types."""
@@ -206,7 +206,7 @@ class TestPropertyTypes(unittest.TestCase):
                 pass
 
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestChipInfo(unittest.TestCase):
     """Test cases for chip information lookup."""
 
@@ -214,7 +214,7 @@ class TestChipInfo(unittest.TestCase):
         """Test looking up chip information."""
         try:
             # Test looking up a known chip (this might fail if not available)
-            info = nexus.lookup_chip_info('apple-gpu-applegpu_g16s')
+            info = knexus.lookup_chip_info('apple-gpu-applegpu_g16s')
             if info is not None:
                 self.assertTrue(hasattr(info, 'get_str'))
                 self.assertTrue(hasattr(info, 'get_int'))
@@ -240,7 +240,7 @@ class TestChipInfo(unittest.TestCase):
     def test_lookup_nonexistent_chip(self):
         """Test looking up non-existent chip information."""
         try:
-            info = nexus.lookup_chip_info('nonexistent-chip')
+            info = knexus.lookup_chip_info('nonexistent-chip')
             # Should return None or raise an exception
             if info is not None:
                 # If it returns something, it should have the expected interface
@@ -251,14 +251,14 @@ class TestChipInfo(unittest.TestCase):
             pass
 
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestPropertyErrorHandling(unittest.TestCase):
     """Test cases for property error handling."""
 
     def setUp(self):
         """Set up test fixtures."""
         self.runtime, self.device = get_first_runtime_with_device()
-        self.runtimes = nexus.get_runtimes()
+        self.runtimes = knexus.get_runtimes()
 
     def test_invalid_property_ids(self):
         """Test handling of invalid property IDs."""

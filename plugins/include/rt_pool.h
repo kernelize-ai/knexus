@@ -1,7 +1,7 @@
 #ifndef RT_POOL_H
 #define RT_POOL_H
 
-#include <nexus-api.h>
+#include <knexus-api.h>
 
 #include <array>
 #include <cassert>

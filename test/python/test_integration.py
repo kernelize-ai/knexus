@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Integration tests for Nexus framework - testing complete workflows.
+Integration tests for KNexus framework - testing complete workflows.
 """
 
 import unittest
@@ -8,19 +8,19 @@ import numpy as np
 import sys
 import os
 
-# Add the project root to the path to import nexus
+# Add the project root to the path to import knexus
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'python'))
 
 try:
-    import nexus
+    import knexus
 except ImportError:
-    print("Warning: nexus module not found. Tests will be skipped.")
-    nexus = None
+    print("Warning: knexus module not found. Tests will be skipped.")
+    knexus = None
 
 
 def get_first_runtime_with_device():
     """Helper function to get the first runtime that has at least one device."""
-    runtimes = nexus.get_runtimes()
+    runtimes = knexus.get_runtimes()
     for runtime in runtimes:
         devices = runtime.get_devices()
         if len(devices) > 0:
@@ -28,14 +28,14 @@ def get_first_runtime_with_device():
     return None, None
 
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestIntegrationWorkflow(unittest.TestCase):
-    """Integration tests for complete Nexus workflows."""
+    """Integration tests for complete KNexus workflows."""
 
     def setUp(self):
         """Set up test fixtures."""
         self.runtime, self.device = get_first_runtime_with_device()
-        self.runtimes = nexus.get_runtimes()
+        self.runtimes = knexus.get_runtimes()
 
     def test_complete_vector_addition_workflow(self):
         """Test complete vector addition workflow."""
@@ -61,7 +61,7 @@ class TestIntegrationWorkflow(unittest.TestCase):
             
             # Try to load a library and execute kernel
             try:
-                library = self.device.load_library_file("test_kernel.so")
+                library = self.device.load_library("test_kernel.so")
                 if library is not None:
                     kernel = library.get_kernel("add_vectors")
                     if kernel is not None:
@@ -125,7 +125,7 @@ class TestIntegrationWorkflow(unittest.TestCase):
                 
                 # Try to execute on second device
                 try:
-                    library = device2.load_library_file("test_kernel.so")
+                    library = device2.load_library("test_kernel.so")
                     if library is not None:
                         kernel = library.get_kernel("test_kernel")
                         if kernel is not None:
@@ -158,7 +158,7 @@ class TestIntegrationWorkflow(unittest.TestCase):
             
             # Try to create commands with buffers
             try:
-                library = self.device.load_library_file("test_kernel.so")
+                library = self.device.load_library("test_kernel.so")
                 if library is not None:
                     kernel = library.get_kernel("test_kernel")
                     if kernel is not None:
@@ -181,14 +181,14 @@ class TestIntegrationWorkflow(unittest.TestCase):
                 self.assertGreater(buffer.get_size(), 0)
 
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestErrorHandling(unittest.TestCase):
     """Integration tests for error handling."""
 
     def setUp(self):
         """Set up test fixtures."""
         self.runtime, self.device = get_first_runtime_with_device()
-        self.runtimes = nexus.get_runtimes()
+        self.runtimes = knexus.get_runtimes()
 
     def test_invalid_operations(self):
         """Test handling of invalid operations."""
@@ -241,7 +241,7 @@ class TestErrorHandling(unittest.TestCase):
                 schedule = self.device.create_schedule()
                 if schedule is not None:
                     try:
-                        library = self.device.load_library_file("test_kernel.so")
+                        library = self.device.load_library("test_kernel.so")
                         if library is not None:
                             kernel = library.get_kernel("test_kernel")
                             if kernel is not None:
@@ -256,7 +256,7 @@ class TestErrorHandling(unittest.TestCase):
                         pass
 
     def test_concurrent_access(self):
-        """Test concurrent access to Nexus objects."""
+        """Test concurrent access to KNexus objects."""
         if self.device is not None:
             # Create multiple schedules
             schedules = []
@@ -275,14 +275,14 @@ class TestErrorHandling(unittest.TestCase):
                     pass
 
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestPerformance(unittest.TestCase):
     """Performance and stress tests."""
 
     def setUp(self):
         """Set up test fixtures."""
         self.runtime, self.device = get_first_runtime_with_device()
-        self.runtimes = nexus.get_runtimes()
+        self.runtimes = knexus.get_runtimes()
 
     def test_large_buffer_operations(self):
         """Test operations with large buffers."""
@@ -327,7 +327,7 @@ class TestPerformance(unittest.TestCase):
                 schedule = self.device.create_schedule()
                 if schedule is not None:
                     try:
-                        library = self.device.load_library_file("test_kernel.so")
+                        library = self.device.load_library("test_kernel.so")
                         if library is not None:
                             kernel = library.get_kernel("test_kernel")
                             if kernel is not None:

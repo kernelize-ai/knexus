@@ -26,7 +26,7 @@ main() {
 
   if [[ "$os_type" == "macos" ]]; then
     printf "Running macOS test"
-    #./test/cpp/gpu/nexus_gpu_integration_test metal metal_kernels/kernel.metallib add_vectors
+    #./test/cpp/gpu/knexus_gpu_integration_test metal metal_kernels/kernel.metallib add_vectors
 
   elif [[ "$os_type" == "linux" ]]; then
     printf "Running Linux test"

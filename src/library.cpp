@@ -1,13 +1,13 @@
-#define NEXUS_LOG_MODULE "library"
-#include <nexus/log.h>
+#define KNEXUS_LOG_MODULE "library"
+#include <knexus/log.h>
 
 #include "_info_impl.h"
 #include "_kernel_impl.h"
 #include "_library_impl.h"
 #include "_runtime_impl.h"
 
-using namespace nexus;
-using namespace nexus::detail;
+using namespace knexus;
+using namespace knexus::detail;
 
 /// @brief Construct a Platform for the current system
 LibraryImpl::LibraryImpl(Impl base) : Impl(base) {
@@ -69,14 +69,14 @@ Library::Library(detail::Impl base) : Object(base) {}
 
 Library::Library(detail::Impl base, Info info) : Object(base, info) {}
 
-Info Library::getInfo() const { NEXUS_OBJ_MCALL(Info(), getInfo); }
+Info Library::getInfo() const { KNEXUS_OBJ_MCALL(Info(), getInfo); }
 
 std::optional<Property> Library::getProperty(nxs_int prop) const {
-  NEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
+  KNEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
 }
 
 Kernel Library::getKernel(const std::string &kernelName, Info info) {
-  NEXUS_OBJ_MCALL(Kernel(), getKernel, kernelName, info);
+  KNEXUS_OBJ_MCALL(Kernel(), getKernel, kernelName, info);
 }
 
-Kernels Library::getKernels() const { NEXUS_OBJ_MCALL(Kernels(), getKernels); }
+Kernels Library::getKernels() const { KNEXUS_OBJ_MCALL(Kernels(), getKernels); }

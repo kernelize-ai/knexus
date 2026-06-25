@@ -1,14 +1,14 @@
-#define NEXUS_LOG_MODULE "kernel"
-#include <nexus/log.h>
+#define KNEXUS_LOG_MODULE "kernel"
+#include <knexus/log.h>
 
-#include <nexus/kernel.h>
+#include <knexus/kernel.h>
 
 #include "_kernel_impl.h"
 #include "_runtime_impl.h"
 
-using namespace nexus;
+using namespace knexus;
 
-namespace nexus {
+namespace knexus {
 namespace detail {
 
   /// @brief Construct a Platform for the current system
@@ -22,14 +22,14 @@ std::optional<Property> KernelImpl::getProperty(nxs_int prop) const {
   return rt->getAPIProperty<NF_nxsGetKernelProperty>(prop, getId());
 }
 }  // namespace detail
-}  // namespace nexus
+}  // namespace knexus
 
 ///////////////////////////////////////////////////////////////////////////////
 Kernel::Kernel(detail::Impl base, const std::string &kernelName, Info info)
     : Object(base, kernelName, info) {}
 
-Info Kernel::getInfo() const { NEXUS_OBJ_MCALL(Info(), getInfo); }
+Info Kernel::getInfo() const { KNEXUS_OBJ_MCALL(Info(), getInfo); }
 
 std::optional<Property> Kernel::getProperty(nxs_int prop) const {
-  NEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
+  KNEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
 }

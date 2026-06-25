@@ -1,7 +1,7 @@
 #ifndef RT_OBJECT_H
 #define RT_OBJECT_H
 
-#include <nexus-api.h>
+#include <knexus-api.h>
 
 #include <cassert>
 #include <functional>

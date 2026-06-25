@@ -1,6 +1,6 @@
-# Nexus APIs
+# KNexus APIs
 
-This document provides an overview of the different APIs available in the Nexus framework. There are 2 User APIs (Core C++ and Python) and 2 Vendor APIs (Plugin and JSON).
+This document provides an overview of the different APIs available in the KNexus framework. There are 2 User APIs (Core C++ and Python) and 2 Vendor APIs (Plugin and JSON).
 
 ## Table of Contents
 
@@ -10,11 +10,11 @@ This document provides an overview of the different APIs available in the Nexus 
 - [Plugin API](Plugin_API.md) - C API for implementing hardware backend plugins
 - [JSON API](JSON_API.md) - JSON-based device information and property system
 - [Build and CI](Build_and_CI.md) - Build instructions and continuous integration setup
-- [Logging](Logging.md) - Runtime and compile-time logging (`NEXUS_LOG_*`, `NXSLOG_*`)
+- [Logging](Logging.md) - Runtime and compile-time logging (`KNEXUS_LOG_*`, `NXSLOG_*`)
 
 ## Overview
 
-Nexus provides multiple API layers to support different use cases:
+KNexus provides multiple API layers to support different use cases:
 
 - **Core API**: C++ API for high-performance applications and system integration
 - **Python API**: High-level, object-oriented interface for rapid development and prototyping

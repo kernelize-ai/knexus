@@ -1,4 +1,4 @@
-#include <nexus.h>
+#include <knexus.h>
 
 #include <chrono>
 #include <cstdlib>
@@ -17,7 +17,7 @@ int test_smi(int argc, char **argv) {
 
   std::string runtime_name = argv[1];
 
-  auto sys = nexus::getSystem();
+  auto sys = knexus::getSystem();
   auto runtime = sys.getRuntime(runtime_name);
   if (!runtime) {
     std::cout << "No runtimes found" << std::endl;
@@ -44,7 +44,7 @@ int test_smi(int argc, char **argv) {
               << dev.getProp<std::string>(NP_Architecture) << std::endl;
   }
 
-  nexus::Device dev0 = runtime.getDevice(0);
+  knexus::Device dev0 = runtime.getDevice(0);
 
   nxs_long coreUsage = dev0.getProp<nxs_long>(NP_CoreUtilization);
   if (coreUsage == FAILURE) {

@@ -1,18 +1,18 @@
-#define NEXUS_LOG_MODULE "device_info"
-#include <nexus/log.h>
+#define KNEXUS_LOG_MODULE "device_info"
+#include <knexus/log.h>
 
 #include <dirent.h>
-#include <nexus/device_db.h>
-#include <nexus/utility.h>
+#include <knexus/device_db.h>
+#include <knexus/utility.h>
 
 #include <fstream>
 #include <iostream>
 #include <sstream>
 
-using namespace nexus;
+using namespace knexus;
 
 static bool initDeviceInfoDB(DeviceInfoMap &devs) {
-  iterateEnvPaths("NEXUS_DEVICE_PATH", "./device_lib",
+  iterateEnvPaths("KNEXUS_DEVICE_PATH", "./device_lib",
                   [&](const std::string &path, const std::string &name) {
                     NXSLOG_INFO("File: {}", name);
                     std::string::size_type const p(name.find_last_of('.'));
@@ -22,13 +22,13 @@ static bool initDeviceInfoDB(DeviceInfoMap &devs) {
   return true;
 }
 
-const DeviceInfoMap *nexus::getDeviceInfoDB() {
+const DeviceInfoMap *knexus::getDeviceInfoDB() {
   static DeviceInfoMap s_device_info_map;
   static bool init = initDeviceInfoDB(s_device_info_map);
   return &s_device_info_map;
 }
 
-Info nexus::lookupDeviceInfo(const std::string &archName) {
+Info knexus::lookupDeviceInfo(const std::string &archName) {
   const DeviceInfoMap *devmap = getDeviceInfoDB();
   auto ii = devmap->find(archName);
   if (ii != devmap->end()) return ii->second;

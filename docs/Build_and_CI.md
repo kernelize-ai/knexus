@@ -1,6 +1,6 @@
 # Build and CI Documentation
 
-This document covers the build process, continuous integration setup, and development workflow for the Nexus framework.
+This document covers the build process, continuous integration setup, and development workflow for the KNexus framework.
 
 ## Table of Contents
 
@@ -49,8 +49,8 @@ python -m pip install pybind11
 
 1. **Clone the repository**:
    ```bash
-   git clone --recursive https://github.com/your-org/nexus.git
-   cd nexus
+   git clone --recursive https://github.com/your-org/knexus.git
+   cd knexus
    ```
 
 2. **Create build directory**:
@@ -61,7 +61,7 @@ python -m pip install pybind11
 
 3. **Configure with CMake**:
    ```bash
-   cmake .. -DCMAKE_BUILD_TYPE=Release -DNEXUS_BUILD_PYTHON_MODULE=ON -DNEXUS_BUILD_PLUGINS=ON
+   cmake .. -DCMAKE_BUILD_TYPE=Release -DKNEXUS_BUILD_PYTHON_MODULE=ON -DKNEXUS_BUILD_PLUGINS=ON
    ```
 
 4. **Build the project**:
@@ -81,32 +81,32 @@ python -m pip install pybind11
 | Option | Default | Description |
 |--------|---------|-------------|
 | `CMAKE_BUILD_TYPE` | Debug | Build type (Debug, Release, RelWithDebInfo) |
-| `NEXUS_BUILD_PYTHON_MODULE` | ON | Build Python bindings |
-| `NEXUS_BUILD_PLUGINS` | ON | Build runtime plugins |
-| `NEXUS_ENABLE_LOGGING` | ON | Reserved CMake option (not wired to strip logging); use [runtime environment variables](Logging.md#enabling-output-runtime) to turn logs on or off |
+| `KNEXUS_BUILD_PYTHON_MODULE` | ON | Build Python bindings |
+| `KNEXUS_BUILD_PLUGINS` | ON | Build runtime plugins |
+| `KNEXUS_ENABLE_LOGGING` | ON | Reserved CMake option (not wired to strip logging); use [runtime environment variables](Logging.md#enabling-output-runtime) to turn logs on or off |
 
 ### Logging (runtime)
 
-Nexus logging is controlled primarily by **environment variables** (`NEXUS_LOG_ENABLE`, `NEXUS_LOG_FILE`, `NEXUS_LOG_LEVEL`) and compile-time macros (`SPDLOG_ACTIVE_LEVEL`, `NEXUS_LOG_MODULE`). See **[Logging](Logging.md)** for the full reference.
+KNexus logging is controlled primarily by **environment variables** (`KNEXUS_LOG_ENABLE`, `KNEXUS_LOG_FILE`, `KNEXUS_LOG_LEVEL`) and compile-time macros (`SPDLOG_ACTIVE_LEVEL`, `KNEXUS_LOG_MODULE`). See **[Logging](Logging.md)** for the full reference.
 
 ### Platform-Specific Builds
 
 #### Linux with CUDA
 ```bash
 # Install CUDA toolkit first
-cmake .. -DCMAKE_BUILD_TYPE=Release -DNEXUS_BUILD_PYTHON_MODULE=ON -DNEXUS_BUILD_PLUGINS=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release -DKNEXUS_BUILD_PYTHON_MODULE=ON -DKNEXUS_BUILD_PLUGINS=ON
 ```
 
 #### Linux with ROCm/HIP
 ```bash
 # Install ROCm first
-cmake .. -DCMAKE_BUILD_TYPE=Release -DNEXUS_BUILD_PYTHON_MODULE=ON -DNEXUS_BUILD_PLUGINS=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release -DKNEXUS_BUILD_PYTHON_MODULE=ON -DKNEXUS_BUILD_PLUGINS=ON
 ```
 
 #### macOS with Metal
 ```bash
 # Metal support is automatically enabled on macOS
-cmake .. -DCMAKE_BUILD_TYPE=Release -DNEXUS_BUILD_PYTHON_MODULE=ON -DNEXUS_BUILD_PLUGINS=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release -DKNEXUS_BUILD_PYTHON_MODULE=ON -DKNEXUS_BUILD_PLUGINS=ON
 ```
 
 ## Continuous Integration
@@ -152,7 +152,7 @@ sudo apt-get update
 sudo apt-get install -y build-essential cmake python3 python3-dev python3-pip python3-pybind11 libc++-dev libc++abi-dev
 python3 -m pip install -r requirements.txt
 mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DNEXUS_BUILD_PYTHON_MODULE=ON -DNEXUS_BUILD_PLUGINS=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release -DKNEXUS_BUILD_PYTHON_MODULE=ON -DKNEXUS_BUILD_PLUGINS=ON
 make -j$(nproc)
 ctest --output-on-failure
 ```
@@ -174,7 +174,7 @@ ctest --output-on-failure
 2. **Build and test locally**:
    ```bash
    mkdir build && cd build
-   cmake .. -DCMAKE_BUILD_TYPE=Debug -DNEXUS_BUILD_PYTHON_MODULE=ON -DNEXUS_BUILD_PLUGINS=ON
+   cmake .. -DCMAKE_BUILD_TYPE=Debug -DKNEXUS_BUILD_PYTHON_MODULE=ON -DKNEXUS_BUILD_PLUGINS=ON
    make -j$(nproc)
    ctest --output-on-failure
    ```
@@ -267,4 +267,4 @@ python3 -m pip install --upgrade pybind11
 - [Python API](Python_API.md) - Python bindings documentation
 - [Plugin API](Plugin_API.md) - Plugin development guide
 - [JSON API](JSON_API.md) - JSON interface documentation
-- [Logging](Logging.md) - `NEXUS_LOG_*` environment variables, `NXSLOG_*` macros, and module setup 
+- [Logging](Logging.md) - `KNEXUS_LOG_*` environment variables, `NXSLOG_*` macros, and module setup 

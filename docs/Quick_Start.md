@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-This guide will help you get the Nexus framework up and running quickly.
+This guide will help you get the KNexus framework up and running quickly.
 
 ## Prerequisites
 
@@ -14,8 +14,8 @@ This guide will help you get the Nexus framework up and running quickly.
 ### 1. Clone the Repository
 
 ```bash
-git clone --recursive https://github.com/your-org/nexus.git
-cd nexus
+git clone --recursive https://github.com/your-org/knexus.git
+cd knexus
 ```
 
 ### 2. Install Dependencies
@@ -43,7 +43,7 @@ python -m pip install -r requirements.txt
 
 ```bash
 mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DNEXUS_BUILD_PYTHON_MODULE=ON -DNEXUS_BUILD_PLUGINS=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release -DKNEXUS_BUILD_PYTHON_MODULE=ON -DKNEXUS_BUILD_PLUGINS=ON
 make -j$(nproc)  # Linux/macOS
 # or
 cmake --build . --config Release --parallel  # Windows
@@ -59,8 +59,8 @@ ctest --output-on-failure
 
 The build process creates:
 
-- **Core Library**: `libnexus-api.so` (Linux), `libnexus-api.dylib` (macOS), `nexus-api.dll` (Windows)
-- **Python Module**: `nexus.so` (Linux/macOS), `nexus.pyd` (Windows)
+- **Core Library**: `libknexus-api.so` (Linux), `libknexus-api.dylib` (macOS), `knexus-api.dll` (Windows)
+- **Python Module**: `knexus.so` (Linux/macOS), `knexus.pyd` (Windows)
 - **Runtime Plugins**: CPU, Metal (macOS), CUDA/HIP (Linux)
 - **Tests**: C++ and Python test suites
 

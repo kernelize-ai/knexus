@@ -1,15 +1,15 @@
-#define NEXUS_LOG_MODULE "runtime"
-#include <nexus/log.h>
+#define KNEXUS_LOG_MODULE "runtime"
+#include <knexus/log.h>
 
 #include <assert.h>
 #include <dlfcn.h>
-#include <nexus/device_db.h>
-#include <nexus/runtime.h>
+#include <knexus/device_db.h>
+#include <knexus/runtime.h>
 
 #include "_runtime_impl.h"
 
-using namespace nexus;
-using namespace nexus::detail;
+using namespace knexus;
+using namespace knexus::detail;
 
 /// @brief Construct a Runtime for the current system
 RuntimeImpl::RuntimeImpl(Impl base, const std::string &path)
@@ -83,13 +83,13 @@ void RuntimeImpl::loadPlugin() {
 Runtime::Runtime(detail::Impl base, const std::string &libraryPath)
     : Object(base, libraryPath) {}
 
-Devices Runtime::getDevices() const { NEXUS_OBJ_MCALL(Devices(), getDevices); }
+Devices Runtime::getDevices() const { KNEXUS_OBJ_MCALL(Devices(), getDevices); }
 
 Device Runtime::getDevice(nxs_uint deviceId) const {
-  NEXUS_OBJ_MCALL(Device(), getDevice, deviceId);
+  KNEXUS_OBJ_MCALL(Device(), getDevice, deviceId);
 }
 
 // Get Runtime Property Value
 std::optional<Property> Runtime::getProperty(nxs_int prop) const {
-  NEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
+  KNEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
 }

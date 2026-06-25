@@ -1,6 +1,6 @@
 
 if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(s390x|ppc64le)$")
-  # ---[ Nexus uses cpuinfo library in the thread pool
+  # ---[ KNexus uses cpuinfo library in the thread pool
   # ---[ But it doesn't support s390x/powerpc and thus not used on s390x/powerpc
   if(NOT TARGET cpuinfo AND USE_SYSTEM_CPUINFO)
     add_library(cpuinfo SHARED IMPORTED)
@@ -22,7 +22,7 @@ if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(s390x|ppc64le)$")
     set(CPUINFO_LIBRARY_TYPE "static" CACHE STRING "")
     set(CPUINFO_LOG_LEVEL "error" CACHE STRING "")
     if(MSVC)
-      if(NEXUS_USE_MSVC_STATIC_RUNTIME)
+      if(KNEXUS_USE_MSVC_STATIC_RUNTIME)
         set(CPUINFO_RUNTIME_TYPE "static" CACHE STRING "")
       else()
         set(CPUINFO_RUNTIME_TYPE "shared" CACHE STRING "")
@@ -32,7 +32,7 @@ if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(s390x|ppc64le)$")
       "${CPUINFO_SOURCE_DIR}"
       "${CMAKE_CURRENT_BINARY_DIR}/cpuinfo")
     # We build static version of cpuinfo but link
-    # them into a shared library for Nexus, so they need PIC.
+    # them into a shared library for KNexus, so they need PIC.
     set_property(TARGET cpuinfo PROPERTY POSITION_INDEPENDENT_CODE ON)
   endif()
 endif()

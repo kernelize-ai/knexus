@@ -7,19 +7,19 @@ import unittest
 import sys
 import os
 
-# Add the project root to the path to import nexus
+# Add the project root to the path to import knexus
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'python'))
 
 try:
-    import nexus
+    import knexus
 except ImportError:
-    print("Warning: nexus module not found. Tests will be skipped.")
-    nexus = None
+    print("Warning: knexus module not found. Tests will be skipped.")
+    knexus = None
 
 
 def get_first_runtime_with_device():
     """Helper function to get the first runtime that has at least one device."""
-    runtimes = nexus.get_runtimes()
+    runtimes = knexus.get_runtimes()
     for runtime in runtimes:
         devices = runtime.get_devices()
         if len(devices) > 0:
@@ -27,25 +27,25 @@ def get_first_runtime_with_device():
     return None, None
 
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestBasic(unittest.TestCase):
     """Basic test cases that don't require numpy."""
 
-    def test_nexus_import(self):
-        """Test that nexus module can be imported."""
-        self.assertIsNotNone(nexus)
-        self.assertTrue(hasattr(nexus, 'get_runtimes'))
+    def test_knexus_import(self):
+        """Test that knexus module can be imported."""
+        self.assertIsNotNone(knexus)
+        self.assertTrue(hasattr(knexus, 'get_runtimes'))
 
     def test_runtime_discovery(self):
         """Test runtime discovery."""
-        runtimes = nexus.get_runtimes()
+        runtimes = knexus.get_runtimes()
         self.assertIsInstance(runtimes, list)
         # Should have at least one runtime (CPU fallback)
         self.assertGreater(len(runtimes), 0)
 
     def test_device_discovery(self):
         """Test device discovery."""
-        runtimes = nexus.get_runtimes()
+        runtimes = knexus.get_runtimes()
         
         total_devices = 0
         for runtime in runtimes:
@@ -65,7 +65,7 @@ class TestBasic(unittest.TestCase):
 
 
 class TestFramework(unittest.TestCase):
-    """Test cases that don't require nexus module."""
+    """Test cases that don't require knexus module."""
 
     def test_unittest_framework(self):
         """Test that unittest framework works."""
@@ -88,7 +88,7 @@ class TestFramework(unittest.TestCase):
             # This is expected if dependencies are missing
             error_msg = str(e)
             self.assertTrue(
-                "numpy" in error_msg or "nexus" in error_msg,
+                "numpy" in error_msg or "knexus" in error_msg,
                 f"Unexpected import error: {error_msg}"
             )
 

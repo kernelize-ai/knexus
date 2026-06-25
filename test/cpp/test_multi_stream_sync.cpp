@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <nexus.h>
+#include <knexus.h>
 
 #include <cstdlib>
 #include <fstream>
@@ -23,7 +23,7 @@ int test_multi_stream_sync(int argc, char** argv) {
   std::string kernel_file = argv[2];
   std::string kernel_name = argv[3];
 
-  auto sys = nexus::getSystem();
+  auto sys = knexus::getSystem();
   auto runtime = sys.getRuntime(runtime_name);
   if (!runtime) {
     std::cout << "No runtimes found" << std::endl;
@@ -50,7 +50,7 @@ int test_multi_stream_sync(int argc, char** argv) {
               << dev.getProp<std::string>(NP_Architecture) << std::endl;
   }
 
-  nexus::Device dev0 = runtime.getDevice(0);
+  knexus::Device dev0 = runtime.getDevice(0);
 
   std::vector<float> vecA(1024, 1.0);
   std::vector<float> vecB(1024, 2.0);
@@ -129,14 +129,14 @@ int test_multi_stream_sync(int argc, char** argv) {
   return SUCCESS;
 }
 
-// Create the NexusIntegration test fixture class
-class NexusIntegration : public ::testing::Test {
+// Create the KNexusIntegration test fixture class
+class KNexusIntegration : public ::testing::Test {
  protected:
   void SetUp() override {}
   void TearDown() override {}
 };
 
-TEST_F(NexusIntegration, MULTI_STREAM_SYNC) {
+TEST_F(KNexusIntegration, MULTI_STREAM_SYNC) {
   int result = test_multi_stream_sync(g_argc, g_argv);
   EXPECT_EQ(result, SUCCESS);
 }

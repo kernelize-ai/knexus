@@ -1,8 +1,8 @@
-#define NEXUS_LOG_MODULE "buffer"
-#include <nexus/log.h>
+#define KNEXUS_LOG_MODULE "buffer"
+#include <knexus/log.h>
 
-#include <nexus/buffer.h>
-#include <nexus/system.h>
+#include <knexus/buffer.h>
+#include <knexus/system.h>
 
 #include <cstring>
 
@@ -11,7 +11,7 @@
 #include "_runtime_impl.h"
 #include "_system_impl.h"
 
-using namespace nexus;
+using namespace knexus;
 
 detail::BufferImpl::BufferImpl(detail::Impl base, const Layout &layout, const char *_hostData)
     : Impl(base), layout(layout), size_bytes(0), data(nullptr) {
@@ -100,20 +100,20 @@ Buffer::Buffer(detail::Impl base, const Layout &layout, const void *_hostData)
     : Object(base, layout, (const char *)_hostData) {}
 
 std::optional<Property> Buffer::getProperty(nxs_int prop) const {
-  NEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
+  KNEXUS_OBJ_MCALL(std::nullopt, getProperty, prop);
 }
 
-nxs_ulong Buffer::getSizeBytes() const { NEXUS_OBJ_MCALL(0, getSizeBytes); }
+nxs_ulong Buffer::getSizeBytes() const { KNEXUS_OBJ_MCALL(0, getSizeBytes); }
 const Layout &Buffer::getLayout() const {
   return get()->getLayout();
 }
-const char *Buffer::getDataPtr() const { NEXUS_OBJ_MCALL(nullptr, getDataPtr); }
+const char *Buffer::getDataPtr() const { KNEXUS_OBJ_MCALL(nullptr, getDataPtr); }
 
 nxs_status Buffer::copy(void *_hostBuf, nxs_uint direction) {
-  NEXUS_OBJ_MCALL(NXS_InvalidBuffer, copyData, _hostBuf, direction);
+  KNEXUS_OBJ_MCALL(NXS_InvalidBuffer, copyData, _hostBuf, direction);
 }
 nxs_status Buffer::fill(void *value, nxs_uint size_bytes) {
-  NEXUS_OBJ_MCALL(NXS_InvalidBuffer, fillData, value, size_bytes);
+  KNEXUS_OBJ_MCALL(NXS_InvalidBuffer, fillData, value, size_bytes);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

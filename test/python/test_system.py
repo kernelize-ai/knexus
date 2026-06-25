@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit tests for Nexus System class and basic framework functionality.
+Unit tests for KNexus System class and basic framework functionality.
 """
 
 import unittest
@@ -8,30 +8,30 @@ import numpy as np
 import sys
 import os
 
-# Add the project root to the path to import nexus
+# Add the project root to the path to import knexus
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'python'))
 
 try:
-    import nexus
+    import knexus
 except ImportError:
-    print("Warning: nexus module not found. Tests will be skipped.")
-    nexus = None
+    print("Warning: knexus module not found. Tests will be skipped.")
+    knexus = None
 
 def get_first_runtime_with_device():
-    runtimes = nexus.get_runtimes()
+    runtimes = knexus.get_runtimes()
     for runtime in runtimes:
         devices = runtime.get_devices()
         if devices:
             return runtime, devices[0]
     return None, None
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestSystem(unittest.TestCase):
-    """Test cases for the Nexus API entry point and runtimes."""
+    """Test cases for the KNexus API entry point and runtimes."""
 
     def setUp(self):
         """Set up test fixtures."""
-        self.runtimes = nexus.get_runtimes()
+        self.runtimes = knexus.get_runtimes()
         self.runtime, self.device = get_first_runtime_with_device()
 
     def test_get_runtimes(self):
@@ -85,18 +85,18 @@ class TestSystem(unittest.TestCase):
             self.assertEqual(copied_buffer.get_size(), buffer.get_size())
 
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestFrameworkInitialization(unittest.TestCase):
     """Test cases for framework initialization and basic functionality."""
 
-    def test_nexus_import(self):
-        """Test that nexus module can be imported."""
-        self.assertIsNotNone(nexus)
-        self.assertTrue(hasattr(nexus, 'get_runtimes'))
+    def test_knexus_import(self):
+        """Test that knexus module can be imported."""
+        self.assertIsNotNone(knexus)
+        self.assertTrue(hasattr(knexus, 'get_runtimes'))
 
     def test_basic_functionality(self):
         """Test basic framework functionality."""
-        runtimes = nexus.get_runtimes()
+        runtimes = knexus.get_runtimes()
         self.assertIsInstance(runtimes, list)
         runtime, device = get_first_runtime_with_device()
         if runtime is not None:
@@ -105,7 +105,7 @@ class TestFrameworkInitialization(unittest.TestCase):
 
     def test_error_handling(self):
         """Test error handling for invalid operations."""
-        runtimes = nexus.get_runtimes()
+        runtimes = knexus.get_runtimes()
         # Test accessing invalid runtime index
         try:
             runtime = runtimes[-999]

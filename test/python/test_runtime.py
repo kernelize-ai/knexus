@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit tests for Nexus Runtime class and device management.
+Unit tests for KNexus Runtime class and device management.
 """
 
 import unittest
@@ -8,30 +8,30 @@ import numpy as np
 import sys
 import os
 
-# Add the project root to the path to import nexus
+# Add the project root to the path to import knexus
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'python'))
 
 try:
-    import nexus
+    import knexus
 except ImportError:
-    print("Warning: nexus module not found. Tests will be skipped.")
-    nexus = None
+    print("Warning: knexus module not found. Tests will be skipped.")
+    knexus = None
 
 def get_first_runtime_with_device():
-    runtimes = nexus.get_runtimes()
+    runtimes = knexus.get_runtimes()
     for runtime in runtimes:
         devices = runtime.get_devices()
         if devices:
             return runtime, devices[0]
     return None, None
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestRuntime(unittest.TestCase):
     """Test cases for the Runtime class."""
 
     def setUp(self):
         """Set up test fixtures."""
-        self.runtimes = nexus.get_runtimes()
+        self.runtimes = knexus.get_runtimes()
         self.runtime, self.device = get_first_runtime_with_device()
 
     def test_runtime_creation(self):
@@ -79,13 +79,13 @@ class TestRuntime(unittest.TestCase):
                 pass
 
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestDevice(unittest.TestCase):
     """Test cases for the Device class."""
 
     def setUp(self):
         """Set up test fixtures."""
-        self.runtimes = nexus.get_runtimes()
+        self.runtimes = knexus.get_runtimes()
         self.runtime, self.device = get_first_runtime_with_device()
 
     def test_device_creation(self):
@@ -136,7 +136,7 @@ class TestDevice(unittest.TestCase):
         """Test loading library on device."""
         if self.device is not None:
             try:
-                library = self.device.load_library_file("test_library.so")
+                library = self.device.load_library("test_library.so")
                 if library is not None:
                     self.assertTrue(hasattr(library, 'get_kernel'))
             except (FileNotFoundError, RuntimeError):
@@ -153,13 +153,13 @@ class TestDevice(unittest.TestCase):
                 pass
 
 
-@unittest.skipIf(nexus is None, "nexus module not available")
+@unittest.skipIf(knexus is None, "knexus module not available")
 class TestDeviceDiscovery(unittest.TestCase):
     """Test cases for device discovery and enumeration."""
 
     def test_device_enumeration(self):
         """Test that devices can be enumerated across all runtimes."""
-        runtimes = nexus.get_runtimes()
+        runtimes = knexus.get_runtimes()
         total_devices = 0
         for runtime in runtimes:
             devices = runtime.get_devices()
@@ -171,7 +171,7 @@ class TestDeviceDiscovery(unittest.TestCase):
 
     def test_device_consistency(self):
         """Test that device objects are consistent."""
-        runtimes = nexus.get_runtimes()
+        runtimes = knexus.get_runtimes()
         for runtime in runtimes:
             devices = runtime.get_devices()
             for i, device in enumerate(devices):
