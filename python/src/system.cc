@@ -50,7 +50,7 @@ static DevPtr getPointer(PyObject *obj) {
       result.device_id = 0;
     }
     Py_DECREF(device_m);
-    if (result.runtime_name == "knexus") {
+    if (result.runtime_name == "nexus") {
       return result;
     }
   }
@@ -159,9 +159,9 @@ static Buffer make_buffer(py::object tensor, Device device = Device(),
   }
 
   auto data_ptr = getPointer(tensor.ptr());
-  if (data_ptr.runtime_name == "knexus") {
-    // call torch.knexus.get_knexus_buffer(obj)
-    auto get_knexus_buffer = import_from("torch.knexus", "get_knexus_buffer");
+  if (data_ptr.runtime_name == "nexus") {
+    // call torch.nexus.get_nexus_buffer(obj)
+    auto get_knexus_buffer = import_from("torch.nexus", "get_nexus_buffer");
     PyObject *get_knexus_buffer_ret = PyObject_CallFunctionObjArgs(get_knexus_buffer, tensor.ptr(), NULL);
     Py_DECREF(get_knexus_buffer);
     if (!get_knexus_buffer_ret) {

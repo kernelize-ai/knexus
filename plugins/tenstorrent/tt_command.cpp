@@ -3,6 +3,7 @@
 #include <rt_buffer.h>
 
 #include <tt-metalium/bfloat16.hpp>
+#include <tt-metalium/tensor_accessor_args.hpp>
 
 #include <algorithm>
 
@@ -50,6 +51,14 @@ nxs_status TTCommand::runCommand(TTDevice *device, nxs_int stream, ttmd::MeshWor
     }
   }
 
+  for (TTBuffer *buffer: buffers) {
+    if (buffer) {
+      NXSLOG_INFO("TensorAccessor Buffer: {}", (intptr_t)buffer);
+      ttm::TensorAccessorArgs(buffer->getMeshBuffer()).append_to(ctas);
+    }
+  }
+
+  NXSLOG_INFO("Add semaphores: {}", ctas.size());
   ctas.push_back(ttm::CreateSemaphore(program, cores, 0));
   ctas.push_back(ttm::CreateSemaphore(program, cores, 0));
 

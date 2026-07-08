@@ -414,6 +414,7 @@ extern "C" nxs_status NXS_API_CALL nxsSetCommandArgument(nxs_int command_id,
   auto buffer = rt->get<TTBuffer>(buffer_id);
   if (!buffer) return NXS_InvalidBuffer;
 
+  command->setBufferArgument(argument_index, buffer);
   return command->setScalar(argument_index, buffer->getAddress(), "Buffer", argument_settings);
 }
 
