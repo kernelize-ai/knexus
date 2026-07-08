@@ -53,6 +53,52 @@ def get_env_with_keys(key: list):
             return os.environ[k]
     return ""
 
+
+# Fallback version used for local/dev builds when no tag is available.
+DEFAULT_VERSION = "0.2.3"
+
+
+def get_version():
+    """Resolve the package version from the release tag.
+
+    Precedence:
+      1. KNEXUS_WHEEL_VERSION  - explicit override.
+      2. GITHUB_REF / GITHUB_REF_NAME - the tag pushed in CI (e.g. "v0.2.3").
+         The CI checkout is shallow, so we cannot rely on `git describe`.
+      3. `git describe --tags` - for local builds off a tagged commit.
+      4. DEFAULT_VERSION - final fallback for untagged dev builds.
+
+    A leading "v" on the tag is stripped so "v0.2.3" -> "0.2.3".
+    """
+    def normalize(tag: str) -> str:
+        return tag.strip().lstrip("v")
+
+    override = os.environ.get("KNEXUS_WHEEL_VERSION", "").strip()
+    if override:
+        return normalize(override)
+
+    # GITHUB_REF looks like "refs/tags/v0.2.3" on a tag push.
+    github_ref = os.environ.get("GITHUB_REF", "")
+    if github_ref.startswith("refs/tags/"):
+        return normalize(github_ref[len("refs/tags/"):])
+
+    github_ref_name = os.environ.get("GITHUB_REF_NAME", "")
+    if github_ref_name.startswith("v"):
+        return normalize(github_ref_name)
+
+    try:
+        described = subprocess.check_output(
+            ["git", "describe", "--tags", "--abbrev=0"],
+            cwd=os.path.dirname(os.path.abspath(__file__)),
+            stderr=subprocess.DEVNULL,
+        ).decode().strip()
+        if described:
+            return normalize(described)
+    except (OSError, subprocess.CalledProcessError):
+        pass
+
+    return DEFAULT_VERSION
+
 def get_build_type():
     if check_env_flag("KNEXUS_BUILD_REL"):
         return "Release"
@@ -287,7 +333,7 @@ CLASSIFIERS = BASE_CLASSIFIERS + PYTHON_CLASSIFIERS
 
 setup(
     name=os.environ.get("KNEXUS_WHEEL_NAME", "knexus"),
-    version="0.2.2",
+    version=get_version(),
     author="Simon Waters, Matthew Leon, Alex Baden",
     author_email="simon@kernelize.ai",
     description="",
