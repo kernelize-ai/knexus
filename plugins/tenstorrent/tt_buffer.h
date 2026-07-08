@@ -27,6 +27,7 @@ class TTBuffer : public nxs::rt::Buffer {
 
   nxs_ulong size() const { return getSizeBytes(); }
   nxs_uint *getAddress() { return &address; }
+  ttmd::MeshBuffer *getMeshBuffer() { return buffer.get(); }
 
   template <typename T>
   nxs_status tilizeAndCopyToDevice(T *data_ptr, bool blocking);
