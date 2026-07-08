@@ -316,8 +316,8 @@ def get_entry_points():
 
 
 # Dynamically define supported Python versions and classifiers
-MIN_PYTHON = (3, 9)
-MAX_PYTHON = (3, 13)
+MIN_PYTHON = (3, 10)
+MAX_PYTHON = (3, 14)
 
 PYTHON_REQUIRES = f">={MIN_PYTHON[0]}.{MIN_PYTHON[1]},<{MAX_PYTHON[0]}.{MAX_PYTHON[1] + 1}"
 BASE_CLASSIFIERS = [
@@ -340,7 +340,7 @@ setup(
     long_description="",
     install_requires=[
         "setuptools>=40.8.0",
-        "importlib-metadata; python_version < '3.10'",
+        "importlib-metadata; python_version < '3.11'",
     ],
     packages=list(get_packages()),
     package_dir=dict(get_package_dirs()),
