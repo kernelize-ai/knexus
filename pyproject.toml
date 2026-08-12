@@ -3,7 +3,11 @@ requires = [
     "setuptools>=42",
     "wheel",
     "cmake>=3.12",
-    "pybind11>=2.13.1",
+    # Must match the pybind11 version torch_nexus is built with, or
+    # torch_nexus's registration.cpp (py::module_::import("knexus")) won't
+    # see knexus's pybind11-registered types (Device/Runtime/Buffer). Keep
+    # this pin in sync with torch-nexus/pyproject.toml.
+    "pybind11==3.1.0",
 ]
 build-backend = "setuptools.build_meta"
 
