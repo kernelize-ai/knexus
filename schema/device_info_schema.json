@@ -50,24 +50,29 @@
           "type": "string",
           "description": "Vendor-specific name for compute units (e.g., CU, SM, Xe-core)"
         },
-        "SubUnits": {
-          "type": "array",
-          "description": "Sub-units within each compute unit (e.g. chip, CU, SIMD, Tensor Core",
-          "items": {
+        "ChipType": {
+          "type": "string",
+          "description": "Unit type representing the whole chip (a key in UnitTypes)"
+        },
+        "CoreType": {
+          "type": "string",
+          "description": "Unit type representing a single core (a key in UnitTypes, e.g., NeuronCore-v3, Tensix Core)"
+        },
+        "UnitTypes": {
+          "type": "object",
+          "description": "Unit types in the compute hierarchy (e.g. chip, CU, SIMD, Tensor Core), keyed by type name",
+          "additionalProperties": {
             "type": "object",
-            "required": ["Type", "Count", "Size"],
+            "required": ["Count"],
             "properties": {
-              "Type": {
-                "type": "string",
-                "description": "Type name of the sub-unit (e.g., SIMD, Tensor Core)"
-              },
               "Count": {
                 "type": "integer",
                 "description": "Number of these units per parent unit"
               },
               "Size": {
                 "type": "integer",
-                "description": "Number of sub-units inside this unit (e.g. threads)"
+                "default": 1,
+                "description": "Number of sub-units inside this unit (e.g. threads). Defaults to 1 when absent"
               },
               "Description": {
                 "type": "string",
@@ -80,9 +85,13 @@
                   "description": "Specify memory type embedded in the Core (Lookup in MemorySubsystem)"
                 }
               },
-              "SubunitType": {
-                "type": "string",
-                "description": "Name of the sub-unit (lookup in this list)"
+              "Subunits": {
+                "type": "array",
+                "description": "Names of the unit types contained in this unit (each entry is a key in UnitTypes)",
+                "items": {
+                  "type": "string",
+                  "description": "Type name of a contained unit (lookup as a key in UnitTypes)"
+                }
               }
             }
           }

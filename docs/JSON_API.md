@@ -40,13 +40,14 @@ Describes the semiconductor manufacturing process.
 Describes the compute hierarchy of the chip.
 
 - **Name** (string, optional): Vendor-specific name for compute units (e.g., "CU", "SM", "Xe-core")
-- **SubUnits** (array of objects, optional): Sub-units within each compute unit.
-  - **Type** (string, required): Type of sub-unit (e.g., "SIMD", "Tensor Core")
+- **ChipType** (string, optional): Unit type representing the whole chip (a key in `UnitTypes`)
+- **CoreType** (string, optional): Unit type representing a single core (a key in `UnitTypes`, e.g., `"NeuronCore-v3"`, `"Tensix Core"`)
+- **UnitTypes** (object, optional): Unit types in the compute hierarchy, keyed by type name (e.g., "SIMD", "Tensor Core"). Each value describes one unit type:
   - **Count** (integer, required): Number of these units per parent unit
-  - **Size** (integer, required): Number of sub-units inside this unit (e.g., threads)
-  - **Description** (string, optional): Description of the sub-unit's function
+  - **Size** (integer, optional, default `1`): Number of sub-units inside this unit (e.g., threads)
+  - **Description** (string, optional): Description of the unit's function
   - **Memory** (array of strings, optional): Memory types embedded in the core (refer to MemorySubsystem)
-  - **SubunitType** (string, optional): Name of the sub-unit (lookup in this list)
+  - **Subunits** (array of strings, optional): Names of the unit types contained in this unit (each entry is a key in `UnitTypes`)
 
 ### MemorySubsystem
 
@@ -98,15 +99,15 @@ Describes specialized processing units.
   },
   "CoreSubsystem": {
     "Name": "CU",
-    "SubUnits": [
-      {
-        "Type": "SIMD",
+    "CoreType": "SIMD",
+    "UnitTypes": {
+      "SIMD": {
         "Count": 4,
         "Size": 32,
         "Description": "Vector ALU",
         "Memory": ["vector register file"]
       }
-    ]
+    }
   },
   "MemorySubsystem": {
     "SupportedMemoryTypes": ["GDDR6", "HBM2"],
