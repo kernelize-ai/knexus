@@ -111,6 +111,14 @@ std::optional<Property> InfoImpl::getValue(json node,
   return std::nullopt;
 }
 
+// CoreSubsystem UnitTypes entries default Size to 1 when absent, matching
+// "default": 1 in schema/device_info_schema.json. The path of such an entry is
+// {..., "UnitTypes", "<type name>", "Size"}.
+bool InfoImpl::isUnitTypeEntry(
+    const std::vector<std::string_view> &path) const {
+  return path.size() >= 3 && path[path.size() - 3] == "UnitTypes";
+}
+
 std::optional<Property> InfoImpl::getKeys(json node) const {
   if (node.is_object()) {
     std::vector<std::string> keys;
@@ -131,6 +139,8 @@ std::optional<Property> InfoImpl::getProp(
       auto node = getNode(path);
       if (node.is_object()) {
         if (tail == "Keys") return getKeys(node);
+        if (tail == "Size" && !node.contains("Size") && isUnitTypeEntry(path))
+          return Property((nxs_long)1);
       } else if (node.is_array()) {
         if (tail == "Size") return Property((nxs_long)node.size());
         // get elem
