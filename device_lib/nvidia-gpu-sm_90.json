@@ -1,274 +1,298 @@
 {
-  "name": "Hopper",
-  "vendor": "NVIDIA",
-  "generation": 9,
-  "releaseYear": 2022,
-  "fabricationProcess": {
-    "processNode": 4,
-    "manufacturer": "TSMC",
-    "technology": "N4"
+  "Name": "Hopper",
+  "Vendor": "NVIDIA",
+  "Architecture": "sm_90",
+  "ReleaseYear": 2022,
+  "FabricationProcess": {
+    "ProcessNode": 5,
+    "Manufacturer": "TSMC",
+    "Technology": "4N"
   },
-  "computeUnits": {
-    "name": "Streaming Multiprocessor (SM)",
-    "maxPerGPU": 144,
-    "subUnits": [
+  "CoreSubsystem": {
+    "Name": "SM",
+    "ChipType": "Chip",
+    "CoreType": "SM",
+    "UnitTypes": {
+      "Chip": {
+        "Count": 1,
+        "Size": 132,
+        "Description": "GH100 die: 80 billion transistors on 814 mm2, built on the TSMC 4N process customized for NVIDIA. The primary configuration described by this file is H100 SXM5 (132 SMs, 16896 FP32 CUDA cores, 528 Tensor Cores, 80 GB HBM3, 700 W). The full GH100 die is larger than any shipping product: 8 GPCs / 72 TPCs / 144 SMs, 18432 FP32 cores, 576 Tensor Cores, 60 MB L2 and 6 HBM stacks. H100 PCIe ships 114 SMs (57 TPCs, 14592 FP32 cores, 456 Tensor Cores) with 80 GB HBM2e at 2 TB/s and a configurable 300-350 W; H100 NVL ships 132 SMs with 94 GB HBM3 at 3.9 TB/s and 350-400 W. Supports up to 7 MIG instances of 10 GB each (12 GB each on H100 NVL), ECC, and Confidential Computing. GH100 is a compute-only part: no display outputs and no RT cores",
+        "Memory": ["L2", "HBM3", "Constant Memory"],
+        "Subunits": ["GPC", "Memory Controller", "HBM3 Stack", "NVLink 4 Link", "PCIe Controller", "NVDEC Engine", "NVJPEG Engine"],
+        "Performance": {
+          "ClockRate": 1980,
+          "Source": "Derived",
+          "Throughput": [
+            { "Rate": 67, "Unit": "TFLOP/s", "Precision": "FP32", "Mode": "Non-Tensor", "Source": "Published" },
+            { "Rate": 34, "Unit": "TFLOP/s", "Precision": "FP64", "Mode": "Non-Tensor", "Source": "Published" },
+            { "Rate": 67, "Unit": "TFLOP/s", "Precision": "FP64", "Mode": "Tensor", "Source": "Published" },
+            { "Rate": 989, "Unit": "TFLOP/s", "Precision": "TF32", "Mode": "Sparse", "Source": "Published" },
+            { "Rate": 494.5, "Unit": "TFLOP/s", "Precision": "TF32", "Mode": "Dense", "Source": "Derived" },
+            { "Rate": 1979, "Unit": "TFLOP/s", "Precision": "BF16", "Mode": "Sparse", "Source": "Published" },
+            { "Rate": 989.5, "Unit": "TFLOP/s", "Precision": "BF16", "Mode": "Dense", "Source": "Derived" },
+            { "Rate": 1979, "Unit": "TFLOP/s", "Precision": "FP16", "Mode": "Sparse", "Source": "Published" },
+            { "Rate": 989.5, "Unit": "TFLOP/s", "Precision": "FP16", "Mode": "Dense", "Source": "Derived" },
+            { "Rate": 3958, "Unit": "TFLOP/s", "Precision": "FP8", "Mode": "Sparse", "Source": "Published" },
+            { "Rate": 1979, "Unit": "TFLOP/s", "Precision": "FP8", "Mode": "Dense", "Source": "Derived" },
+            { "Rate": 3958, "Unit": "TOP/s", "Precision": "INT8", "Mode": "Sparse", "Source": "Published" },
+            { "Rate": 1979, "Unit": "TOP/s", "Precision": "INT8", "Mode": "Dense", "Source": "Derived" }
+          ]
+        }
+      },
+      "GPC": {
+        "Count": 8,
+        "Size": 9,
+        "Description": "Graphics Processing Cluster. The full GH100 die has 8 GPCs of 9 TPCs each (72 TPCs). H100 SXM5 enables 66 of those 72 TPCs and H100 PCIe enables 57, so shipping parts do not populate every GPC uniformly; the Size of 9 is the full-die TPC complement per GPC",
+        "Subunits": ["TPC"]
+      },
+      "TPC": {
+        "Count": 9,
+        "Size": 2,
+        "Description": "Texture Processing Cluster, containing 2 SMs. 72 TPCs on the full GH100 die, 66 enabled on H100 SXM5 (132 SMs) and 57 on H100 PCIe (114 SMs)",
+        "Subunits": ["SM"]
+      },
+      "SM": {
+        "Count": 2,
+        "Size": 128,
+        "Description": "Hopper Streaming Multiprocessor, organized as 4 processing blocks (partitions) that each hold one warp scheduler, one dispatch unit, a 64 KB register file slice, one fourth-generation Tensor Core, 32 FP32 lanes, 16 INT32 lanes, 16 FP64 lanes, 4 SFUs, 8 LD/ST units and 1 texture unit. Compute capability 9.0 limits: 2048 resident threads (64 warps), 32 resident thread blocks, 255 registers per thread, 65536 32-bit registers per SM, 228 KB of shared memory per SM. Hopper adds thread block clusters (portable maximum 8 blocks, non-portable 16 on H100) with distributed shared memory across the cluster, and DPX dynamic-programming instructions at 128 operations per cycle per SM. FP32 throughput per SM per clock is 2x that of compute capability 8.0",
+        "Memory": ["Register File", "L1 and Shared Memory"],
+        "Subunits": ["FP32 CUDA Core", "INT32 Core", "FP64 Core", "Tensor Core", "SFU", "LD/ST Unit", "Warp Scheduler", "Texture Unit", "Tensor Memory Accelerator"],
+        "Performance": {
+          "ClockRate": 1980,
+          "Source": "Derived",
+          "Throughput": [
+            { "Rate": 128, "Unit": "OP/cycle", "Mode": "DPX", "Source": "Published" }
+          ]
+        }
+      },
+      "FP32 CUDA Core": {
+        "Count": 128,
+        "Size": 1,
+        "Description": "Single-precision FP32 lane, 32 per processing block. 16896 per H100 SXM5 (14592 on H100 PCIe, 18432 on the full GH100 die), giving 67 TFLOPS of peak non-tensor FP32 on H100 SXM5 and 51 TFLOPS on H100 PCIe",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 2, "Unit": "FLOP/cycle", "Precision": "FP32", "Source": "Published" }
+          ]
+        }
+      },
+      "INT32 Core": {
+        "Count": 64,
+        "Size": 1,
+        "Description": "32-bit integer lane, 16 per processing block, executing concurrently with the FP32 datapath"
+      },
+      "FP64 Core": {
+        "Count": 64,
+        "Size": 1,
+        "Description": "Double-precision lane, 16 per processing block, giving an FP64:FP32 rate of 1:2. Peak non-tensor FP64 is 34 TFLOPS on H100 SXM5 and 26 TFLOPS on H100 PCIe; the Tensor Cores double this to 67 and 51 TFLOPS respectively"
+      },
+      "Tensor Core": {
+        "Count": 4,
+        "Size": 1,
+        "Description": "Fourth-generation Tensor Core, one per processing block (528 per H100 SXM5, 456 per H100 PCIe, 576 on the full die). Supports FP64, TF32, BF16, FP16, FP8 (E4M3/E5M2) and INT8, plus 2:4 structured sparsity, and is driven by the new asynchronous warp-group MMA (wgmma) instructions. Together with the Transformer Engine, which dynamically chooses between FP8 and FP16 per layer, H100 SXM5 peaks at 989 TFLOPS TF32, 1979 TFLOPS BF16/FP16, 3958 TFLOPS FP8 and 3958 TOPS INT8 with sparsity, i.e. half those figures for dense operands"
+      },
+      "SFU": {
+        "Count": 16,
+        "Size": 1,
+        "Description": "Special Function Unit, 4 per processing block, computing transcendentals such as sin, cos, exp2, log2, rcp and rsqrt"
+      },
+      "LD/ST Unit": {
+        "Count": 32,
+        "Size": 1,
+        "Description": "Load/store unit, 8 per processing block, issuing accesses to shared, local and global memory through the unified L1 data cache"
+      },
+      "Warp Scheduler": {
+        "Count": 4,
+        "Size": 1,
+        "Description": "One warp scheduler plus dispatch unit per processing block, each selecting among up to 16 resident warps of 32 threads for a 64-warp per-SM occupancy limit"
+      },
+      "Texture Unit": {
+        "Count": 4,
+        "Size": 1,
+        "Description": "Texture/sampler unit, one per processing block, sharing the unified L1 data and texture cache"
+      },
+      "Tensor Memory Accelerator": {
+        "Count": 1,
+        "Size": 1,
+        "Description": "TMA, new in Hopper: a per-SM asynchronous copy engine that moves 1D through 5D tensor tiles between global memory and shared memory in both directions from a single thread, generating the addressing itself and freeing warps for compute"
+      },
+      "Memory Controller": {
+        "Count": 10,
+        "Size": 1,
+        "Description": "512-bit HBM memory controller. The full GH100 die has 12 controllers (6144-bit); H100 SXM5 and H100 PCIe enable 10 for a 5120-bit interface"
+      },
+      "HBM3 Stack": {
+        "Count": 5,
+        "Size": 1,
+        "Description": "16 GB HBM3 stack, 5 stacks for 80 GB on H100 SXM5 at 3.35 TB/s. The full GH100 die supports 6 HBM3 or HBM2e stacks. H100 PCIe uses 5 HBM2e stacks (80 GB at 2 TB/s); H100 NVL exposes 94 GB of HBM3 per GPU at 3.9 TB/s",
+        "Memory": ["HBM3"],
+        "Performance": {
+          "Throughput": [
+            { "Rate": 670, "Unit": "GB/s", "Source": "Derived" }
+          ]
+        }
+      },
+      "NVLink 4 Link": {
+        "Count": 18,
+        "Size": 1,
+        "Description": "Fourth-generation NVLink port, 50 GB/s bidirectional each, 18 ports for 900 GB/s total on H100 SXM5. An HGX/DGX H100 baseboard connects 8 GPUs through NVSwitch, and the NVLink Switch System extends the domain to 256 GPUs. H100 PCIe instead uses a 3-way NVLink bridge (600 GB/s) across 2 GPUs; H100 NVL pairs two boards at 600 GB/s",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 50, "Unit": "GB/s", "Mode": "Bidirectional", "Source": "Published" }
+          ]
+        }
+      },
+      "PCIe Controller": {
+        "Count": 1,
+        "Size": 1,
+        "Description": "PCIe Gen 5 x16 host interface, 128 GB/s bidirectional, with SR-IOV and Confidential Computing support",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 128, "Unit": "GB/s", "Mode": "Bidirectional", "Source": "Published" }
+          ]
+        }
+      },
+      "NVDEC Engine": {
+        "Count": 7,
+        "Size": 1,
+        "Description": "Fourth-generation NVDEC hardware video decoder, 7 per GPU. GH100 ships no NVENC encoder engines"
+      },
+      "NVJPEG Engine": {
+        "Count": 7,
+        "Size": 1,
+        "Description": "Hardware JPEG decode engine, 7 per GPU, exposed through nvJPEG for data-loading pipelines"
+      }
+    }
+  },
+  "MemorySubsystem": {
+    "SupportedMemoryTypes": ["HBM3", "HBM2e"],
+    "MemoryTypes": {
+      "Register File": {
+        "Size": 256,
+        "BankCount": 4,
+        "description": "65536 32-bit registers (256 KB) per SM, split evenly across the 4 processing blocks. A single thread may use at most 255 registers. Aggregate register file on H100 SXM5 is 33 MB across 132 SMs"
+      },
+      "L1 and Shared Memory": {
+        "Size": 256,
+        "BankCount": 32,
+        "description": "256 KB of unified L1 data cache, texture cache and shared memory per SM, up 33% from 192 KB on Ampere. The shared-memory carveout is configurable to 0, 8, 16, 32, 64, 100, 132, 164, 196 or 228 KB per SM; a single thread block may address at most 227 KB because CUDA reserves 1 KB. Shared memory is banked 32 ways, and Hopper thread block clusters can address the shared memory of peer blocks as distributed shared memory"
+      },
+      "L2": {
+        "Size": 51200,
+        "MaxMemoryBandwidth": 3350,
+        "maxBusWidth": 5120,
+        "description": "50 MB of GPU-wide L2 on both H100 SXM5 and H100 PCIe; the full GH100 die has 60 MB. Backs all SMs and fronts the HBM controllers, and supports L2 residency controls and compression"
+      },
+      "HBM3": {
+        "Size": 83886080,
+        "BankCount": 5,
+        "MaxMemoryBandwidth": 3350,
+        "maxBusWidth": 5120,
+        "description": "80 GB of HBM3 across 5 stacks on a 5120-bit interface, 3.35 TB/s on H100 SXM5. H100 PCIe uses 80 GB of HBM2e on the same 5120-bit interface at 2 TB/s; H100 NVL exposes 94 GB of HBM3 per GPU at 3.9 TB/s. ECC is enabled on all SKUs",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 3350, "Unit": "GB/s", "Source": "Published" }
+          ]
+        }
+      },
+      "Constant Memory": {
+        "Size": 64,
+        "description": "64 KB constant memory window per device context for compute capability 9.0, served through a per-SM constant cache whose size NVIDIA does not publish"
+      }
+    }
+  },
+  "KernelModel": {
+    "LLVMTarget": "nvptx64",
+    "LLVMTriple": "nvptx64-nvidia-cuda",
+    "LLVMFeatures": [
       {
-        "name": "CUDA Core",
-        "countPerComputeUnit": 128,
-        "description": "FP32 and INT32 processing core"
+        "Name": "+sm_90",
+        "Description": "NVPTX subtarget feature selecting the Hopper sm_90 target ISA"
       },
       {
-        "name": "Tensor Core (4th gen)",
-        "countPerComputeUnit": 4,
-        "description": "Specialized core for matrix operations and AI acceleration"
+        "Name": "+sm_90a",
+        "Description": "Architecture-specific sm_90a variant exposing Hopper-only instructions such as asynchronous warp-group MMA (wgmma) and setmaxnreg. Code compiled for sm_90a is not forward compatible with later architectures"
       },
       {
-        "name": "Special Function Unit (SFU)",
-        "countPerComputeUnit": 4,
-        "description": "Units handling transcendental instructions like sine, cosine, etc."
+        "Name": "+ptx78",
+        "Description": "PTX ISA 7.8 (CUDA 11.8), the first release able to target sm_90"
+      },
+      {
+        "Name": "+ptx80",
+        "Description": "PTX ISA 8.0 (CUDA 12.0), the first release able to target sm_90a"
+      }
+    ],
+    "Toolchains": [
+      {
+        "Type": "CUDA",
+        "Version": "11.8"
+      },
+      {
+        "Type": "PTX ISA",
+        "Version": "7.8"
+      },
+      {
+        "Type": "OpenCL",
+        "Version": "3.0"
       }
     ]
   },
-  "shaderModel": {
-    "directX": "12 Ultimate",
-    "vulkan": "1.3",
-    "openGL": "4.6",
-    "openCL": "3.0",
-    "metal": "N/A"
-  },
-  "memorySubsystem": {
-    "supportedMemoryTypes": ["HBM3"],
-    "maxMemoryBandwidth": 3350,
-    "maxMemorySize": 80,
-    "maxBusWidth": 5120,
-    "cacheHierarchy": [
-      {
-        "level": "L1 Cache",
-        "sizePerUnit": 256,
-        "totalSize": 36864,
-        "description": "L1 cache per SM with shared memory"
-      },
-      {
-        "level": "L2 Cache",
-        "sizePerUnit": 0,
-        "totalSize": 51200,
-        "description": "Shared L2 cache across all SMs"
-      }
-    ]
-  },
-  "specializedHardware": {
-    "rayTracingAccelerators": {
-      "present": true,
-      "name": "RT Core (3rd gen)",
-      "countPerComputeUnit": 1,
-      "performance": {
-        "raysPerSecond": 200
-      }
+  "SpecializedHardware": {
+    "RayTracingAccelerators": {
+      "Present": false
     },
-    "aiAccelerators": {
-      "present": true,
-      "name": "Tensor Core (4th gen)",
-      "countPerComputeUnit": 4,
-      "supportedPrecisions": ["FP32", "FP16", "BF16", "TF32", "FP8", "INT8", "INT4"],
-      "performance": {
+    "AiAccelerators": {
+      "Present": true,
+      "Name": "Fourth-Generation Tensor Core",
+      "Count": 528,
+      "SupportedPrecisions": ["FP32", "FP16", "BF16", "INT8", "Other"],
+      "Performance": {
         "fp16TopsPerGPU": 1979,
         "int8TopsPerGPU": 3958
       }
     },
     "videoCodecs": {
-      "encoders": [
-        {
-          "codec": "H.264",
-          "maxResolution": "8K",
-          "maxBitrate": 600,
-          "maxFPS": 240
-        },
-        {
-          "codec": "H.265/HEVC",
-          "maxResolution": "8K",
-          "maxBitrate": 600,
-          "maxFPS": 240
-        },
-        {
-          "codec": "AV1",
-          "maxResolution": "8K",
-          "maxBitrate": 600,
-          "maxFPS": 240
-        }
-      ],
+      "encoders": [],
       "decoders": [
         {
-          "codec": "H.264",
-          "maxResolution": "8K",
-          "maxBitrate": 600,
-          "maxFPS": 240
+          "codec": "H.264"
         },
         {
-          "codec": "H.265/HEVC",
-          "maxResolution": "8K",
-          "maxBitrate": 600,
-          "maxFPS": 240
+          "codec": "H.265/HEVC"
         },
         {
-          "codec": "AV1",
-          "maxResolution": "8K",
-          "maxBitrate": 600,
-          "maxFPS": 240
-        },
-        {
-          "codec": "VP9",
-          "maxResolution": "8K",
-          "maxBitrate": 600,
-          "maxFPS": 240
+          "codec": "VP9"
         }
       ]
     }
   },
-  "powerEfficiency": {
-    "maxTDP": 700,
-    "powerStates": [
+  "PowerEfficiency": {
+    "BoostClock": 1980,
+    "MaxTDP": 700,
+    "PowerStates": [
       {
-        "name": "Maximum Performance",
-        "description": "Full power mode for compute-intensive workloads"
+        "Name": "Maximum Performance",
+        "Description": "Full power state for H100 SXM5, up to 700 W configurable TDP. NVIDIA does not publish a base clock for H100; the 1980 MHz boost clock recorded here is derived from the official 67 TFLOPS peak FP32 figure over 16896 FP32 lanes at 2 FLOP/clock. H100 PCIe is rated at 300-350 W configurable and H100 NVL at 350-400 W configurable"
       },
       {
-        "name": "Balanced",
-        "description": "Balance between performance and power consumption"
+        "Name": "Balanced",
+        "Description": "Reduced clock and voltage operating point selected by the driver when the workload or the power/thermal budget does not require peak clocks"
       },
       {
-        "name": "Energy Efficient",
-        "description": "Optimized for energy efficiency"
+        "Name": "Idle",
+        "Description": "Low power state when no kernels are resident"
       }
     ],
-    "clockGating": true,
-    "dynamicVoltageFrequencyScaling": true
+    "ClockGating": true,
+    "DynamicVoltageFrequencyScaling": true
   },
-  "displayOutputs": {
-    "maxDisplays": 0,
-    "maxResolution": "N/A",
-    "maxRefreshRate": 0,
-    "interfaces": [],
-    "hdr": false
+  "PciExpress": {
+    "Version": "5.0",
+    "Lanes": 16,
+    "Bandwidth": 128
   },
-  "pciExpress": {
-    "version": "5.0",
-    "lanes": 16,
-    "bandwidth": 128
-  },
-  "multiGpuSupport": {
-    "technologies": ["NVLink 4.0"],
-    "maxGpus": 8,
-    "interconnectBandwidth": 900
-  },
-  "softwareFeatures": {
-    "upscalingTechnologies": [],
-    "meshShading": true,
-    "variableRateShading": true,
-    "samplerFeedback": true
-  },
-  "additionalFeatures": {
-    "transformerEngine": {
-      "present": true,
-      "description": "Specialized acceleration for transformer models with FP8 precision"
-    },
-    "confidentialComputing": {
-      "present": true,
-      "description": "Supports encrypted computation for sensitive data"
-    },
-    "dynamicProgrammingAccelerator": {
-      "present": true,
-      "description": "Hardware accelerator for dynamic programming algorithms"
-    },
-    "mig": {
-      "present": true,
-      "description": "Multi-Instance GPU technology for workload isolation",
-      "maxInstances": 7
-    },
-    "nvdec": {
-      "present": true,
-      "description": "Hardware video decoder"
-    },
-    "nvenc": {
-      "present": true,
-      "description": "Hardware video encoder"
-    },
-    "cudaCores": 18432,
-    "tensorCores": 576,
-    "clockSpeeds": {
-      "baseClockMHz": 1365,
-      "boostClockMHz": 1815
-    },
-    "fp64Performance": {
-      "peakTeraflops": 34,
-      "ratioToFP32": 0.5
-    },
-    "asynchronousCopyEngine": true,
-    "ecc": true,
-    "virtualization": {
-      "present": true,
-      "technologies": ["vGPU", "MIG"]
-    }
-  },
-  "variants": [
-    {
-      "name": "H100 SXM5",
-      "formFactor": "SXM5",
-      "tdp": 700,
-      "memorySize": 80,
-      "nvlinkPorts": 18
-    },
-    {
-      "name": "H100 PCIe",
-      "formFactor": "PCIe",
-      "tdp": 350,
-      "memorySize": 80,
-      "nvlinkPorts": 0
-    },
-    {
-      "name": "H100 NVL",
-      "formFactor": "PCIe",
-      "tdp": 350,
-      "memorySize": 94,
-      "nvlinkPorts": 8
-    }
-  ],
-  "software": {
-    "drivers": ["NVIDIA Data Center Driver"],
-    "sdks": ["CUDA", "cuDNN", "DALI", "TensorRT"],
-    "frameworks": [
-      "TensorFlow",
-      "PyTorch",
-      "JAX",
-      "MXNet",
-      "RAPIDS",
-      "Triton Inference Server"
-    ],
-    "compilers": ["NVCC", "LLVM/Clang", "OpenACC"]
-  },
-  "inferencePerformance": {
-    "resnet50ImagesPerSecond": 294000,
-    "bert": {
-      "throughput": 49262,
-      "unit": "queries/second"
-    },
-    "dlrm": {
-      "throughput": 54000,
-      "unit": "samples/second"
-    },
-    "recommendationSystems": {
-      "throughput": 92000,
-      "unit": "samples/second"
-    }
-  },
-  "trainingPerformance": {
-    "resnet50ImagesPerSecond": 43518,
-    "bert": {
-      "throughput": 14584,
-      "unit": "samples/second"
-    },
-    "dlrm": {
-      "throughput": 14900,
-      "unit": "samples/second"
-    }
+  "MultiGpuSupport": {
+    "Technologies": ["NVLink"],
+    "MaxGpus": 256,
+    "InterconnectBandwidth": 900
   }
 }

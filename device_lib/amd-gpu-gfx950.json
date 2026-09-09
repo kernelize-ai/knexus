@@ -1,238 +1,288 @@
 {
-  "name": "MI350",
-  "vendor": "AMD",
-  "generation": 0,
-  "releaseYear": 0,
-  "fabricationProcess": {
-    "processNode": 0.0,
-    "manufacturer": "ABCDEFGHIJKL",
-    "technology": "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  "Name": "CDNA 4",
+  "Vendor": "AMD",
+  "Architecture": "gfx950",
+  "ReleaseYear": 2025,
+  "FabricationProcess": {
+    "ProcessNode": 3,
+    "Manufacturer": "TSMC",
+    "Technology": "N3P for the 8 accelerator complex dies (XCDs), N6 for the 2 I/O dies (IODs)"
   },
-  "computeUnits": {
-    "name": "ABCDEFGHIJKLMNOPQRS",
-    "maxPerGPU": 0,
-    "subUnits": [
-      {
-        "name": "ABCDEFGHIJKLMN",
-        "countPerComputeUnit": 0,
-        "description": "ABCDEF"
-      },
-      {
-        "name": "ABCDEFGHIJKLMNOP",
-        "countPerComputeUnit": 0,
-        "description": "ABCDEFGH"
-      },
-      {
-        "name": "ABCDEFGHIJKLMNOPQRSTUVWXYZA",
-        "countPerComputeUnit": 0,
-        "description": "ABCDEFGHIJKLMNOPQRSTUVWXY"
-      },
-      {
-        "name": "ABCDE",
-        "countPerComputeUnit": 0,
-        "description": "ABCDEFGHIJKLMNOPQRS"
-      },
-      {
-        "name": "ABCDEFGHIJKLMN",
-        "countPerComputeUnit": 0,
-        "description": "ABCDE"
-      },
-      {
-        "name": "ABCDEFGHIJKLMNOPQRSTUVW",
-        "countPerComputeUnit": 0,
-        "description": "ABCDEFGHIJKLMNOPQRSTUV"
-      },
-      {
-        "name": "ABCDEFGHIJKLMNOPQRSTUVWXY",
-        "countPerComputeUnit": 0,
-        "description": "ABCDEFGHIJKLMN"
-      },
-      {
-        "name": "ABCDEFGHIJKLMNOPQRSTUVWXYZAB",
-        "countPerComputeUnit": 0,
-        "description": "ABCDEFGHIJKLMNOPQ"
-      }
-    ]
-  },
-  "shaderModel": {
-    "directX": "ABCDEFGHIJKLMNOPQ",
-    "vulkan": "ABCDEFGHIJKLMNOPQ",
-    "openGL": "ABCDEFGHIJKLMNOPQRSTUV",
-    "openCL": "ABCD",
-    "metal": "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-  },
-  "memorySubsystem": {
-    "supportedMemoryTypes": [
-      "Other",
-      "Other",
-      "HBM2",
-      "GDDR6"
-    ],
-    "maxMemoryBandwidth": 0.0,
-    "maxMemorySize": 0,
-    "maxBusWidth": 0,
-    "cacheHierarchy": [
-      {
-        "level": "ABCDEFGHI",
-        "sizePerUnit": 0,
-        "totalSize": 0,
-        "description": "ABCDEFGH"
-      },
-      {
-        "level": "ABCDEFGHIJKLMNOPQRS",
-        "sizePerUnit": 0,
-        "totalSize": 0,
-        "description": "ABCDEFGHIJKLMNOPQRS"
-      },
-      {
-        "level": "ABCDE",
-        "sizePerUnit": 0,
-        "totalSize": 0,
-        "description": "ABCDEFGHIJKLMNOPQRSTUVWXYZAB"
-      }
-    ]
-  },
-  "specializedHardware": {
-    "rayTracingAccelerators": {
-      "present": false,
-      "name": "ABCD",
-      "countPerComputeUnit": 0,
-      "performance": {
-        "raysPerSecond": 0.0
-      }
-    },
-    "aiAccelerators": {
-      "present": true,
-      "name": "ABCDEFGHIJKLMNO",
-      "countPerComputeUnit": 0,
-      "supportedPrecisions": [
-        "INT4"
-      ],
-      "performance": {
-        "fp16TopsPerGPU": 0.0,
-        "int8TopsPerGPU": 0.0
-      }
-    },
-    "videoCodecs": {
-      "encoders": [
-        {
-          "codec": "AV1",
-          "maxResolution": "ABCDEFGHIJKLMN",
-          "maxBitrate": 0,
-          "maxFPS": 0
-        },
-        {
-          "codec": "H.265/HEVC",
-          "maxResolution": "ABCDEFGHIJKL",
-          "maxBitrate": 0,
-          "maxFPS": 0
-        },
-        {
-          "codec": "VP9",
-          "maxResolution": "ABCDEFGHIJKLMNOPQRSTUVWX",
-          "maxBitrate": 0,
-          "maxFPS": 0
+  "CoreSubsystem": {
+    "Name": "CU",
+    "ChipType": "Chip",
+    "CoreType": "Compute Unit",
+    "UnitTypes": {
+      "Chip": {
+        "Count": 1,
+        "Size": 8,
+        "Description": "One Instinct MI350-series OAM package: 8 XCDs 3D-stacked in pairs of 4 on top of 2 IODs, plus 8 HBM3E stacks, 185 billion transistors total. 256 active compute units, 16384 stream processors and 1024 Matrix Cores. Primary device modelled here is the liquid-cooled MI355X (up to 2.4 GHz, 1400 W TBP); the air-cooled MI350X is the same silicon at up to 2.2 GHz and 1000 W TBP, giving proportionally ~9% lower peak throughput at identical memory capacity and bandwidth. Eight packages form a fully connected Infinity Fabric platform",
+        "Memory": ["HBM3E", "Infinity Cache"],
+        "Subunits": ["XCD", "IOD", "HBM3E Stack", "Infinity Fabric Link", "PCIe Controller"],
+        "Performance": {
+          "ClockRate": 2400,
+          "Source": "Published"
         }
-      ],
-      "decoders": [
-        {
-          "codec": "H.265/HEVC",
-          "maxResolution": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-          "maxBitrate": 0,
-          "maxFPS": 0
-        },
-        {
-          "codec": "H.264",
-          "maxResolution": "ABCDEFGHIJKLMNOP",
-          "maxBitrate": 0,
-          "maxFPS": 0
-        },
-        {
-          "codec": "AV1",
-          "maxResolution": "ABCDEFGHIJKLMNOPQRSTUVWX",
-          "maxBitrate": 0,
-          "maxFPS": 0
-        },
-        {
-          "codec": "Other",
-          "maxResolution": "ABCDEFGHI",
-          "maxBitrate": 0,
-          "maxFPS": 0
-        },
-        {
-          "codec": "AV1",
-          "maxResolution": "ABCDEFGHIJKLMNOPQRSTUVWXYZAB",
-          "maxBitrate": 0,
-          "maxFPS": 0
-        },
-        {
-          "codec": "AV1",
-          "maxResolution": "ABCDEFGHIJKLMN",
-          "maxBitrate": 0,
-          "maxFPS": 0
+      },
+      "XCD": {
+        "Count": 8,
+        "Size": 32,
+        "Description": "Accelerator Complex Die built on TSMC N3P. Each XCD holds 36 physical compute units of which 32 are active (4 disabled for yield), a shared command processor and workgroup dispatcher, and 4 MB of L2 cache. Down from 38 active CUs per XCD on CDNA 3 / MI300X, offset by higher clocks",
+        "Memory": ["L2"],
+        "Subunits": ["Compute Unit"]
+      },
+      "Compute Unit": {
+        "Count": 32,
+        "Size": 4,
+        "Description": "CDNA 4 compute unit: 4 SIMD16 vector units, 4 Matrix Cores, 1 scalar unit, 160 KB of LDS and 32 KB of L1 vector cache. Executes wavefronts of 64 work-items, up to 8 waves per SIMD (32 per CU). Delivers 128 FP32 lanes worth of throughput per clock via packed FP32 dual-issue, and half that for FP64",
+        "Memory": ["LDS", "L1 Vector Cache", "VGPR"],
+        "Subunits": ["SIMD", "Matrix Core", "Scalar Unit"],
+        "Performance": {
+          "ClockRate": 2400,
+          "Source": "Published"
         }
-      ]
+      },
+      "SIMD": {
+        "Count": 4,
+        "Size": 16,
+        "Description": "16-lane vector ALU; a wave64 is issued over 4 cycles. Backed by a 128 KB vector register file (512 32-bit VGPRs per lane) that is unified between architected VGPRs and accumulation AGPRs",
+        "Memory": ["VGPR"]
+      },
+      "Matrix Core": {
+        "Count": 4,
+        "Size": 1,
+        "Description": "Matrix multiply engine executing the MFMA/SMFMAC instruction family. CDNA 4 roughly doubles per-CU matrix throughput versus CDNA 3 for low precision and adds the OCP block-scaled MXFP6 and MXFP4 formats alongside OCP FP8 (E4M3/E5M2), BF16, FP16, FP32, FP64 and INT8. New gfx950 shapes include v_mfma_f32_16x16x128_f8f6f4 and v_mfma_f32_32x32x64_f8f6f4 (with v_mfma_scale_* and v_mfma_ld_scale_b32 for per-block scales), plus wider FP16/BF16/INT8 shapes; SMFMAC provides 2:4 structured sparsity acceleration. Notably FP6 runs at the same rate as FP4 on CDNA 4. The XF32/TF32 MFMA instructions of CDNA 3 (gfx942) are NOT present on gfx950"
+      },
+      "Scalar Unit": {
+        "Count": 1,
+        "Size": 1,
+        "Description": "Per-CU scalar ALU handling wave-uniform arithmetic, control flow and scalar memory (constant) fetches"
+      },
+      "IOD": {
+        "Count": 2,
+        "Size": 4,
+        "Description": "I/O die on TSMC N6. Each IOD hosts 4 of the 8 XCDs stacked above it and 4 of the 8 HBM3E stacks, and carries 128 MB of Infinity Cache plus the Infinity Fabric switching. IOD-to-IOD bisection bandwidth is 5.5 TB/s",
+        "Memory": ["Infinity Cache"]
+      },
+      "HBM3E Stack": {
+        "Count": 8,
+        "Size": 12,
+        "Description": "12-high HBM3E stack, 36 GB each, on a 1024-bit interface at 8 Gbps per pin. 8 stacks give 288 GB at 8 TB/s aggregate",
+        "Memory": ["HBM3E"],
+        "Performance": {
+          "TransferRate": 8,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 1024, "Unit": "GB/s", "Source": "Derived" }
+          ]
+        }
+      },
+      "Infinity Fabric Link": {
+        "Count": 7,
+        "Size": 1,
+        "Description": "One of 7 4th-generation Infinity Fabric peer-to-peer links, each 16 bits wide at 38.4 Gbps, for 1075.2 GB/s of aggregate GPU-to-GPU bandwidth in an 8-way fully connected platform",
+        "Performance": {
+          "TransferRate": 38.4,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 153.6, "Unit": "GB/s", "Source": "Derived" }
+          ]
+        }
+      },
+      "PCIe Controller": {
+        "Count": 1,
+        "Size": 1,
+        "Description": "PCIe 5.0 x16 host interface controller on the OAM module"
+      }
     }
   },
-  "powerEfficiency": {
-    "maxTDP": 0,
-    "powerStates": [
+  "MemorySubsystem": {
+    "SupportedMemoryTypes": ["Other"],
+    "MemoryTypes": {
+      "VGPR": {
+        "Size": 128,
+        "description": "512 32-bit vector registers per lane across 64 lanes = 128 KB per SIMD, 512 KB per CU. The file is unified: a wave can use up to 512 architected VGPRs, or split the space between architected VGPRs and accumulation AGPRs (up to 256 of each)"
+      },
+      "LDS": {
+        "Size": 160,
+        "description": "160 KB software-managed Local Data Share per compute unit, up from 64 KB on CDNA 3 — the single largest occupancy-relevant change in CDNA 4. Read bandwidth doubled to 256 bytes per clock, GLOBAL_LOAD_LDS widened to 128 bits per lane, and new read-with-transpose instructions feed the Matrix Cores directly. Total 40 MB across 256 CUs",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 256, "Unit": "byte/cycle", "Mode": "Read", "Source": "Published" }
+          ]
+        }
+      },
+      "L1 Vector Cache": {
+        "Size": 32,
+        "description": "32 KB per-CU vector L1 data cache, unchanged from CDNA 3"
+      },
+      "L2": {
+        "Size": 4096,
+        "description": "4 MB L2 cache per XCD, coherent across all 8 XCDs; 32 MB total per package. CDNA 4 improves L2 writeback handling of dirty data"
+      },
+      "Infinity Cache": {
+        "Size": 131072,
+        "description": "128 MB of memory-attached last-level Infinity Cache per IOD, 256 MB total, sitting in front of HBM3E and shared by all XCDs"
+      },
+      "HBM3E": {
+        "Size": 301989888,
+        "BankCount": 8,
+        "MaxMemoryBandwidth": 8000,
+        "maxBusWidth": 8192,
+        "description": "288 GB of HBM3E across 8 12-high stacks at 8 Gbps per pin, 8 TB/s peak bandwidth over an aggregate 8192-bit interface (1024 bits per stack). Identical on MI350X and MI355X",
+        "Performance": {
+          "TransferRate": 8,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 8000, "Unit": "GB/s", "Source": "Published" }
+          ]
+        }
+      }
+    }
+  },
+  "KernelModel": {
+    "LLVMTarget": "amdgcn",
+    "LLVMTriple": "amdgcn-amd-amdhsa",
+    "LLVMFeatures": [
       {
-        "name": "ABCDEFGHIJKLMNOPQRSTUV",
-        "description": "ABCDEFGHI"
+        "Name": "gfx950-insts",
+        "Description": "Additional instructions for GFX950+; umbrella feature that implies the permlane swap, arithmetic-shift-pack, block-scaled FP8/BF8/FP6/BF6/FP4 conversion and minimum3/maximum3 features below"
       },
       {
-        "name": "ABCDEFGHIJKLMNOPQRST",
-        "description": "ABCDEFGHIJKLMNOPQRSTUVWXYZABC"
+        "Name": "mai-insts",
+        "Description": "Has mAI instructions - the MFMA/SMFMAC matrix arithmetic family executed on the Matrix Cores"
       },
       {
-        "name": "ABCDEFGHIJKL",
-        "description": "ABCDEFGHIJKLMNOPQRSTUVWXYZAB"
+        "Name": "fp8-cvt-scale-insts",
+        "Description": "Has fp8 conversion scale instructions, used for block-scaled OCP MXFP8 (E4M3/E5M2) data"
       },
       {
-        "name": "ABCDEFGHIJKLMNOPQR",
-        "description": "ABCDEFGHIJKLMNOPQRSTUVWXYZABC"
+        "Name": "fp6bf6-cvt-scale-insts",
+        "Description": "Has fp6 and bf6 conversion scale instructions, new in CDNA 4 for the MXFP6 format"
+      },
+      {
+        "Name": "fp4-cvt-scale-insts",
+        "Description": "Has fp4 conversion scale instructions, new in CDNA 4 for the MXFP4 format"
+      },
+      {
+        "Name": "permlane16-swap",
+        "Description": "Has v_permlane16_swap_b32 instructions"
+      },
+      {
+        "Name": "permlane32-swap",
+        "Description": "Has v_permlane32_swap_b32 instructions"
+      },
+      {
+        "Name": "ashr-pk-insts",
+        "Description": "Has Arithmetic Shift Pack instructions"
+      },
+      {
+        "Name": "fp8-insts",
+        "Description": "Has fp8 and bf8 instructions"
+      },
+      {
+        "Name": "ocp-fp8-conversion-insts",
+        "Description": "Has OCP fp8 (E4M3FN, E5M2) conversion instructions"
+      },
+      {
+        "Name": "bf16-cvt-insts",
+        "Description": "Has bf16 conversion instructions"
+      },
+      {
+        "Name": "bitop3-insts",
+        "Description": "Has v_bitop3_b32/v_bitop3_b16 instructions"
+      },
+      {
+        "Name": "prng-inst",
+        "Description": "Has v_prng_b32 pseudo-random number generation instruction"
+      },
+      {
+        "Name": "dot12-insts",
+        "Description": "Has v_dot2_f32_bf16 instructions"
+      },
+      {
+        "Name": "dot13-insts",
+        "Description": "Has v_dot2c_f32_bf16 instructions"
+      },
+      {
+        "Name": "packed-fp32-ops",
+        "Description": "Has packed FP32 dual-issue instructions (v_pk_fma_f32 and friends), giving 128 FP32 lanes of throughput per CU"
+      },
+      {
+        "Name": "wavefrontsize64",
+        "Description": "Fixed 64 work-items per wavefront, implied by the GFX9 feature set. CDNA targets have no wave32 mode and cumode/WGP selection does not apply"
+      },
+      {
+        "Name": "sramecc",
+        "Description": "SRAM ECC protection over register files, LDS and caches. Part of the target ID (e.g. gfx950:sramecc+:xnack-) and affects VGPR allocation granularity"
+      },
+      {
+        "Name": "xnack",
+        "Description": "Page-fault recovery support enabling unified/shared virtual memory between host and device. Part of the target ID"
+      },
+      {
+        "Name": "tgsplit",
+        "Description": "Enable threadgroup split execution, allowing a workgroup's waves to be distributed across compute units"
+      },
+      {
+        "Name": "kernarg-preload",
+        "Description": "Hardware supports preloading of kernel arguments into user SGPRs"
       }
     ],
-    "clockGating": false,
-    "dynamicVoltageFrequencyScaling": false
+    "Toolchains": [
+      {
+        "Type": "ROCm",
+        "Version": "7.0"
+      },
+      {
+        "Type": "HIP",
+        "Version": "7.0"
+      },
+      {
+        "Type": "OpenCL",
+        "Version": "2.0"
+      }
+    ]
   },
-  "displayOutputs": {
-    "maxDisplays": 0,
-    "maxResolution": "ABCDEFGHIJKLMN",
-    "maxRefreshRate": 0,
-    "interfaces": [
-      "Other",
-      "DVI",
-      "USB-C/DP",
-      "DVI",
-      "USB-C/DP"
+  "SpecializedHardware": {
+    "RayTracingAccelerators": {
+      "Present": false
+    },
+    "AiAccelerators": {
+      "Present": true,
+      "Name": "Matrix Core",
+      "Count": 1024,
+      "SupportedPrecisions": ["FP32", "FP16", "BF16", "INT8", "Other"],
+      "Performance": {
+        "fp16TopsPerGPU": 2500,
+        "int8TopsPerGPU": 5000
+      }
+    }
+  },
+  "PowerEfficiency": {
+    "BoostClock": 2400,
+    "MaxTDP": 1400,
+    "PowerStates": [
+      {
+        "Name": "Active",
+        "Description": "All 256 CUs and 8 HBM3E stacks active. MI355X is rated at 1400 W TBP with up to a 2.4 GHz peak engine clock and requires liquid cooling; the air-cooled MI350X is rated at 1000 W TBP with up to a 2.2 GHz peak engine clock. AMD publishes peak engine clock only; no base clock is published for Instinct parts"
+      },
+      {
+        "Name": "Idle",
+        "Description": "Reduced power state when no workloads are resident"
+      }
     ],
-    "hdr": true
+    "ClockGating": true,
+    "DynamicVoltageFrequencyScaling": true
   },
-  "pciExpress": {
-    "version": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-    "lanes": 0,
-    "bandwidth": 0.0
+  "PciExpress": {
+    "Version": "5.0",
+    "Lanes": 16,
+    "Bandwidth": 128
   },
-  "multiGpuSupport": {
-    "technologies": [
-      "Other",
-      "Other",
-      "NVLink",
-      "Infinity Fabric"
-    ],
-    "maxGpus": 0,
-    "interconnectBandwidth": 0.0
-  },
-  "softwareFeatures": {
-    "upscalingTechnologies": [
-      "XeSS",
-      "XeSS",
-      "FSR"
-    ],
-    "meshShading": true,
-    "variableRateShading": true,
-    "samplerFeedback": false
+  "MultiGpuSupport": {
+    "Technologies": ["Infinity Fabric"],
+    "MaxGpus": 8,
+    "InterconnectBandwidth": 1075.2
   }
 }

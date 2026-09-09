@@ -2,6 +2,85 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Device Architecture Schema",
   "description": "Schema for describing device architecture properties and capabilities",
+  "definitions": {
+    "Provenance": {
+      "type": "string",
+      "description": "Where a figure came from. 'Published': the vendor states it in a datasheet, spec sheet, whitepaper or ISA document. 'Derived': it is computed from other figures in this file by an arithmetic the surrounding Description states. 'Measured': it was observed on real hardware by a named benchmark. A figure supported by none of the three is not recorded at all.",
+      "enum": ["Published", "Derived", "Measured"]
+    },
+    "Throughput": {
+      "type": "object",
+      "description": "One rate figure for ONE unit of the entry that carries it, qualified by the precision and the operating mode it applies to and tagged with its provenance",
+      "required": ["Rate", "Unit", "Source"],
+      "additionalProperties": false,
+      "properties": {
+        "Precision": {
+          "type": "string",
+          "description": "Numeric format the rate applies to. Omit for rates that are precision-independent, such as a link rate or an instruction issue rate",
+          "enum": ["FP64", "FP32", "TF32", "BF16", "FP16", "FP8", "BFP8", "BFP4", "BFP2", "INT32", "INT8", "INT4", "Other"]
+        },
+        "Mode": {
+          "type": "string",
+          "description": "Operating mode the rate applies to, where one unit has more than one. Vendor-specific by nature, so this is a free string rather than an enum: e.g. 'LoFi', 'HiFi2', 'HiFi4' (Tenstorrent matrix fidelity phases), 'Dense', 'Sparse' (structured sparsity), 'Bidirectional', 'Unidirectional' (links), 'Read', 'Write' (memory ports), 'Fused' (fused instruction issue)"
+        },
+        "Rate": {
+          "type": "number",
+          "description": "The figure itself, expressed in Unit. Always read back as a double: it is declared _prop_flt in include/knexus-api/_nxs_propertys.h, so a whole-number literal such as 664 reads back as 664.0 and not as an integer"
+        },
+        "Unit": {
+          "type": "string",
+          "description": "Unit of Rate. A closed vocabulary, so two devices' figures are comparable; a figure whose unit is missing here earns a new enum value rather than a free string",
+          "enum": ["TFLOP/s", "GFLOP/s", "TOP/s", "GOP/s", "GB/s", "Gb/s", "MAC/cycle", "FLOP/cycle", "OP/cycle", "instruction/cycle", "byte/cycle"]
+        },
+        "Source": {
+          "$ref": "#/definitions/Provenance"
+        }
+      }
+    },
+    "Performance": {
+      "type": "object",
+      "description": "Speeds and feeds of ONE unit of the entry that carries it -- one core, one engine, one link, one instance of that memory. The entry's Count supplies the per-parent multiplier, so chip totals are not restated here. Additive and optional: an entry with no published, derivable or measured figure omits the block rather than guessing one.",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "dependencies": {
+        "ClockRate": ["Source"],
+        "LaneWidth": ["Source"],
+        "TransferRate": ["Source"],
+        "Latency": ["Source"]
+      },
+      "properties": {
+        "ClockRate": {
+          "type": "number",
+          "description": "Clock this unit runs at, in MHz -- and the clock the Throughput figures below are quoted at (e.g. 1350 for Blackhole's 1.35 GHz AI clock, 1980 for an H100 SXM5 boost clock). Always read back as a double: it is declared _prop_flt in include/knexus-api/_nxs_propertys.h, so a whole-number literal such as 1350 reads back as 1350.0 and not as an integer"
+        },
+        "LaneWidth": {
+          "type": "integer",
+          "description": "Width in bits of one SIMD lane of this unit (e.g. 32 for the Blackhole SFPU's '32 lanes of 32 bits wide', 64 for a Hopper FP64 core). The lane count is the entry's Size and is not restated here"
+        },
+        "TransferRate": {
+          "type": "number",
+          "description": "Signalling rate of this unit's external interface in GT/s -- equivalently Gbps per pin or per lane (e.g. 16 for Blackhole's GDDR6, 5.2 for an MI300X HBM3 stack, 6.4 for LPDDR5 at 6400 MT/s). Multiplied by the bus width in bits and divided by 8 it gives GB/s",
+          "exclusiveMinimum": 0
+        },
+        "Latency": {
+          "type": "number",
+          "description": "Access latency of this unit in clock cycles (e.g. 2 for the 2-cycle load latency of a Blackhole Private RISC-V Data RAM)",
+          "minimum": 0
+        },
+        "Source": {
+          "$ref": "#/definitions/Provenance"
+        },
+        "Throughput": {
+          "type": "array",
+          "description": "Rate figures for one unit, one entry per precision and operating mode. An array rather than fixed keys because the set of precisions and modes is open-ended: fixed keys cannot express Tenstorrent's LoFi/HiFi2/HiFi4 fidelity phases or NVIDIA's dense/sparse pairs",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/Throughput"
+          }
+        }
+      }
+    }
+  },
   "type": "object",
   "required": ["Name", "Vendor", "Architecture", "ReleaseYear"],
   "properties": {
@@ -50,24 +129,29 @@
           "type": "string",
           "description": "Vendor-specific name for compute units (e.g., CU, SM, Xe-core)"
         },
-        "SubUnits": {
-          "type": "array",
-          "description": "Sub-units within each compute unit (e.g. chip, CU, SIMD, Tensor Core",
-          "items": {
+        "ChipType": {
+          "type": "string",
+          "description": "Unit type representing the whole chip (a key in UnitTypes)"
+        },
+        "CoreType": {
+          "type": "string",
+          "description": "Unit type representing a single core (a key in UnitTypes, e.g., NeuronCore-v3, Tensix Core)"
+        },
+        "UnitTypes": {
+          "type": "object",
+          "description": "Unit types in the compute hierarchy (e.g. chip, CU, SIMD, Tensor Core), keyed by type name",
+          "additionalProperties": {
             "type": "object",
-            "required": ["Type", "Count", "Size"],
+            "required": ["Count"],
             "properties": {
-              "Type": {
-                "type": "string",
-                "description": "Type name of the sub-unit (e.g., SIMD, Tensor Core)"
-              },
               "Count": {
                 "type": "integer",
                 "description": "Number of these units per parent unit"
               },
               "Size": {
                 "type": "integer",
-                "description": "Number of sub-units inside this unit (e.g. threads)"
+                "default": 1,
+                "description": "Number of sub-units inside this unit (e.g. threads). Defaults to 1 when absent"
               },
               "Description": {
                 "type": "string",
@@ -80,9 +164,16 @@
                   "description": "Specify memory type embedded in the Core (Lookup in MemorySubsystem)"
                 }
               },
-              "SubunitType": {
-                "type": "string",
-                "description": "Name of the sub-unit (lookup in this list)"
+              "Subunits": {
+                "type": "array",
+                "description": "Names of the unit types contained in this unit (each entry is a key in UnitTypes)",
+                "items": {
+                  "type": "string",
+                  "description": "Type name of a contained unit (lookup as a key in UnitTypes)"
+                }
+              },
+              "Performance": {
+                "$ref": "#/definitions/Performance"
               }
             }
           }
@@ -102,15 +193,11 @@
           }
         },
         "MemoryTypes": {
-          "type": "array",
-          "description": "Details about the memory level, including cache, scratch memory and register files",
-          "items": {
+          "type": "object",
+          "description": "Details about the memory level, including cache, scratch memory and register files, keyed by the memory's short name (e.g., L1, L2, Infinity Cache, VGPR, SGPR, LDS) -- an identifier, not a caption: no parenthetical scope gloss, no '/'. Scope belongs in the entry's description",
+          "additionalProperties": {
             "type": "object",
             "properties": {
-              "Type": {
-                "type": "string",
-                "description": "Memory Type (e.g., L1, L2, Infinity Cache, vector register file, scalar register file, shared memory)"
-              },
               "Size": {
                 "type": "integer",
                 "description": "Size per unit in KB"
@@ -130,6 +217,9 @@
               "description": {
                 "type": "string",
                 "description": "Description of the cache's function"
+              },
+              "Performance": {
+                "$ref": "#/definitions/Performance"
               }
             }
           }
@@ -165,22 +255,22 @@
               }
             }
           }
-          }
-      },
-      "SubUnits": {
-        "type": "array",
-        "description": "Subunits within each compute unit",
-        "items": {
-          "type": "object",
-          "required": ["Type", "Version"],
-          "properties": {
-            "Type": {
-              "type": "string",
-              "description": "Name of the KernelModel (e.g., metal, opencl, vulkan, )"
-            },
-            "Version": {
-              "type": "string",
-              "description": "Version of the Kernel (e.g., 1.2)"
+        },
+        "Toolchains": {
+          "type": "array",
+          "description": "Kernel toolchains this device supports: the programming models, SDKs, compilers and shading languages a kernel can be written against, each with its supported version",
+          "items": {
+            "type": "object",
+            "required": ["Type", "Version"],
+            "properties": {
+              "Type": {
+                "type": "string",
+                "description": "Name of the toolchain, programming model or shading language (e.g., CUDA, HIP, Metal, OpenCL, PTX ISA, TT-Metalium)"
+              },
+              "Version": {
+                "type": "string",
+                "description": "Supported version of that toolchain (e.g., 12.8, 3.1, 0.76.0)"
+              }
             }
           }
         }

@@ -1,213 +1,135 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "Name": "Apple M4 GPU",
-    "Vendor": "Apple",
-    "Architecture": "Apple GPU",
-    "ReleaseYear": 2024,
-    "FabricationProcess": {
-      "ProcessNode": 3,
-      "Manufacturer": "TSMC",
-      "Technology": "N3E"
-    },
-    "CoreSubsystem": {
-      "Name": "GPU Core",
-      "subUnits": [
-        {
-            "Type": "Cores",
-            "Count": 10,
-            "Size": 160,
-            "Description": "Compute Cores per Chip",
-            "Memory": ["L2"],
-            "SubunitType": "Execution Unit"
-        },
-        {
-            "Type": "Execution Unit",
-            "Count": 160,
-            "Size": 128,
-            "Description": "SIMD execution units for parallel shader processing with 128 ALUs per unit",
-            "Memory": ["L1", "vector register file", "shared memory"],
-            "SubunitType": "SIMD"
-        },
-        {
-          "Type": "Texture Unit",
-          "Count": 10,
-          "Size": 4,
-          "Description": "Texture sampling and filtering units",
-          "Memory": ["L1"],
-          "SubunitType": "Texture"
-        }
-      ]
-    },
-    "MemorySubsystem": {
-      "SupportedMemoryTypes": ["LPDDR5"],
-      "MemoryTypes": [
-        {
-          "Type": "vector register file",
-          "Size": 8,
-          "BankCount": 32,
-          "MaxMemoryBandwidth": 2048,
-          "maxBusWidth": 512,
-          "description": "High-speed vector register file for shader operations"
-        },
-        {
-          "Type": "shared memory",
-          "Size": 32,
-          "BankCount": 16,
-          "MaxMemoryBandwidth": 1024,
-          "maxBusWidth": 256,
-          "description": "Shared memory for threadgroup communication and data sharing"
-        },
-        {
-          "Type": "L1",
-          "Size": 64,
-          "BankCount": 8,
-          "MaxMemoryBandwidth": 512,
-          "maxBusWidth": 128,
-          "description": "L1 cache for immediate GPU operations and texture data"
-        },
-        {
-          "Type": "L2",
-          "Size": 16384,
-          "BankCount": 16,
-          "MaxMemoryBandwidth": 256,
-          "maxBusWidth": 256,
-          "description": "L2 cache shared across GPU cores for larger data sets"
-        },
-        {
-          "Type": "Unified Memory",
-          "Size": 16777216,
-          "BankCount": 8,
-          "MaxMemoryBandwidth": 120,
-          "maxBusWidth": 256,
-          "description": "Shared system memory accessible by CPU and GPU with zero-copy access"
-        }
-      ]
-    },
-    "KernelModel": {
-      "SubUnits": [
-        {
-          "Type": "metal",
-          "Version": "3.1"
-        },
-        {
-          "Type": "opencl",
-          "Version": "1.2"
-        },
-        {
-          "Type": "vulkan",
-          "Version": "1.3"
-        },
-        {
-          "Type": "compute",
-          "Version": "6.0"
-        }
-      ]
-    },
-    "SpecializedHardware": {
-      "RayTracingAccelerators": {
-        "Present": true,
-        "Name": "RT Unit",
+  "Name": "Apple M4 GPU",
+  "Vendor": "Apple",
+  "Architecture": "Apple9",
+  "ReleaseYear": 2024,
+  "FabricationProcess": {
+    "ProcessNode": 3,
+    "Manufacturer": "TSMC",
+    "Technology": "N3E"
+  },
+  "CoreSubsystem": {
+    "Name": "GPU Core",
+    "ChipType": "GPU",
+    "CoreType": "GPU Core",
+    "UnitTypes": {
+      "GPU": {
         "Count": 1,
-        "Performance": {
-          "RaysPerSecond": 2.5
-        }
+        "Size": 10,
+        "Description": "Integrated GPU block of the Apple M4 SoC (28 billion transistors total). Apple ships a 10-core GPU in Mac mini, iMac, MacBook Pro and most iPad Pro configurations; the entry-level 256 GB/512 GB 11-inch iPad Pro uses a binned 9-core part. The GPU reports Metal GPU family Apple9 and adds Dynamic Caching (on-chip memory allocated to registers, threadgroup memory and stack in hardware at run time), hardware-accelerated ray tracing and hardware-accelerated mesh shading. It shares unified memory with the CPU and Neural Engine at 120 GB/s",
+        "Memory": ["Unified Memory"],
+        "Subunits": ["GPU Core"]
       },
-      "AiAccelerators": {
-        "Present": true,
-        "Name": "Neural Engine",
-        "Count": 1,
-        "SupportedPrecisions": ["FP32", "FP16", "BF16", "INT8"],
-        "Performance": {
-          "fp16TopsPerGPU": 38,
-          "int8TopsPerGPU": 76
-        }
+      "GPU Core": {
+        "Count": 10,
+        "Size": 4,
+        "Description": "Apple GPU core: 128 FP32 ALUs organized as 4 SIMD pipelines of 32 lanes, giving 1280 ALUs across the 10-core GPU. The 32-thread SIMD-group width is documented by Apple (Metal Feature Set Tables, Apple9); the 128-ALU-per-core figure follows Apple's published M-series GPU ratios and is corroborated by independent microarchitecture analysis. Apple does not publish per-core register file, L1 or L2 cache capacities for the M3/M4 generation, and Dynamic Caching makes the register/threadgroup split dynamic rather than fixed. Each core also provides the hardware ray-tracing and mesh-shading blocks; Apple does not publish their per-core counts",
+        "Memory": ["Threadgroup Memory"],
+        "Subunits": ["SIMD Pipeline"]
       },
-      "videoCodecs": {
-        "encoders": [
-          {
-            "codec": "H.264",
-            "maxResolution": "4K",
-            "maxBitrate": 100,
-            "maxFPS": 60
-          },
-          {
-            "codec": "H.265/HEVC",
-            "maxResolution": "4K",
-            "maxBitrate": 100,
-            "maxFPS": 60
-          },
-          {
-            "codec": "AV1",
-            "maxResolution": "4K",
-            "maxBitrate": 100,
-            "maxFPS": 60
-          }
-        ],
-        "decoders": [
-          {
-            "codec": "H.264",
-            "maxResolution": "8K",
-            "maxBitrate": 200,
-            "maxFPS": 60
-          },
-          {
-            "codec": "H.265/HEVC",
-            "maxResolution": "8K",
-            "maxBitrate": 200,
-            "maxFPS": 60
-          },
-          {
-            "codec": "AV1",
-            "maxResolution": "8K",
-            "maxBitrate": 200,
-            "maxFPS": 60
-          },
-          {
-            "codec": "VP9",
-            "maxResolution": "4K",
-            "maxBitrate": 150,
-            "maxFPS": 60
-          }
-        ]
+      "SIMD Pipeline": {
+        "Count": 4,
+        "Size": 32,
+        "Description": "32-wide SIMD execution pipeline. Each pipeline issues one instruction per cycle for one 32-thread SIMD-group, and 4 pipelines per core account for the core's 128 ALUs. The SIMD-group width of 32 and the 1024-thread maximum threadgroup size are Apple-documented Metal limits; the 4-pipeline decomposition is inferred from the ALU count and community microarchitecture analysis, as Apple does not document the dispatch structure"
+      }
+    }
+  },
+  "MemorySubsystem": {
+    "SupportedMemoryTypes": ["LPDDR5"],
+    "MemoryTypes": {
+      "Threadgroup Memory": {
+        "Size": 32,
+        "description": "Maximum threadgroup (shared) memory allocation per threadgroup is 32 KB for the Apple9 GPU family (Apple Metal Feature Set Tables); maximum threads per threadgroup is 1024 and maximum buffer length is 2 GB. On M3-generation and later GPUs this storage is drawn from the Dynamic Caching on-chip pool that also backs registers and stack, so the physical pool size per core is not a published constant"
+      },
+      "Unified Memory": {
+        "Size": 33554432,
+        "MaxMemoryBandwidth": 120,
+        "maxBusWidth": 128,
+        "description": "LPDDR5X unified memory shared by CPU, GPU, Neural Engine and media engine with zero-copy access. Apple publishes 120 GB/s of memory bandwidth and configurations of 16 GB, 24 GB or 32 GB; the 32 GB maximum is recorded here. The 128-bit bus width is the arithmetic match for 120 GB/s at LPDDR5X-7500 (Apple does not state bus width directly). LPDDR5X is reported as LPDDR5 above because the schema enum has no LPDDR5X value. Apple publishes no GPU L1/L2 or system-level cache sizes for M4, so no cache levels are listed",
+        "Performance": {
+          "TransferRate": 7.5,
+          "Source": "Derived"
+        }
+      }
+    }
+  },
+  "KernelModel": {
+    "LLVMTarget": "air64",
+    "LLVMTriple": "air64-apple-macos",
+    "LLVMFeatures": [
+      {
+        "Name": "air64",
+        "Description": "Apple Intermediate Representation (AIR), the LLVM-bitcode-based IR emitted by Apple's metal compiler (-target air64-apple-macos<version>, or air64-apple-ios<version> for iPadOS). AIR is Apple-private and is not an upstream LLVM backend target; there is no public LLVM target for the Apple GPU ISA"
+      }
+    ],
+    "Toolchains": [
+      {
+        "Type": "metal",
+        "Version": "4"
+      },
+      {
+        "Type": "metal-shading-language",
+        "Version": "4.1"
+      },
+      {
+        "Type": "opencl",
+        "Version": "1.2"
+      }
+    ]
+  },
+  "SpecializedHardware": {
+    "RayTracingAccelerators": {
+      "Present": true,
+      "Name": "Ray-tracing engine"
+    },
+    "AiAccelerators": {
+      "Present": true,
+      "Name": "16-core Neural Engine",
+      "Count": 16,
+      "SupportedPrecisions": ["FP16", "INT8"],
+      "Performance": {
+        "int8TopsPerGPU": 38
       }
     },
-    "PowerEfficiency": {
-      "BaseClock": 1398,
-      "BoostClock": 1598,
-      "MaxTDP": 22,
-      "PowerStates": [
+    "videoCodecs": {
+      "encoders": [
         {
-          "Name": "P0",
-          "Description": "Maximum performance state for demanding GPU workloads"
+          "codec": "H.264"
         },
         {
-          "Name": "P1",
-          "Description": "High performance state with slight power reduction"
-        },
-        {
-          "Name": "P2",
-          "Description": "Balanced performance and power state"
-        },
-        {
-          "Name": "P3",
-          "Description": "Low power state for light GPU tasks"
-        },
-        {
-          "Name": "P4",
-          "Description": "Idle state with minimal power consumption"
+          "codec": "H.265/HEVC"
         }
       ],
-      "ClockGating": true,
-      "DynamicVoltageFrequencyScaling": true
-    },
-    "PciExpress": {
-      "Version": "N/A",
-      "Lanes": 0,
-      "Bandwidth": 0
-    },
-    "MultiGpuSupport": {
-      "Technologies": ["None"],
-      "MaxGpus": 1,
-      "InterconnectBandwidth": 0
+      "decoders": [
+        {
+          "codec": "H.264"
+        },
+        {
+          "codec": "H.265/HEVC"
+        },
+        {
+          "codec": "AV1"
+        }
+      ]
     }
+  },
+  "PowerEfficiency": {
+    "PowerStates": [
+      {
+        "Name": "Active",
+        "Description": "GPU active. Apple publishes neither GPU clock frequencies nor a chip- or GPU-level TDP for M4, so BaseClock, BoostClock and MaxTDP are omitted rather than estimated; third-party measurements of the M4 GPU peak clock disagree (1.68-1.80 GHz)"
+      },
+      {
+        "Name": "Idle",
+        "Description": "Low-power state when no GPU work is scheduled; frequency and voltage are managed by the SoC power controller"
+      }
+    ],
+    "ClockGating": true,
+    "DynamicVoltageFrequencyScaling": true
+  },
+  "MultiGpuSupport": {
+    "Technologies": ["None"],
+    "MaxGpus": 1,
+    "InterconnectBandwidth": 0
   }
+}

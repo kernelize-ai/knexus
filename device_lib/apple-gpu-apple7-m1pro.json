@@ -1,0 +1,166 @@
+{
+  "Name": "Apple GPU (M1 Pro)",
+  "Vendor": "Apple",
+  "Architecture": "Apple7",
+  "ReleaseYear": 2021,
+  "FabricationProcess": {
+    "ProcessNode": 5,
+    "Manufacturer": "TSMC",
+    "Technology": "N5"
+  },
+  "CoreSubsystem": {
+    "Name": "GPU Core",
+    "ChipType": "GPU",
+    "CoreType": "GPU Core",
+    "UnitTypes": {
+      "GPU": {
+        "Count": 1,
+        "Size": 16,
+        "Description": "Integrated GPU block of the Apple M1 Pro SoC, which Apple states packs 33.7 billion transistors using 5-nanometer process technology (Apple names neither foundry nor node name; the N5/N5P distinction reported by third parties for this die is not established by any source). Apple ships 16-core and binned 14-core GPU configurations; the 16-core part is described here. Metal reports GPU family Apple7, since Apple's Metal Feature Set Tables classify the whole M1-series - base, Pro, Max and Ultra - as Apple7. Apple published no teraflops rating for M1 Pro: its October 2021 announcement contains no FLOPS claim at all, and the widely circulated 5.2 TFLOPS number is not Apple's. Public microbenchmarking measures roughly 5.3 TFLOPS FP32 for the 16-core part, consistent with 2048 ALUs at about 1.296 GHz. The GPU shares LPDDR5 unified memory with the CPU, the 16-core Neural Engine and a media engine that, unlike the base M1's, adds hardware ProRes and ProRes RAW acceleration. There is no ray-tracing and no matrix/tensor hardware; Metal's ray-tracing and mesh-shading APIs run on the ordinary shader ALUs. Apple provides no native Vulkan implementation (MoltenVK translation only), and OpenGL and OpenCL are deprecated on macOS",
+        "Memory": ["L2", "SLC", "Unified Memory"],
+        "Subunits": ["GPU Core"],
+        "Performance": {
+          "ClockRate": 1296,
+          "Source": "Measured",
+          "Throughput": [
+            { "Rate": 5.3, "Unit": "TFLOP/s", "Precision": "FP32", "Source": "Measured" }
+          ]
+        }
+      },
+      "GPU Core": {
+        "Count": 16,
+        "Size": 4,
+        "Description": "Apple GPU core with 128 FP32 ALUs organised as 4 SIMD pipelines of 32 lanes, giving 2048 ALUs across the 16-core GPU. Apple does not publish per-core ALU counts; the 128-ALU figure is third-party and is the same core design as the base M1, both being Apple7. On the Apple7 family FP16 executes at the same peak rate as FP32",
+        "Memory": ["Register File", "Threadgroup Memory", "L1 Data Cache", "L1 Instruction Cache"],
+        "Subunits": ["SIMD Pipeline"]
+      },
+      "SIMD Pipeline": {
+        "Count": 4,
+        "Size": 32,
+        "Description": "32-lane SIMD execution pipeline issuing one instruction per cycle for one 32-thread SIMD-group. The 32-thread SIMD-group width is a run-time Metal property (threadExecutionWidth) documented for this G13 architecture by public ISA reverse-engineering; the split of 128 ALUs into 4 pipelines of 32 lanes is third-party analysis rather than an Apple disclosure"
+      }
+    }
+  },
+  "MemorySubsystem": {
+    "SupportedMemoryTypes": ["LPDDR5"],
+    "MemoryTypes": {
+      "Register File": {
+        "Size": 208,
+        "description": "Approximately 208 KB of registers per GPU core across the Apple7 and Apple8 generations. Not published by Apple; measured by a single public microbenchmarking project"
+      },
+      "Threadgroup Memory": {
+        "Size": 32,
+        "description": "Apple's Metal Feature Set Tables cap a single threadgroup at 32 KB of threadgroup memory on the Apple7 family, with 1024 maximum threads per threadgroup, 16 B length alignment, 32 KB maximum explicit imageblock allocation and 128 KB implicit. Public microbenchmarking measures a physical per-core pool of roughly 60 KB, larger than the per-threadgroup cap"
+      },
+      "L1 Data Cache": {
+        "Size": 8,
+        "description": "8 KB L1 data cache per GPU core, unchanged across the Apple7 family. Apple publishes no GPU cache sizes; this figure is measured by two independent public microbenchmarking efforts"
+      },
+      "L1 Instruction Cache": {
+        "Size": 12,
+        "description": "12 KB L1 instruction cache per GPU core. Not published by Apple; single public microbenchmarking source"
+      },
+      "L2": {
+        "Size": 256,
+        "description": "GPU-wide L2 cache, measured at 256 KB on the M1 Pro by a single public microbenchmarking project. Apple publishes nothing here, and the figure is counter-intuitive: the same source measures 768 KB on the smaller base M1 and 512 KB on the M1 Max, so Apple's L2 capacity varies non-monotonically within the family and must not be inferred by scaling. Treat as indicative, single-source only"
+      },
+      "SLC": {
+        "Size": 24576,
+        "description": "24 MB SoC-wide system level cache shared by CPU, GPU, Neural Engine and media engine, sitting behind the GPU L2 and in front of LPDDR5. Not published by Apple; measured third-party, with two independent sources agreeing on 24 MB for M1 Pro against 8 MB for M1 and 48 MB for M1 Max"
+      },
+      "Unified Memory": {
+        "Size": 33554432,
+        "MaxMemoryBandwidth": 200,
+        "maxBusWidth": 256,
+        "description": "LPDDR5 unified memory shared with the CPU, Neural Engine and media engine, with no separate VRAM and no copy across a bus. Apple publishes 'up to 200GB/s of memory bandwidth with support for up to 32GB' of unified memory; the 32 GB maximum is recorded here in KB. Apple does not state the bus width - the 256-bit LPDDR5-6400 interface is third-party analysis, and its 204.8 GB/s theoretical peak is what Apple rounds down to 200 GB/s",
+        "Performance": {
+          "TransferRate": 6.4,
+          "Source": "Derived"
+        }
+      }
+    }
+  },
+  "KernelModel": {
+    "LLVMTarget": "air64",
+    "LLVMTriple": "air64-apple-macos",
+    "LLVMFeatures": [
+      {
+        "Name": "air64",
+        "Description": "Apple Intermediate Representation (AIR), the LLVM-bitcode-based IR that Apple's metal compiler emits into a .metallib (-target air64-apple-macos<version>). AIR is Apple-private and is not an upstream LLVM backend target; Apple publishes no GPU ISA documentation"
+      }
+    ],
+    "Toolchains": [
+      {
+        "Type": "Metal",
+        "Version": "3"
+      },
+      {
+        "Type": "Metal",
+        "Version": "4"
+      },
+      {
+        "Type": "OpenGL",
+        "Version": "4.1"
+      },
+      {
+        "Type": "OpenCL",
+        "Version": "1.2"
+      }
+    ]
+  },
+  "SpecializedHardware": {
+    "RayTracingAccelerators": {
+      "Present": false
+    },
+    "AiAccelerators": {
+      "Present": true,
+      "Name": "16-core Neural Engine",
+      "Count": 16
+    },
+    "videoCodecs": {
+      "encoders": [
+        {
+          "codec": "H.264"
+        },
+        {
+          "codec": "H.265/HEVC"
+        },
+        {
+          "codec": "Other",
+          "maxResolution": "8K"
+        }
+      ],
+      "decoders": [
+        {
+          "codec": "H.264"
+        },
+        {
+          "codec": "H.265/HEVC"
+        },
+        {
+          "codec": "Other",
+          "maxResolution": "8K"
+        }
+      ]
+    }
+  },
+  "PowerEfficiency": {
+    "BoostClock": 1296,
+    "PowerStates": [
+      {
+        "Name": "Active",
+        "Description": "GPU active and clocking up to its maximum. Apple publishes neither GPU clocks nor a TDP for M1 Pro, so no MaxTDP and no BaseClock are recorded. The 1296 MHz maximum is a third-party measurement, corroborated by a second independent source, and applies to both M1 Pro and M1 Max"
+      },
+      {
+        "Name": "Idle",
+        "Description": "Reduced power state when no GPU work is queued"
+      }
+    ],
+    "ClockGating": true,
+    "DynamicVoltageFrequencyScaling": true
+  },
+  "MultiGpuSupport": {
+    "Technologies": ["None"],
+    "MaxGpus": 1
+  }
+}

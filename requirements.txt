@@ -1,4 +1,9 @@
 setuptools>=40.8.0
 wheel
 cmake
-pybind11>=2.13.6
+# Must match torch-nexus/pyproject.toml's pybind11 pin.
+pybind11==3.1.0
+
+# Validates device_lib/*.json against schema/device_info_schema.json
+# (test/python/test_device_schema.py). Not needed to build, only to run the tests.
+jsonschema>=4.0

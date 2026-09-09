@@ -12,6 +12,16 @@ The test suite is organized into the following modules:
 - **`test_schedule.py`** - Tests for Schedule and Command classes
 - **`test_properties.py`** - Tests for the Properties system and device information
 - **`test_integration.py`** - Integration tests for complete workflows
+- **`test_device_schema.py`** - Validates every `device_lib/*.json` against
+  `schema/device_info_schema.json`; known violations live in its `KNOWN_VIOLATIONS`
+  allowlist. Needs `jsonschema`, but neither a build nor the `knexus` module, so it
+  also runs standalone: `python3 test/python/test_device_schema.py`
+- **`test_derived_provenance.py`** - Audits every `Source: "Derived"` figure in
+  `device_lib/*.json`: each must either recompute from other fields of the same file by
+  a named formula, or be traceable to a quoted sentence of that file's own prose. The
+  report says which class each figure is in and prints the operands or the quote. Pure
+  stdlib -- no build, no `knexus`, not even `jsonschema`:
+  `python3 test/python/test_derived_provenance.py`
 - **`run_tests.py`** - Test runner script
 
 ## Running Tests
@@ -28,7 +38,7 @@ The test suite is organized into the following modules:
 
 2. Install required Python dependencies:
    ```bash
-   pip install numpy
+   pip install numpy jsonschema
    ```
 
 ### Running All Tests

@@ -1,0 +1,165 @@
+{
+  "Name": "Apple GPU (M2)",
+  "Vendor": "Apple",
+  "Architecture": "Apple8",
+  "ReleaseYear": 2022,
+  "FabricationProcess": {
+    "ProcessNode": 5,
+    "Manufacturer": "TSMC",
+    "Technology": "N5P"
+  },
+  "CoreSubsystem": {
+    "Name": "GPU Core",
+    "ChipType": "GPU",
+    "CoreType": "GPU Core",
+    "UnitTypes": {
+      "GPU": {
+        "Count": 1,
+        "Size": 10,
+        "Description": "Integrated GPU block of the Apple M2 SoC, which Apple states has 20 billion transistors on second-generation 5-nanometer process technology. Apple ships 10-core and binned 8-core GPU configurations; the 10-core part is described here. Metal reports GPU family Apple8 - Apple's Metal Feature Set Tables list the whole M2-series as Apple8, alongside A15 and A16 Bionic. Apple publishes 100 GB/s of unified memory bandwidth for M2 but no teraflops rating; the widely cited 3.6 TFLOPS is third-party arithmetic (10 cores x 128 ALUs x 2 FLOP x 1.398 GHz = 3.58 TFLOPS). The GPU shares LPDDR5 unified memory with the CPU, the 16-core Neural Engine (Apple-published at 15.8 trillion operations per second, precision unstated) and the media engine, which has hardware H.264, HEVC, ProRes and ProRes RAW acceleration. AV1 decode is absent on M2 - Apple states it arrived with the M3 media engine for the first time. There is no ray-tracing and no matrix/tensor hardware; Metal's ray-tracing, mesh-shading and SIMD-scoped matrix multiply APIs execute on the ordinary shader ALUs. Apple provides no native Vulkan implementation (MoltenVK translation only), and OpenGL and OpenCL are deprecated on macOS",
+        "Memory": ["L2", "SLC", "Unified Memory"],
+        "Subunits": ["GPU Core"],
+        "Performance": {
+          "Throughput": [
+            { "Rate": 3.58, "Unit": "TFLOP/s", "Precision": "FP32", "Source": "Derived" }
+          ]
+        }
+      },
+      "GPU Core": {
+        "Count": 10,
+        "Size": 4,
+        "Description": "Apple GPU core with 128 FP32 ALUs organised as 4 SIMD pipelines of 32 lanes, giving 1280 ALUs across the 10-core GPU. Apple does not publish per-core ALU counts; the 128-ALU figure is third-party and consistent across the Apple7 and Apple8 generations. Apple8 executes FP16 and FP32 at the same peak rate, and the core contains no matrix or tensor units",
+        "Memory": ["Register File", "Threadgroup Memory", "L1 Data Cache", "L1 Instruction Cache"],
+        "Subunits": ["SIMD Pipeline"]
+      },
+      "SIMD Pipeline": {
+        "Count": 4,
+        "Size": 32,
+        "Description": "32-lane SIMD execution pipeline issuing one instruction per cycle for one 32-thread SIMD-group. The SIMD-group width is a run-time Metal property (threadExecutionWidth) rather than a tabulated feature-set limit; the 4 x 32 decomposition of the core's 128 ALUs is not published by Apple and comes from public reverse-engineering of the Apple G13/G14 GPU ISA"
+      }
+    }
+  },
+  "MemorySubsystem": {
+    "SupportedMemoryTypes": ["LPDDR5"],
+    "MemoryTypes": {
+      "Register File": {
+        "Size": 208,
+        "description": "Approximately 208 KB of registers per GPU core across the Apple7 and Apple8 generations. Not published by Apple; measured by public microbenchmarking. The register file is large relative to Apple's very small L1 and L2, and occupancy on Apple8 ranges from 384 to 3072 resident threads per core depending on register pressure"
+      },
+      "Threadgroup Memory": {
+        "Size": 32,
+        "description": "Apple's Metal Feature Set Tables cap a single threadgroup at 32 KB of threadgroup memory on the Apple8 family, with 1024 maximum threads per threadgroup, 16 B length alignment, 32 KB maximum explicit imageblock allocation and 128 KB implicit. The physical per-core pool is larger than the per-threadgroup cap - public microbenchmarking measures roughly 60 KB per core - which allows several threadgroups to be resident at once"
+      },
+      "L1 Data Cache": {
+        "Size": 8,
+        "description": "8 KB L1 data cache per GPU core with a 128-byte global cache line. Not published by Apple; measured by public microbenchmarking. Deliberately small compared with contemporary AMD and NVIDIA cores, offset by a large register file and a very low-latency L2"
+      },
+      "L1 Instruction Cache": {
+        "Size": 12,
+        "description": "12 KB L1 instruction cache per GPU core. Not published by Apple; measured by public microbenchmarking"
+      },
+      "L2": {
+        "Size": 1536,
+        "description": "GPU-wide L2 cache, approximately 1.5 MB on the base M2. Apple publishes no GPU cache sizes. This figure rests on a single public microbenchmarking estimate and is explicitly marked approximate by its source; independent measurements of the M1 and of the M2 Pro die report different capacities, so treat it as indicative only. Apple L2 capacity is known to vary non-monotonically across a family"
+      },
+      "SLC": {
+        "Size": 8192,
+        "description": "8 MB SoC-wide system level cache shared by the CPU, GPU, Neural Engine and media engine, backing the GPU L2 in front of LPDDR5. Not published by Apple; measured by public microbenchmarking"
+      },
+      "Unified Memory": {
+        "Size": 25165824,
+        "MaxMemoryBandwidth": 100,
+        "maxBusWidth": 128,
+        "description": "LPDDR5 unified memory shared with the CPU, Neural Engine and media engine; there is no separate VRAM and no copy across a bus. Apple publishes 100 GB/s of unified memory bandwidth and 8 GB, 16 GB and 24 GB configurations; the 24 GB maximum is recorded here in KB. Apple does not publish the bus width or the LPDDR5 speed grade; public die-shot analysis identifies a 128-bit LPDDR5 bus at 6400 MT/s, which yields 102.4 GB/s and is consistent with Apple's rounded 100 GB/s",
+        "Performance": {
+          "TransferRate": 6.4,
+          "Source": "Derived"
+        }
+      }
+    }
+  },
+  "KernelModel": {
+    "LLVMTarget": "air64",
+    "LLVMTriple": "air64-apple-macos",
+    "LLVMFeatures": [
+      {
+        "Name": "air64",
+        "Description": "Apple Intermediate Representation (AIR), the LLVM-bitcode-based IR that Apple's metal compiler emits into a .metallib (-target air64-apple-macos<version>, or air64-apple-ios<version> for iPadOS). AIR is Apple-private and is not an upstream LLVM backend target; Apple publishes no GPU ISA documentation"
+      }
+    ],
+    "Toolchains": [
+      {
+        "Type": "Metal",
+        "Version": "3"
+      },
+      {
+        "Type": "Metal",
+        "Version": "4"
+      },
+      {
+        "Type": "OpenGL",
+        "Version": "4.1"
+      },
+      {
+        "Type": "OpenCL",
+        "Version": "1.2"
+      }
+    ]
+  },
+  "SpecializedHardware": {
+    "RayTracingAccelerators": {
+      "Present": false
+    },
+    "AiAccelerators": {
+      "Present": true,
+      "Name": "16-core Neural Engine",
+      "Count": 16
+    },
+    "videoCodecs": {
+      "encoders": [
+        {
+          "codec": "H.264"
+        },
+        {
+          "codec": "H.265/HEVC"
+        },
+        {
+          "codec": "Other"
+        }
+      ],
+      "decoders": [
+        {
+          "codec": "H.264",
+          "maxResolution": "8K"
+        },
+        {
+          "codec": "H.265/HEVC",
+          "maxResolution": "8K"
+        },
+        {
+          "codec": "Other",
+          "maxResolution": "8K"
+        }
+      ]
+    }
+  },
+  "PowerEfficiency": {
+    "BoostClock": 1398,
+    "PowerStates": [
+      {
+        "Name": "Active",
+        "Description": "GPU active and clocking up to its maximum. Apple publishes neither GPU clocks nor a TDP for the M2, so no MaxTDP is recorded here. The 1398 MHz maximum is a third-party figure with two independent backers; one die-shot analysis instead reports 1406 MHz, and that discrepancy is unresolved. The minimum GPU clock for the base M2 is not publicly established, so no BaseClock is recorded"
+      },
+      {
+        "Name": "Idle",
+        "Description": "Reduced power state when no GPU work is queued"
+      }
+    ],
+    "ClockGating": true,
+    "DynamicVoltageFrequencyScaling": true
+  },
+  "MultiGpuSupport": {
+    "Technologies": ["None"],
+    "MaxGpus": 1
+  }
+}

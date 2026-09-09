@@ -139,8 +139,9 @@ vendor = info.get_str("Vendor")
 # By enum (from knexus.property)
 arch = info.get_str(knexus.property.Architecture)
 
-# By hierarchical path
-l2_size = info.get_int(["MemorySubsystem", "MemoryTypes", 1, "Size"])
+# By hierarchical path -- MemoryTypes is keyed by memory name, so the path names the
+# memory rather than numbering it
+l2_size = info.get_int(["MemorySubsystem", "MemoryTypes", "L2", "Size"])
 ```
 
 #### Querying Buffer Properties

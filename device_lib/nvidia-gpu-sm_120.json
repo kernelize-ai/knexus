@@ -1,0 +1,319 @@
+{
+  "Name": "Blackwell (GB20x)",
+  "Vendor": "NVIDIA",
+  "Architecture": "sm_120",
+  "ReleaseYear": 2025,
+  "FabricationProcess": {
+    "ProcessNode": 4,
+    "Manufacturer": "TSMC",
+    "Technology": "4N NVIDIA Custom Process"
+  },
+  "CoreSubsystem": {
+    "Name": "SM",
+    "ChipType": "Chip",
+    "CoreType": "SM",
+    "UnitTypes": {
+      "Chip": {
+        "Count": 1,
+        "Size": 170,
+        "Description": "GB202 die: 92.2 billion transistors on 750 mm2, built on the TSMC 4nm 4N NVIDIA Custom Process. This is consumer/workstation Blackwell (compute capability 12.0, sm_120), a different die family from the GB100 datacenter Blackwell of B100/B200/GB200 (compute capability 10.0, sm_100). The primary configuration described by this file is the GeForce RTX 5090: 170 SMs, 21760 CUDA cores, 680 fifth-generation Tensor Cores, 170 fourth-generation RT Cores, 176 ROPs, 96 MB L2, 32 GB GDDR7 on a 512-bit bus, 575 W. The full GB202 die is larger than any GeForce product: 12 GPCs, 96 TPCs, 192 SMs, 24576 CUDA cores, 768 Tensor Cores, 192 RT Cores, 768 texture units and 128 MB of L2. Other sm_120 parts share the same SM and differ only in scale: GeForce RTX 5080 uses a full GB203 (7 GPCs, 42 TPCs, 84 SMs, 10752 CUDA cores, 64 MB L2, 16 GB GDDR7 on 256-bit at 960 GB/s, 2617 MHz boost, 360 W), and GeForce RTX 5070 uses GB205 (full die 5 GPCs, 25 TPCs, 50 SMs, 6400 CUDA cores, 48 MB L2, 192-bit). The RTX PRO Blackwell workstation line is built from the same GB20x dies: RTX PRO 6000 Blackwell Workstation Edition is the largest GB202 configuration shipped, with 24064 CUDA cores (188 SMs, derived from the published core count over 128 cores per SM rather than stated directly), 96 GB of GDDR7 with ECC on the same 512-bit 1792 GB/s interface, 126 TFLOPS FP32, 382 RT TFLOPS, 4 NVENC and 4 NVDEC engines, MIG partitioning and a 600 W board power. GB202 is a graphics part: it has display outputs, RT Cores and NVENC, and unlike the datacenter Blackwell it has no NVLink and only token FP64 hardware",
+        "Memory": ["L2", "GDDR7", "Constant Memory"],
+        "Subunits": ["GPC", "Memory Controller", "GDDR7 Device", "PCIe Controller", "NVENC Engine", "NVDEC Engine", "AI Management Processor"],
+        "Performance": {
+          "ClockRate": 2407,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 104.8, "Unit": "TFLOP/s", "Precision": "FP32", "Mode": "Non-Tensor", "Source": "Published" },
+            { "Rate": 104.8, "Unit": "TFLOP/s", "Precision": "FP16", "Mode": "Non-Tensor", "Source": "Published" },
+            { "Rate": 104.8, "Unit": "TFLOP/s", "Precision": "BF16", "Mode": "Non-Tensor", "Source": "Published" },
+            { "Rate": 104.8, "Unit": "TOP/s", "Precision": "INT32", "Mode": "Non-Tensor", "Source": "Published" },
+            { "Rate": 1.6375, "Unit": "TFLOP/s", "Precision": "FP64", "Mode": "Non-Tensor", "Source": "Derived" },
+            { "Rate": 104.8, "Unit": "TFLOP/s", "Precision": "TF32", "Mode": "Dense", "Source": "Published" },
+            { "Rate": 209.5, "Unit": "TFLOP/s", "Precision": "TF32", "Mode": "Sparse", "Source": "Published" },
+            { "Rate": 419, "Unit": "TFLOP/s", "Precision": "FP16", "Mode": "Dense, FP16 accumulate", "Source": "Published" },
+            { "Rate": 838, "Unit": "TFLOP/s", "Precision": "FP16", "Mode": "Sparse, FP16 accumulate", "Source": "Published" },
+            { "Rate": 209.5, "Unit": "TFLOP/s", "Precision": "FP16", "Mode": "Dense, FP32 accumulate", "Source": "Published" },
+            { "Rate": 419, "Unit": "TFLOP/s", "Precision": "FP16", "Mode": "Sparse, FP32 accumulate", "Source": "Published" },
+            { "Rate": 209.5, "Unit": "TFLOP/s", "Precision": "BF16", "Mode": "Dense, FP32 accumulate", "Source": "Published" },
+            { "Rate": 419, "Unit": "TFLOP/s", "Precision": "BF16", "Mode": "Sparse, FP32 accumulate", "Source": "Published" },
+            { "Rate": 838, "Unit": "TFLOP/s", "Precision": "FP8", "Mode": "Dense, FP16 accumulate", "Source": "Published" },
+            { "Rate": 1676, "Unit": "TFLOP/s", "Precision": "FP8", "Mode": "Sparse, FP16 accumulate", "Source": "Published" },
+            { "Rate": 419, "Unit": "TFLOP/s", "Precision": "FP8", "Mode": "Dense, FP32 accumulate", "Source": "Published" },
+            { "Rate": 838, "Unit": "TFLOP/s", "Precision": "FP8", "Mode": "Sparse, FP32 accumulate", "Source": "Published" },
+            { "Rate": 838, "Unit": "TOP/s", "Precision": "INT8", "Mode": "Dense", "Source": "Published" },
+            { "Rate": 1676, "Unit": "TOP/s", "Precision": "INT8", "Mode": "Sparse", "Source": "Published" },
+            { "Rate": 317.5, "Unit": "TFLOP/s", "Mode": "Ray Tracing", "Source": "Published" }
+          ]
+        }
+      },
+      "GPC": {
+        "Count": 11,
+        "Size": 8,
+        "Description": "Graphics Processing Cluster, the dominant high-level block in every GB20x GPU. Each GPC holds a dedicated Raster Engine, 8 TPCs (16 SMs) and two ROP partitions of 8 ROP units each, for 16 ROPs per GPC. The full GB202 die has 12 GPCs and 96 TPCs; RTX 5090 enables 11 GPCs but only 85 of the 88 TPCs those GPCs would hold, so the enabled GPCs are not populated uniformly. The Size of 8 is the full-GPC TPC complement",
+        "Subunits": ["TPC", "Raster Engine", "ROP Partition"]
+      },
+      "TPC": {
+        "Count": 8,
+        "Size": 2,
+        "Description": "Texture Processing Cluster, containing one PolyMorph Engine and 2 SMs. 96 TPCs on the full GB202 die, 85 enabled on RTX 5090 for 170 SMs; 42 on the full GB203 used by RTX 5080 and 25 on the full GB205",
+        "Subunits": ["SM", "PolyMorph Engine"]
+      },
+      "SM": {
+        "Count": 2,
+        "Size": 128,
+        "Description": "Blackwell Streaming Multiprocessor, organized as 4 processing blocks (partitions) that each hold one warp scheduler, a 64 KB register file slice, one fifth-generation Tensor Core, 32 CUDA-core lanes, 4 SFUs and 1 texture unit. The RTX Blackwell whitepaper describes the SM as 128 CUDA cores, one fourth-generation RT Core, four fifth-generation Tensor Cores, 4 texture units, a 256 KB register file and 128 KB of L1/shared memory. Blackwell's headline SM change over Ada is that the INT32 datapath is fully unified with the FP32 datapath: the 128 lanes execute either FP32 or INT32 in any given clock, which roughly doubles peak integer throughput versus Ada (RTX 5090 reaches 104.8 peak INT32 TOPS, equal to its 104.8 peak non-Tensor FP32 TFLOPS, where Ada's RTX 4090 managed 41.3 INT32 TOPS against 82.6 FP32 TFLOPS). Not every integer instruction attains the 2x rate. Note that the CUDA C++ Programming Guide's compute capability 12.0 section still enumerates the SM as 128 FP32 cores plus 64 separate INT32 cores, which is the Ada layout; the whitepaper's v1.1 addendum explicitly supersedes that, and the whitepaper's own 104.8 INT32 TOPS figure requires 128 integer-capable lanes. NVIDIA also states the SM doubles point-sampled texture performance per cycle versus Ada. Compute capability 12.0 limits: 1536 resident threads (48 warps), 24 resident thread blocks, 65536 32-bit registers per SM, 255 registers per thread, 1024 threads per block, warp size 32. These occupancy limits match Ada sm_89 rather than Hopper sm_90. The CUDA 12.8 and 12.9 guides listed 32 resident blocks per SM for 12.0; the 13.x guides give 24, which is the value recorded here and the one consistent with the 48-warp limit. sm_120 does support thread block clusters, distributed shared memory and the Tensor Memory Accelerator, but NVIDIA publishes no 12.0-specific maximum cluster size, so only the portable maximum of 8 blocks applies and applications should query cudaOccupancyMaxPotentialClusterSize. NVIDIA states no LD/ST unit count for compute capability 12.0 in text (the SM block diagram draws 4 LD/ST blocks per partition, but that is a figure rather than a published figure), so that unit type is omitted from this file rather than guessed",
+        "Memory": ["Register File", "L1 and Shared Memory"],
+        "Subunits": ["CUDA Core", "FP64 Core", "Tensor Core", "RT Core", "SFU", "Warp Scheduler", "Texture Unit"],
+        "Performance": {
+          "ClockRate": 2407,
+          "Source": "Published"
+        }
+      },
+      "CUDA Core": {
+        "Count": 128,
+        "Size": 1,
+        "Description": "Unified FP32/INT32 lane, 32 per processing block, able to issue either an FP32 or an INT32 operation in a given clock. 21760 per RTX 5090 (24576 on the full GB202 die, 10752 on the full GB203, 6400 on the full GB205), giving 104.8 TFLOPS of peak non-Tensor FP32 at the 2407 MHz boost clock, and the same 104.8 TFLOPS for non-Tensor FP16 and BF16"
+      },
+      "FP64 Core": {
+        "Count": 2,
+        "Size": 1,
+        "Description": "Double-precision lane, 2 per SM (384 on the full GB202 die), deliberately minimal. NVIDIA states the FP64 rate is 1/64 of the FP32 rate and that these cores exist only to ensure programs containing FP64 code operate correctly. A very small number of FP64 Tensor Core paths is included for the same correctness reason. sm_120 is not a double-precision compute part"
+      },
+      "Tensor Core": {
+        "Count": 4,
+        "Size": 1,
+        "Description": "Fifth-generation Tensor Core, one per processing block (680 per RTX 5090, 768 on the full GB202 die, 336 on the full GB203). Adds FP4 and FP6 operand support and a second-generation FP8 Transformer Engine over Ada's fourth generation, alongside FP8 (E4M3/E5M2), FP16, BF16, TF32 and INT8, plus 2:4 structured sparsity; a token FP64 matrix path exists for correctness only. NVIDIA does not list INT4 among the Blackwell RTX Tensor Core precisions, so INT4 is not claimed in SupportedPrecisions. RTX 5090 peak rates, quoted as dense/sparse: FP4 with FP32 accumulate 1676/3352 TFLOPS, FP8 with FP16 accumulate 838/1676 TFLOPS, FP8 with FP32 accumulate 419/838 TFLOPS, FP16 with FP16 accumulate 419/838 TFLOPS, FP16 and BF16 with FP32 accumulate 209.5/419 TFLOPS, TF32 104.8/209.5 TFLOPS, INT8 838/1676 TOPS. The 3352 AI TOPS NVIDIA markets for the RTX 5090 is the FP4 figure with sparsity, i.e. 1676 TFLOPS dense. RTX 5080 peaks at 450.2/900.4 dense/sparse INT8 TOPS and 225.1/450.2 FP16-accumulate FP16 TFLOPS. Unlike Hopper sm_90 and datacenter Blackwell sm_100, sm_120 Tensor Cores are driven by warp-level mma rather than warp-group wgmma; sm_120a adds block-scaled mma variants for the .e3m2/.e2m3/.e2m1 FP6 and FP4 types"
+      },
+      "RT Core": {
+        "Count": 1,
+        "Size": 1,
+        "Description": "Fourth-generation RT Core, one per SM (170 per RTX 5090, 192 on the full GB202 die, 84 on the full GB203). Contains dedicated ray-bounding-box and ray-triangle intersection engines and doubles ray-triangle intersection throughput over Ada's third generation. Blackwell adds a Triangle Cluster Intersection Engine and Triangle Cluster Compression for the new Mega Geometry path, hardware Linear Swept Spheres primitives, and an opacity micromap engine for alpha computation. NVIDIA rates RTX 5090 at 317.5 RT TFLOPS and no longer publishes a giga-rays-per-second figure for this generation, so RaysPerSecond is omitted from SpecializedHardware rather than estimated"
+      },
+      "SFU": {
+        "Count": 16,
+        "Size": 1,
+        "Description": "Special Function Unit, 4 per processing block, computing single-precision floating-point transcendentals such as sin, cos, exp2, log2, rcp and rsqrt. The count of 16 per SM is stated by the CUDA C++ Programming Guide's compute capability 12.0 architecture section"
+      },
+      "Warp Scheduler": {
+        "Count": 4,
+        "Size": 1,
+        "Description": "One warp scheduler per processing block. An SM statically distributes its warps among the 4 schedulers, and at each issue slot a scheduler issues one instruction for one of its ready assigned warps. Warp size is 32 threads and up to 48 warps are resident per SM, i.e. 12 per scheduler"
+      },
+      "Texture Unit": {
+        "Count": 4,
+        "Size": 1,
+        "Description": "Texture/sampler unit, one per processing block. 680 per RTX 5090, up from 512 on RTX 4090, giving a bilinear-filtered texel rate of 1636.8 Gigatexels/s. 768 on the full GB202 die"
+      },
+      "PolyMorph Engine": {
+        "Count": 1,
+        "Size": 1,
+        "Description": "Fixed-function geometry engine, one per TPC, handling vertex fetch, tessellation, viewport transform and attribute setup ahead of the GPC's Raster Engine"
+      },
+      "Raster Engine": {
+        "Count": 1,
+        "Size": 1,
+        "Description": "Fixed-function rasterizer, one per GPC, converting the geometry stream into pixel fragments for the SMs"
+      },
+      "ROP Partition": {
+        "Count": 2,
+        "Size": 8,
+        "Description": "Raster Operations partition of 8 ROP units, 2 partitions per GPC for 16 ROPs per GPC. RTX 5090 exposes 176 ROPs across its 11 GPCs, for a pixel fill rate of 423.6 Gigapixels/s; RTX 5080 exposes 112"
+      },
+      "Memory Controller": {
+        "Count": 16,
+        "Size": 1,
+        "Description": "32-bit GDDR7 memory controller. The full GB202 die has 16 for a 512-bit interface and RTX 5090 enables all 16. The full GB203 has 8 (256-bit) and the full GB205 has 6 (192-bit)"
+      },
+      "GDDR7 Device": {
+        "Count": 16,
+        "Size": 1,
+        "Description": "GDDR7 memory device, one per 32-bit controller. RTX 5090 carries 32 GB across the 512-bit interface at 28 Gbps for 1792 GB/s; NVIDIA publishes the capacity and the controller count but not the per-package capacity, so the 2 GB per channel implied by 32 GB over 16 channels is an inference from those two published figures",
+        "Memory": ["GDDR7"],
+        "Performance": {
+          "TransferRate": 28,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 112, "Unit": "GB/s", "Source": "Derived" }
+          ]
+        }
+      },
+      "PCIe Controller": {
+        "Count": 1,
+        "Size": 1,
+        "Description": "PCI Express Gen 5 x16 host interface, 128 GB/s bidirectional. This is the only GPU-to-GPU path on GB20x: consumer and workstation Blackwell ship no NVLink and no SLI",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 128, "Unit": "GB/s", "Mode": "Bidirectional", "Source": "Published" }
+          ]
+        }
+      },
+      "NVENC Engine": {
+        "Count": 3,
+        "Size": 1,
+        "Description": "Ninth-generation NVENC hardware video encoder, 3 per GB202 as configured on RTX 5090 (4 on RTX PRO 6000 Blackwell; 2 on GB203, 2 on GB205). Encodes H.264 including 4:2:2 and 4:4:4, HEVC up to 8K including 4:2:2, 4:4:4 and 10-bit, and AV1 up to 10-bit. Improves AV1 and HEVC quality by about 5% BD-BR PSNR over the eighth-generation Ada encoder, adds 4:2:2 H.264 and HEVC encoding, and adds an AV1 Ultra Quality mode taking the combined gain to about 15% BD-BR PSNR. No NVIDIA NVENC encodes VP9"
+      },
+      "NVDEC Engine": {
+        "Count": 2,
+        "Size": 1,
+        "Description": "Sixth-generation NVDEC hardware video decoder, 2 per GB202 as configured on RTX 5090 (4 on RTX PRO 6000 Blackwell; 2 on GB203, 1 on GB205). Decodes MPEG-1/2/4, VC-1, VP8, VP9 at 8/10/12-bit, H.264 at 8/10-bit, HEVC at 8/10/12-bit and AV1 at 8/10-bit. Doubles H.264 decode speed so it matches HEVC and AV1 decode, and adds 4:2:2 H.264 and HEVC decode support"
+      },
+      "AI Management Processor": {
+        "Count": 1,
+        "Size": 1,
+        "Description": "AMP, new in RTX Blackwell: a fully programmable hardware scheduler that manages and context-switches concurrent AI and graphics workloads on the GPU without host round trips, so multiple models can be co-resident alongside a rendering workload"
+      }
+    }
+  },
+  "MemorySubsystem": {
+    "SupportedMemoryTypes": ["Other"],
+    "MemoryTypes": {
+      "Register File": {
+        "Size": 256,
+        "BankCount": 4,
+        "description": "256 KB of register file per SM, i.e. 65536 32-bit registers, split evenly across the 4 processing blocks at 16384 registers (64 KB) each. A single thread may use at most 255 registers and a single thread block at most 65536. Aggregate register file on RTX 5090 is 43520 KB across 170 SMs, matching 170 x 256 KB; the full GB203 has 21504 KB and the full GB205 12800 KB"
+      },
+      "L1 and Shared Memory": {
+        "Size": 128,
+        "BankCount": 32,
+        "description": "128 KB of unified L1 data cache, texture cache and shared memory per SM, the same physical capacity as Ada sm_89. Aggregate on RTX 5090 is 21760 KB across 170 SMs, matching 170 x 128 KB; the full GB203 has 10752 KB and the full GB205 6400 KB, both also 128 KB per SM. Of that array at most 100 KB is addressable as shared memory on compute capability 12.0: the carveout is configurable per kernel to 0, 8, 16, 32, 64 or 100 KB, the remainder serving as L1 and texture cache. A single thread block may address at most 99 KB because 1 KB of the partition is reserved for system use, and any block wanting more than 48 KB must use dynamic shared memory and opt in through cudaFuncSetAttribute with cudaFuncAttributeMaxDynamicSharedMemorySize. The texture-memory working set per SM ranges from 28 KB to 128 KB. Shared memory is banked 32 ways with 32-bit banks. Note that the CUDA 12.9 through 13.3 guides describe the unified array itself as 100 KB, conflating the shared-memory cap with the array size; the 128 KB recorded here is the whitepaper figure and is confirmed by dividing the published per-GPU L1 totals by the SM counts. sm_120 supports distributed shared memory across a thread block cluster"
+      },
+      "L2": {
+        "Size": 98304,
+        "maxBusWidth": 512,
+        "description": "96 MB of GPU-wide L2 on RTX 5090; the full GB202 die carries 128 MB. Backs all SMs and fronts the 16 GDDR7 controllers, and is the large on-die pool that path tracing in particular benefits from. RTX 5080 (full GB203) has 64 MB and the full GB205 48 MB. NVIDIA does not publish an L2 bandwidth figure, so none is recorded here"
+      },
+      "GDDR7": {
+        "Size": 33554432,
+        "BankCount": 16,
+        "MaxMemoryBandwidth": 1792,
+        "maxBusWidth": 512,
+        "description": "32 GB of GDDR7 across a 512-bit interface at a 28 Gbps data rate, 1792 GB/s on RTX 5090; BankCount here is the count of 32-bit memory channels, not DRAM internal banks. GDDR7 uses PAM3 signalling, three levels carrying 1.5 bits per cycle, with an improved pin-encoding scheme for signal-to-noise. RTX 50-series boards support Enhanced CRC for RAS, and GDDR7 on RTX Blackwell supports single-bit error correction ECC with no performance cost when disabled, plus error detection and replay. RTX 5080 ships 16 GB at 30 Gbps on 256 bits for 960 GB/s. GDDR7 is not one of the enum values this schema offers for SupportedMemoryTypes, so that field records Other",
+        "Performance": {
+          "TransferRate": 28,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 1792, "Unit": "GB/s", "Source": "Derived" }
+          ]
+        }
+      },
+      "Constant Memory": {
+        "Size": 64,
+        "description": "64 KB constant memory window per device context for compute capability 12.0, served through a read-only per-SM constant cache shared by all functional units, whose working set the CUDA guide gives as 8 KB per SM"
+      }
+    }
+  },
+  "KernelModel": {
+    "LLVMTarget": "nvptx64",
+    "LLVMTriple": "nvptx64-nvidia-cuda",
+    "LLVMFeatures": [
+      {
+        "Name": "+sm_120",
+        "Description": "NVPTX subtarget feature selecting the consumer/workstation Blackwell sm_120 target ISA (compute capability 12.0)"
+      },
+      {
+        "Name": "+sm_120a",
+        "Description": "Architecture-specific sm_120a variant exposing accelerated features that are not forward compatible with later architectures, notably mma with .f16 accumulator at shape .m16n8k16 for the FP8 .e4m3 and .e5m2 types, and mma plus mma.sp::ordered_metadata extended with the .e3m2, .e2m3 and .e2m1 FP6/FP4 types and the .kind, .block_scale and .scale_vec_size qualifiers"
+      },
+      {
+        "Name": "+sm_120f",
+        "Description": "Family-specific sm_120f variant, portable across the sm_120 family rather than pinned to a single architecture as sm_120a is. Per the CUDA family-specific compatibility table, compute_120f is compatible with compute capability 12.0 and 12.1, and its feature set is a superset of baseline sm_120 and a subset of sm_120a"
+      },
+      {
+        "Name": "+ptx87",
+        "Description": "PTX ISA 8.7, the first release that adds support for the sm_120 and sm_120a target architectures"
+      },
+      {
+        "Name": "+ptx88",
+        "Description": "PTX ISA 8.8, required for the family-specific sm_120f target form"
+      }
+    ],
+    "Toolchains": [
+      {
+        "Type": "CUDA",
+        "Version": "12.8"
+      },
+      {
+        "Type": "PTX ISA",
+        "Version": "8.7"
+      },
+      {
+        "Type": "OpenCL",
+        "Version": "3.0"
+      }
+    ]
+  },
+  "SpecializedHardware": {
+    "RayTracingAccelerators": {
+      "Present": true,
+      "Name": "Fourth-Generation RT Core",
+      "Count": 170
+    },
+    "AiAccelerators": {
+      "Present": true,
+      "Name": "Fifth-Generation Tensor Core",
+      "Count": 680,
+      "SupportedPrecisions": ["FP32", "FP16", "BF16", "INT8", "Other"],
+      "Performance": {
+        "fp16TopsPerGPU": 419,
+        "int8TopsPerGPU": 838
+      }
+    },
+    "videoCodecs": {
+      "encoders": [
+        {
+          "codec": "H.264"
+        },
+        {
+          "codec": "H.265/HEVC"
+        },
+        {
+          "codec": "AV1"
+        }
+      ],
+      "decoders": [
+        {
+          "codec": "H.264"
+        },
+        {
+          "codec": "H.265/HEVC"
+        },
+        {
+          "codec": "AV1"
+        },
+        {
+          "codec": "VP9"
+        }
+      ]
+    }
+  },
+  "PowerEfficiency": {
+    "BaseClock": 2010,
+    "BoostClock": 2407,
+    "MaxTDP": 575,
+    "PowerStates": [
+      {
+        "Name": "Maximum Performance",
+        "Description": "Full power state for GeForce RTX 5090: 2410 MHz boost per the product page, 2407 MHz in the architecture whitepaper's peak-rate table, over a 575 W total graphics power budget. Base clock is 2010 MHz. RTX 5080 boosts to 2617 MHz at 360 W"
+      },
+      {
+        "Name": "Balanced",
+        "Description": "Reduced clock and voltage operating point selected by the driver when the workload or the power and thermal budget does not require peak clocks. RTX Blackwell adds low-latency sleep and accelerated frequency switching, and exploits GDDR7's fast-wakeup clocking for finer-grained memory power management"
+      },
+      {
+        "Name": "Idle",
+        "Description": "Low power state when no kernels or rendering work are resident"
+      }
+    ],
+    "ClockGating": true,
+    "DynamicVoltageFrequencyScaling": true
+  },
+  "PciExpress": {
+    "Version": "5.0",
+    "Lanes": 16,
+    "Bandwidth": 128
+  },
+  "MultiGpuSupport": {
+    "Technologies": ["None"],
+    "MaxGpus": 1
+  }
+}

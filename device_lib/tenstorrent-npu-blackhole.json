@@ -1,7 +1,7 @@
 {
   "Name": "Blackhole",
   "Vendor": "Other",
-  "Architecture": "Tensix++",
+  "Architecture": "blackhole",
   "ReleaseYear": 2024,
   "FabricationProcess": {
     "ProcessNode": 6,
@@ -10,129 +10,226 @@
   },
   "CoreSubsystem": {
     "Name": "Tensix",
-    "SubUnits": [
-      {
-        "Type": "Chip",
+    "ChipType": "Chip",
+    "CoreType": "Tensix Core",
+    "UnitTypes": {
+      "Chip": {
         "Count": 1,
         "Size": 120,
-        "Description": "Full Blackhole die containing 120 active Tensix cores arranged in a 2D mesh with NoC interconnect",
-        "Memory": ["GDDR6", "SRAM"],
-        "SubunitType": "Tensix Core"
+        "Description": "One Blackhole ASIC. Two NoCs join the tiles into a 2D torus, usually drawn as a 2D grid. The die carries 140 Tensix compute tiles in a 14x10 grid, 24 GDDR6 DRAM tiles, 4 L2CPU tiles, 14 Ethernet tiles, 2 PCI Express tiles, 1 ARC tile and 1 Security tile. Tensix tiles are harvested by fusing off whole columns: p100a fuses two columns and exposes 120. p150a/p150b originally exposed all 140, but Tenstorrent reduced them to 120 for cards shipping from January 2026 and for existing cards updated to firmware 19.5.0 or later, which also moved the published SRAM figure from 210 MB to 180 MB and the BLOCKFP8 figure from 774 to 664 TFLOPS. 120 is therefore the count Tenstorrent now publishes for all three cards and the count used throughout this file",
+        "Memory": ["GDDR6", "Tensix L1"],
+        "Subunits": ["Tensix Core", "L2CPU Cluster", "DRAM Controller", "Ethernet Controller", "PCIe Controller", "ARC Management Core", "Security Core"],
+        "Performance": {
+          "Throughput": [
+            { "Rate": 664, "Unit": "TFLOP/s", "Precision": "BFP8", "Mode": "LoFi", "Source": "Published" }
+          ]
+        }
       },
-      {
-        "Type": "Tensix Core",
+      "Tensix Core": {
         "Count": 120,
         "Size": 5,
-        "Description": "Each Tensix core contains 5 Baby RISC-V CPUs (Data Movement 0, Data Movement 1, Unpack, Math, Pack), a matrix unit (FPU), a vector unit (SFPU), pack/unpack units, 2 NoC router interfaces, and 1.5 MB of local SRAM",
-        "Memory": ["SRAM (L1)"],
-        "SubunitType": "Baby RISC-V"
+        "Description": "Compute tile (worker tile) holding 1536 KiB of L1 SRAM, 5 Baby RISC-V cores, 2 NoC connections, a NoC overlay coprocessor, and the Tensix coprocessor itself: 2 unpackers, 1 matrix unit (FPU), 1 vector unit (SFPU), 1 scalar unit (ThCon) for integer scalar work and 128-bit L1 accesses including atomics, and 4 packers. Compared with Wormhole the Blackhole tile gains clock speed, more L1 bandwidth, an enhanced RISC-V instruction set and extra SFPU instructions; L1 capacity per tile is unchanged. 140 such tiles exist on the die and 120 are exposed on p100a, p150a and p150b",
+        "Memory": ["Tensix L1"],
+        "Subunits": ["Baby RISC-V", "Matrix Unit (FPU)", "Vector Unit (SFPU)"],
+        "Performance": {
+          "ClockRate": 1350,
+          "Source": "Published"
+        }
       },
-      {
-        "Type": "Baby RISC-V",
+      "Baby RISC-V": {
         "Count": 5,
         "Size": 1,
-        "Description": "Small in-order RISC-V cores within each Tensix responsible for instruction dispatch and control. Roles: Data Movement 0 (reader), Data Movement 1 (writer), Unpack (unpacker control), Math (compute engine dispatch), Pack (packer control)"
+        "Description": "Small in-order 32-bit cores named RISCV B, RISCV T0, RISCV T1, RISCV T2 and RISCV NC. They implement RV32IM plus all of Zicsr, Zaamo, Zba and Zbb, plus parts of Zicntr, F and Zfh; RISCV T2 additionally implements part of V. Instructions are fetched only from L1, through a small per-core L0 instruction cache. The cores are not meant to compute themselves: they oversee the NoC and dispatch instructions into the Tensix coprocessor. TT-Metalium's usual division of labour is two cores driving the NoC (Data Movement 0 and Data Movement 1) and three driving the coprocessor (Unpack, Math and Pack); Tenstorrent's ISA documentation describes this as one natural assignment rather than a fixed property of the hardware",
+        "Memory": ["Instruction Cache", "Private RISC-V Data RAM"],
+        "Performance": {
+          "Throughput": [
+            { "Rate": 1, "Unit": "instruction/cycle", "Source": "Published" },
+            { "Rate": 4, "Unit": "instruction/cycle", "Mode": "Fused", "Source": "Published" }
+          ]
+        }
       },
-      {
-        "Type": "Matrix Unit (FPU)",
+      "Matrix Unit (FPU)": {
         "Count": 1,
         "Size": 1,
-        "Description": "Dedicated matrix multiply unit per Tensix core, operates on 32x32 tiles natively. Supports FP8, FP16, BF16, BLOCKFP2/4/8, TF32, and INT8 precisions"
+        "Description": "Per-Tensix matrix engine performing 8x16 by 16x16 multiply-accumulate, 4096 multiply-adds per cycle. It multiplies low-precision (<= 19-bit) source matrices held in SrcA/SrcB and accumulates into Dst at 16- or 32-bit precision, so FP32 is an accumulator format rather than an input format. Native source formats are TF32, BF16, FP16 and INT8; BFP8/BFP4/BFP2 block-float tiles and FP8 are decompressed by the unpackers on the way in, and higher effective precision is reached by running 2-4 fidelity phases. Tenstorrent's tt-metal GEMM_FLOPS report gives roughly 5.4, 2.7 and 1.35 TFLOP/s per matrix engine at the 1.35 GHz AI clock for LoFi (1 fidelity phase), HiFi2 and HiFi4. Across 120 engines that is 664, 332 and 166 TFLOPS, and the LoFi figure reproduces the only throughput number Tenstorrent publishes for these cards: 664 TFLOPS BLOCKFP8 (774 on the pre-2026 140-core p150). No FP16, BF16 or INT8 figure is published; the values recorded under SpecializedHardware.AiAccelerators.Performance are derived from these per-engine rates and are flagged as such there",
+        "Memory": ["Tensix L1"],
+        "Performance": {
+          "ClockRate": 1350,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 4096, "Unit": "MAC/cycle", "Source": "Published" },
+            { "Rate": 5.4, "Unit": "TFLOP/s", "Mode": "LoFi", "Source": "Measured" },
+            { "Rate": 2.7, "Unit": "TFLOP/s", "Mode": "HiFi2", "Source": "Measured" },
+            { "Rate": 1.35, "Unit": "TFLOP/s", "Mode": "HiFi4", "Source": "Measured" }
+          ]
+        }
       },
-      {
-        "Type": "Vector Unit (SFPU)",
+      "Vector Unit (SFPU)": {
         "Count": 1,
         "Size": 32,
-        "Description": "32-wide vector processing unit per Tensix core for element-wise operations such as activation functions, reductions, and transcendentals"
+        "Description": "Per-Tensix SIMD unit, 32 lanes of 32 bits wide with 8 general-purpose vector registers (LRegs), used for element-wise unary and binary operations: activations, comparisons, reductions and transcendentals, including FP32 multiply-accumulate. Blackhole adds several SFPU instructions over Wormhole. Programmed through Tenstorrent's SFPI C++ intrinsics in the riscv-tt-elf GCC toolchain, which lower to the Xtttensixbh vendor extension",
+        "Memory": ["Tensix L1"],
+        "Performance": {
+          "LaneWidth": 32,
+          "Source": "Published"
+        }
       },
-      {
-        "Type": "Big RISC-V (SiFive x280)",
-        "Count": 16,
+      "L2CPU Cluster": {
+        "Count": 4,
+        "Size": 4,
+        "Description": "L2CPU tile: a cache-coherent cluster of four SiFive X280 CPUs sharing 2 MiB of L3. Each cluster has a direct connection to one local DRAM tile at a fixed place in its address space plus 256 TLB windows onto the NoC, which let it reach any other tile including the other DRAM tiles and the host through the PCI Express tile. All 4 clusters are present and enabled on p100a as well as p150a/p150b, though on p100a GDDR6 harvesting can leave one or two clusters without directly attached DRAM. These are general-purpose 64-bit RISC-V CPUs on the die, not TT-Metalium kernel targets: tt-metal's Blackhole SoC descriptor does not list them and every tt-metal kernel build is 32-bit",
+        "Memory": ["X280 L3"],
+        "Subunits": ["Big RISC-V (SiFive X280)"]
+      },
+      "Big RISC-V (SiFive X280)": {
+        "Count": 4,
         "Size": 1,
-        "Description": "16 SiFive Intelligence x280 64-bit dual-issue in-order CPU cores arranged in 4 clusters of 4. Capable of running Linux and acting as on-chip host processor, eliminating need for external host CPU"
+        "Description": "SiFive Intelligence X280, a 64-bit dual-issue in-order Linux-capable RISC-V core with RISC-V Vector 1.0. Four per L2CPU cluster and 16 per ASIC, which is the 'Big RISC-V Cores: 16' figure on Tenstorrent's spec sheet for all three cards. They are unrelated to Tenstorrent's own Ascalon cores. Each has private 32 KiB L1 instruction, 32 KiB L1 data and 128 KiB L2 caches. Tenstorrent does not document their intended workload beyond general-purpose on-die compute and host/management duties, and whether shipping firmware boots Linux on them is not stated publicly",
+        "Memory": ["X280 L1 Instruction Cache", "X280 L1 Data Cache", "X280 L2"]
       },
-      {
-        "Type": "DRAM Controller",
+      "DRAM Controller": {
         "Count": 8,
-        "Size": 1,
-        "Description": "8 GDDR6 DRAM controllers, each managing 4 GB for a total of 32 GB (p150a/p150b) or 28 GB (p100a)"
+        "Size": 3,
+        "Description": "The 24 GDDR6 DRAM tiles on the die are arranged in 8 groups of 3, and each group exposes the same 4 GiB of GDDR6 on all three of its tiles, so 32 GiB per ASIC. The three tiles in a group are separate NoC endpoints for one memory, which improves NoC connectivity. p150a and p150b keep all 8 groups for 32 GB at 512 GB/s; p100a fuses one group off, leaving 21 DRAM tiles for 28 GB at 448 GB/s. Tenstorrent does not publish a discrete memory-controller count separate from these DRAM tiles",
+        "Memory": ["GDDR6"],
+        "Performance": {
+          "TransferRate": 16,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 64, "Unit": "GB/s", "Source": "Derived" }
+          ]
+        }
       },
-      {
-        "Type": "Ethernet Controller",
+      "Ethernet Controller": {
         "Count": 14,
-        "Size": 1,
-        "Description": "14 Ethernet cores on die (8 active on p150), each supporting 400 Gbps for chip-to-chip interconnect via QSFP-DD ports"
+        "Size": 2,
+        "Description": "14 Ethernet tiles per ASIC, each carrying one bidirectional 400 GbE link with its own MAC/PCS/PHY presented as 3 TX and 3 RX queues, 512 KiB of L1, and 2 Baby RISC-V cores. Compared with Wormhole these gained a second RISC-V core, larger L1, higher clock and 400 GbE in place of 100 GbE. A pair of tiles feeds each QSFP-DD port, giving 800 GbE per port. p150a and p150b enable 12 tiles of which 8 are wired to the card's 4 QSFP-DD 800G ports, for 3.2 Tbps (400 GB/s each way) of chip-to-chip bandwidth; the other 4 are usable for their RISC-V cores and L1 but cannot move Ethernet packets. p100a has no Ethernet tiles available and no external interconnect. Each PCI Express x16 link in use costs four connectable Ethernet tiles, which is why the full ASIC caps at 12 connected",
+        "Memory": ["Ethernet L1"],
+        "Performance": {
+          "Throughput": [
+            { "Rate": 400, "Unit": "Gb/s", "Mode": "Bidirectional", "Source": "Published" }
+          ]
+        }
       },
-      {
-        "Type": "PCIe Controller",
+      "PCIe Controller": {
+        "Count": 2,
+        "Size": 1,
+        "Description": "Two PCI Express 5.0 x16 tiles, each providing a host interface including the address-translation TLBs the host driver uses to reach NoC endpoints. In current products exactly one is in use and the other is permanently idle",
+        "Memory": ["GDDR6"]
+      },
+      "ARC Management Core": {
         "Count": 1,
         "Size": 1,
-        "Description": "PCIe 5.0 x16 host interface controller"
+        "Description": "ARC tile running chip and board management firmware: power and clock management via the PLLs, voltage and thermal telemetry, reset control of the Tensix, Ethernet and L2CPU tiles, and firmware update. It runs no customer workload and dispatches none",
+        "Memory": ["GDDR6"]
       },
-      {
-        "Type": "ARC Management Core",
+      "Security Core": {
         "Count": 1,
         "Size": 1,
-        "Description": "System management core for power management, thermal monitoring, and firmware control"
+        "Description": "Security tile, paired with the ARC tile for chip and board management. Like the ARC tile it executes no customer workload and is not involved in dispatching one",
+        "Memory": ["GDDR6"]
       }
-    ]
+    }
   },
   "MemorySubsystem": {
     "SupportedMemoryTypes": ["GDDR6"],
-    "MemoryTypes": [
-      {
-        "Type": "SRAM (L1 per Tensix Core)",
+    "MemoryTypes": {
+      "Tensix L1": {
         "Size": 1536,
-        "BankCount": 1,
-        "description": "1.5 MB of local SRAM per Tensix core. Not a cache — no automatic caching, eviction, or coherence. Data must be explicitly managed via NoC transfers. Used for kernel code, circular buffers, tile storage, and inter-core data exchange. Total on-chip SRAM: 180 MB across 120 cores"
+        "description": "1536 KiB of software-managed scratchpad SRAM per Tensix tile, mapped from MEM_L1_BASE at 0x0000_0000 to 0x0017_FFFF. It is not a cache: there is no automatic fill, eviction or coherence, and data is placed explicitly by NoC transfers. It holds kernel code, circular buffers, tiles and inter-core data; TT-Metalium reports roughly 1464 KB of it as usable after reserved regions. Blackhole matches Wormhole on capacity but has more L1 bandwidth and adds a small write-through L0 data cache in front of it. Tenstorrent publishes 180 MB of on-chip SRAM per card, which is 120 tiles times 1.5 MB; the full 140-tile die holds 210 MB, the figure published for p150 cards before January 2026"
       },
-      {
-        "Type": "GDDR6 (Off-chip DRAM)",
+      "Ethernet L1": {
+        "Size": 512,
+        "description": "512 KiB of L1 SRAM in each of the 14 Ethernet tiles, holding the Ethernet firmware, the TX/RX queues and chip-to-chip staging buffers, and addressable over the NoC exactly like Tensix L1. Twice the 256 KiB found in a Wormhole Ethernet tile. 7 MiB per ASIC across all 14 tiles"
+      },
+      "GDDR6": {
         "Size": 33554432,
         "BankCount": 8,
         "MaxMemoryBandwidth": 512,
         "maxBusWidth": 256,
-        "description": "32 GB GDDR6 at 16 GT/s across 8 DRAM controllers (p150a/p150b). 28 GB on p100a (7 controllers active with 448 GB/s). Accessed explicitly by Tensix cores via NoC; no hardware caching layer"
+        "description": "32 GiB of off-chip GDDR6 on p150a and p150b, exposed as 8 independent 4 GiB groups reached through 24 DRAM tiles on the NoC. At 16 GT/s over a 256-bit bus that is 512 GB/s. p100a fuses one group off for 28 GB, and its 448 GB/s implies an effective 224-bit bus. Each L2CPU cluster also has a direct path to one local DRAM tile outside the NoC. DRAM is not cached for Tensix cores - they stage data into L1 explicitly over the NoC",
+        "Performance": {
+          "TransferRate": 16,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 512, "Unit": "GB/s", "Source": "Derived" }
+          ]
+        }
       },
-      {
-        "Type": "Instruction Cache (per Baby RISC-V)",
-        "Size": 2,
-        "BankCount": 1,
-        "description": "Small 0.5–2 KiB per-core instruction cache (approximately 128–512 instructions) to reduce repeated SRAM fetches during kernel execution"
+      "Instruction Cache": {
+        "description": "Baby RISC-V kernel code lives in L1 and can only be executed from L1; each core fetches through a small L0 instruction cache in front of it. On the T cores this cache can fuse up to four adjacent .ttinsn instructions into one 64/96/128-bit instruction issued in a single cycle, otherwise it sustains one 32-bit instruction per cycle. Tenstorrent's TT-Metalium documentation describes it only as roughly 128-512 instructions, i.e. 0.5-2 KiB; no exact per-core Blackhole table is published, so Size is omitted here rather than guessed. Separately, each Baby RISC-V has a tiny non-coherent L0 data cache of 64 bytes (4 lines of 16 bytes), flushed by any fence or atomic"
       },
-      {
-        "Type": "Private RISC-V Memory",
-        "Size": 4,
-        "BankCount": 1,
-        "description": "Small private memory region per Baby RISC-V core for stack and local variables. Isolated per core; shared SRAM is accessible to all cores at identical addresses"
+      "Private RISC-V Data RAM": {
+        "Size": 8,
+        "description": "Private data RAM per Baby RISC-V core with 2-cycle load latency, used for stack and thread-local storage: 8 KiB on RISCV B and RISCV NC, 4 KiB on each of RISCV T0, T1 and T2. Blackhole doubles the Wormhole sizes and adds a second, slower mapping at 0xFFB1_4000-0xFFB1_DFFF that lets the host, a debugger or another core reach it, alongside the fast core-private MEM_LOCAL_BASE mapping. Contrast L1, which all five cores see at the same addresses",
+        "Performance": {
+          "Latency": 2,
+          "Source": "Published"
+        }
+      },
+      "X280 L1 Instruction Cache": {
+        "Size": 32,
+        "description": "32 KiB private L1 instruction cache in each of the 16 SiFive X280 cores. Virtually indexed and physically tagged"
+      },
+      "X280 L1 Data Cache": {
+        "Size": 32,
+        "description": "32 KiB private L1 data cache in each of the 16 SiFive X280 cores. Virtually indexed and physically tagged"
+      },
+      "X280 L2": {
+        "Size": 128,
+        "description": "128 KiB of private L2 cache per SiFive X280 core, with hardware prefetchers that firmware or the host configures after the cluster leaves reset"
+      },
+      "X280 L3": {
+        "Size": 2048,
+        "description": "2 MiB of L3 cache shared by the four SiFive X280 cores of one L2CPU cluster, 8 MiB per ASIC across the 4 clusters. The same array can be configured as uncached scratchpad instead; Tenstorrent's recommended setup is 2 MiB of cache and no scratchpad"
       }
-    ]
+    }
   },
   "KernelModel": {
-    "LLVMTarget": "riscv64",
-    "LLVMTriple": "riscv64-unknown-elf",
+    "LLVMTarget": "riscv32",
+    "LLVMTriple": "riscv32-unknown-elf",
     "LLVMFeatures": [
       {
-        "Name": "rv64gc",
-        "Description": "RISC-V 64-bit base integer ISA with general extensions (M, A, F, D, C) for Big RISC-V cores"
+        "Name": "m",
+        "Description": "RISC-V integer multiply/divide extension. The Tensix and Ethernet Baby RISC-V cores are 32-bit and build against RV32IM with the ilp32 ABI, so there is no C (compressed) or D extension and floating point is soft-float even though the hardware implements part of F and Zfh. The 16 SiFive X280 cores are 64-bit, but tt-metal never compiles kernels for them, so the kernel model described here is the 32-bit Baby RISC-V one"
       },
       {
-        "Name": "v (Vector Extension)",
-        "Description": "RISC-V Vector extension support on SiFive x280 Big RISC-V cores"
+        "Name": "zaamo",
+        "Description": "RISC-V atomic memory operation instructions, new on Blackhole relative to Wormhole. Present in the Blackhole core definitions tt-metal selects with -mcpu=tt-bh and -mcpu=tt-bh-tensix, whose full ISA strings are rv32im_zaamo_zba_zbb and rv32im_zaamo_zba_zbb_xtttensixbh"
+      },
+      {
+        "Name": "zba",
+        "Description": "RISC-V address-generation bit-manipulation extension, new on Blackhole relative to Wormhole"
+      },
+      {
+        "Name": "zbb",
+        "Description": "RISC-V basic bit-manipulation extension, new on Blackhole relative to Wormhole"
+      },
+      {
+        "Name": "xtttensixbh",
+        "Description": "Tenstorrent's Blackhole Tensix vendor extension, carrying the Tensix coprocessor instructions and the 32-lane SFPU with its 8 LRegs. Kernels are built with the SFPI riscv-tt-elf GCC toolchain, which emits elf32-littleriscv; tt-metal selects -mcpu=tt-bh-tensix for the compute cores and -mcpu=tt-bh for the rest. There is no upstream LLVM equivalent, so LLVM can only target the plain RV32IM scalar core"
+      },
+      {
+        "Name": "zve32f",
+        "Description": "RISC-V embedded vector subset with 32-bit float elements. tt-metal builds one Blackhole compute core - the pack TRISC, RISCV T2, the only Baby RISC-V that implements part of V - with -march=rv32im_zmmul_zaamo_zba_zbb_xtttensixbh_zve32f. It is the single place the build uses -march rather than -mcpu, and it is a Zve32f subset, not full RVV"
       }
     ],
-    "SubUnits": [
+    "Toolchains": [
       {
         "Type": "TT-Metalium",
-        "Version": "1.0"
+        "Version": "0.76.0"
       },
       {
         "Type": "TT-NN",
-        "Version": "1.0"
+        "Version": "0.76.0"
       },
       {
         "Type": "TT-Forge",
-        "Version": "1.0"
+        "Version": "1.4.0"
+      },
+      {
+        "Type": "SFPI",
+        "Version": "7.72.0"
       }
     ]
   },
@@ -144,10 +241,10 @@
       "Present": true,
       "Name": "Tensix Matrix Engine (FPU)",
       "Count": 120,
-      "SupportedPrecisions": ["FP32", "FP16", "BF16", "INT8", "INT4", "Other"],
+      "SupportedPrecisions": ["FP16", "BF16", "INT8", "Other"],
       "Performance": {
         "fp16TopsPerGPU": 332,
-        "int8TopsPerGPU": 664
+        "int8TopsPerGPU": 166
       }
     },
     "videoCodecs": {
@@ -156,17 +253,17 @@
     }
   },
   "PowerEfficiency": {
-    "BaseClock": 1000,
+    "BaseClock": 1350,
     "BoostClock": 1350,
     "MaxTDP": 300,
     "PowerStates": [
       {
         "Name": "Active",
-        "Description": "Full power state with all Tensix cores and DRAM controllers active, up to 300W TBP"
+        "Description": "Full power state with all enabled Tensix, Ethernet, DRAM and L2CPU tiles active. Tenstorrent publishes a single AI clock of 'up to 1.35 GHz' rather than a base/boost pair, so both clock fields carry that figure and the ARC core scales below it under power or thermal limits. Total board power is up to 300 W on p100a, p150a and p150b alike, drawn through one 12+4-pin 12V-2x6 connector"
       },
       {
         "Name": "Idle",
-        "Description": "Reduced power state when no workloads are running"
+        "Description": "Reduced power state when no kernels are dispatched; the ARC management core lowers Tensix clocks and voltage through the PLLs while keeping the PCIe and Ethernet links up"
       }
     ],
     "ClockGating": true,
@@ -175,11 +272,10 @@
   "PciExpress": {
     "Version": "5.0",
     "Lanes": 16,
-    "Bandwidth": 63
+    "Bandwidth": 126
   },
   "MultiGpuSupport": {
     "Technologies": ["Other"],
-    "MaxGpus": 32,
     "InterconnectBandwidth": 400
   }
 }
