@@ -17,14 +17,14 @@
         "Count": 1,
         "Size": 20,
         "Description": "Integrated GPU block of the Apple M4 Pro SoC (SoC codename H16S / Brava Chop, t6040). Apple GPU generation G16, die-tier suffix S = Pro (matching the G13G = M1, G13S = M1 Pro naming reported by the Mesa/Asahi driver). Ships in 16-core and 20-core GPU bins; Size 20 is the full configuration. Apple GPUs group cores into clusters, but the cluster geometry of the G16 generation is not published, so no cluster level is modeled here",
-        "Memory": ["L2 / System Level Cache", "Unified Memory (LPDDR5X)"],
+        "Memory": ["L2 and SLC", "Unified Memory"],
         "Subunits": ["GPU Core"]
       },
       "GPU Core": {
         "Count": 20,
         "Size": 1,
         "Description": "Tile-based deferred rendering (TBDR) shader core of Metal GPU family Apple9 (A17 Pro, M3-series and M4-series per Apple's Metal Feature Set Tables). Features Dynamic Caching (on-chip memory allocated dynamically among registers, threadgroup memory and stack), a hardware ray tracing accelerator (Apple: 2x the M3 engine) and hardware mesh shading. There is no dedicated matrix engine in this generation: SIMD-scoped matrix multiply operations (Apple7 and later) execute on the shader ALUs. Apple does not publish per-core ALU counts, cache sizes or clock frequencies",
-        "Memory": ["L1 Cache (per GPU core)", "Threadgroup Memory", "Imageblock (Tile) Memory"],
+        "Memory": ["L1", "Threadgroup Memory", "Tile Memory"],
         "Subunits": ["SIMD Group"]
       },
       "SIMD Group": {
@@ -36,38 +36,37 @@
   },
   "MemorySubsystem": {
     "SupportedMemoryTypes": ["LPDDR5"],
-    "MemoryTypes": [
-      {
-        "Type": "L1 Cache (per GPU core)",
+    "MemoryTypes": {
+      "L1": {
         "description": "Per-core cache and Dynamic Caching pool backing registers, threadgroup memory, tile memory and stack. Apple does not publish its capacity, banking or line size, so no Size is given"
       },
-      {
-        "Type": "Threadgroup Memory",
+      "Threadgroup Memory": {
         "Size": 32,
         "description": "Maximum total threadgroup memory allocation is 32 KB per threadgroup on GPU family Apple9 (Apple Metal Feature Set Tables). Threadgroup memory length alignment is 16 B. On M3 and later this storage is carved out of the core's on-chip memory by Dynamic Caching rather than being statically partitioned"
       },
-      {
-        "Type": "Imageblock (Tile) Memory",
+      "Tile Memory": {
         "Size": 32,
         "description": "On-chip tile storage used by TBDR rendering and imageblocks. Apple9 allows up to 32 KB of explicit imageblock allocation and up to 256 KB of implicit imageblock allocation; explicit imageblock and threadgroup allocations share the same budget"
       },
-      {
-        "Type": "L2 / System Level Cache",
+      "L2 and SLC": {
         "description": "GPU-shared L2 plus the SoC system level cache in front of unified memory. Apple publishes no capacity, bandwidth or banking figures for either level, so no Size is given"
       },
-      {
-        "Type": "Unified Memory (LPDDR5X)",
+      "Unified Memory": {
         "Size": 67108864,
         "MaxMemoryBandwidth": 273,
         "maxBusWidth": 256,
-        "description": "On-package LPDDR5X at up to 8533 MT/s on a 256-bit bus, giving Apple's published 273 GB/s. Unified memory is shared coherently with the CPU, Neural Engine and media engine. Size is the maximum 64 GB configuration (67108864 KB); M4 Pro also ships with 24 GB and 48 GB. LPDDR5X is reported as LPDDR5 because the schema enumeration has no LPDDR5X value"
+        "description": "On-package LPDDR5X at up to 8533 MT/s on a 256-bit bus, giving Apple's published 273 GB/s. Unified memory is shared coherently with the CPU, Neural Engine and media engine. Size is the maximum 64 GB configuration (67108864 KB); M4 Pro also ships with 24 GB and 48 GB. LPDDR5X is reported as LPDDR5 because the schema enumeration has no LPDDR5X value",
+        "Performance": {
+          "TransferRate": 8.533,
+          "Source": "Derived"
+        }
       }
-    ]
+    }
   },
   "KernelModel": {
     "LLVMTarget": "air64",
     "LLVMTriple": "air64-apple-macosx",
-    "SubUnits": [
+    "Toolchains": [
       {
         "Type": "metal",
         "Version": "3"

@@ -25,7 +25,9 @@ def run_tests(test_pattern=None, verbose=False):
         'test_buffer',
         'test_schedule',
         'test_properties',
-        'test_integration'
+        'test_integration',
+        'test_device_schema',
+        'test_derived_provenance'
     ]
     
     for module_name in test_modules:
@@ -78,7 +80,9 @@ def main():
             'test_buffer',
             'test_schedule',
             'test_properties',
-            'test_integration'
+            'test_integration',
+            'test_device_schema',
+            'test_derived_provenance'
         ]
         
         print("Available tests:")

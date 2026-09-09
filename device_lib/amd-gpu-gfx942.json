@@ -17,22 +17,43 @@
         "Count": 1,
         "Size": 304,
         "Description": "Primary subject of this description is the AMD Instinct MI300X discrete GPU (OAM module): 8 XCDs stacked over 4 IODs with 8 HBM3 stacks, 304 active compute units, 1216 Matrix Cores, 19,456 stream processors, 2100 MHz peak engine clock, 750 W maximum TBP, and roughly 153 billion transistors. The MI300A APU shares the same gfx942 ISA but substitutes 3 'Zen 4' CCDs (24 x86 cores) for 2 of the XCDs, leaving 6 XCDs / 228 active CUs / 912 Matrix Cores / 14,592 stream processors, 128 GB of HBM3 unified coherently with the CPU, and a 550 W TDP (760 W in liquid-cooled configurations). Both parts expose 256 MB of AMD Infinity Cache and 5.3 TB/s of peak HBM3 bandwidth",
-        "Memory": ["HBM3 (Device Memory)", "AMD Infinity Cache (MALL, per package)"],
-        "Subunits": ["XCD (Accelerator Complex Die)", "IOD (I/O Die)", "HBM3 Stack"]
+        "Memory": ["HBM3", "Infinity Cache"],
+        "Subunits": ["XCD (Accelerator Complex Die)", "IOD (I/O Die)", "HBM3 Stack"],
+        "Performance": {
+          "ClockRate": 2100,
+          "Source": "Published"
+        }
       },
       "XCD (Accelerator Complex Die)": {
         "Count": 8,
         "Size": 38,
         "Description": "Accelerator complex die on TSMC N5. Each XCD physically contains 40 CUs of which 38 are active (2 disabled for yield), grouped under 4 Asynchronous Compute Engines and a hardware scheduler, all sharing one 4 MB L2 cache. MI300X uses 8 XCDs (304 CUs); MI300A uses 6 (228 CUs). XCDs are the unit of spatial partitioning: MI300X supports SPX/DPX/QPX/CPX modes down to one partition per XCD, MI300A supports up to 3 partitions of 2 XCDs",
-        "Memory": ["L2 Cache (per XCD)"],
+        "Memory": ["L2"],
         "Subunits": ["Compute Unit", "Asynchronous Compute Engine (ACE)", "Hardware Scheduler (HWS)"]
       },
       "Compute Unit": {
         "Count": 38,
         "Size": 64,
         "Description": "CDNA 3 compute unit: instruction fetch and scheduling, a scalar unit, 4 SIMD units totalling 64 stream processors, 4 Matrix Cores, load/store pipelines, 64 KB of Local Data Share and a 32 KB L1 vector data cache. Executes wave64 wavefronts; up to 16 wavefronts (1024 work-items) per work-group",
-        "Memory": ["Vector Register File (VGPR, per SIMD)", "Scalar Register File (SGPR)", "LDS (Local Data Share, per CU)", "L1 Vector Data Cache (per CU)", "Instruction Cache (shared by 2 CUs)"],
-        "Subunits": ["SIMD Unit", "Matrix Core"]
+        "Memory": ["VGPR", "SGPR", "LDS", "L1 Vector Cache", "Instruction Cache"],
+        "Subunits": ["SIMD Unit", "Matrix Core"],
+        "Performance": {
+          "ClockRate": 2100,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 256, "Unit": "FLOP/cycle", "Precision": "FP32", "Mode": "Vector", "Source": "Published" },
+            { "Rate": 128, "Unit": "FLOP/cycle", "Precision": "FP64", "Mode": "Vector", "Source": "Published" },
+            { "Rate": 256, "Unit": "FLOP/cycle", "Precision": "FP64", "Mode": "Matrix", "Source": "Published" },
+            { "Rate": 256, "Unit": "FLOP/cycle", "Precision": "FP32", "Mode": "Matrix", "Source": "Published" },
+            { "Rate": 1024, "Unit": "FLOP/cycle", "Precision": "TF32", "Mode": "Matrix", "Source": "Published" },
+            { "Rate": 2048, "Unit": "FLOP/cycle", "Precision": "FP16", "Mode": "Matrix", "Source": "Published" },
+            { "Rate": 2048, "Unit": "FLOP/cycle", "Precision": "BF16", "Mode": "Matrix", "Source": "Published" },
+            { "Rate": 4096, "Unit": "FLOP/cycle", "Precision": "FP8", "Mode": "Matrix", "Source": "Published" },
+            { "Rate": 4096, "Unit": "OP/cycle", "Precision": "INT8", "Mode": "Matrix", "Source": "Published" },
+            { "Rate": 8192, "Unit": "FLOP/cycle", "Precision": "FP8", "Mode": "Matrix Sparse", "Source": "Published" },
+            { "Rate": 8192, "Unit": "OP/cycle", "Precision": "INT8", "Mode": "Matrix Sparse", "Source": "Published" }
+          ]
+        }
       },
       "SIMD Unit": {
         "Count": 4,
@@ -58,18 +79,29 @@
         "Count": 4,
         "Size": 1,
         "Description": "Active I/O die on TSMC N6, vertically stacked beneath a pair of XCDs. Hosts the AMD Infinity Cache slices, the HBM3 memory controllers for 2 stacks, the AMD Infinity Fabric network, and the media engines",
-        "Memory": ["AMD Infinity Cache (MALL, per package)"],
+        "Memory": ["Infinity Cache"],
         "Subunits": ["Infinity Fabric Link", "Video Decoder", "HBM3 Memory Controller"]
       },
       "Infinity Fabric Link": {
         "Count": 2,
         "Size": 1,
-        "Description": "Two 16-lane bidirectional inter-package AMD Infinity Fabric links per IOD (8 per package), signalling at up to 32 Gbps for 128 GB/s bidirectional each. One link per IOD is multi-purpose and can instead be configured as x16 PCIe Gen 5. MI300X uses seven as scale-up Infinity Fabric links (896 GB/s aggregate, fully connecting 8 GPUs on an OCP UBB 2.0 board) plus one x16 PCIe Gen 5 host link; MI300A dedicates 4 to Infinity Fabric and leaves 4 assignable to Infinity Fabric or PCIe Gen 5"
+        "Description": "Two 16-lane bidirectional inter-package AMD Infinity Fabric links per IOD (8 per package), signalling at up to 32 Gbps for 128 GB/s bidirectional each. One link per IOD is multi-purpose and can instead be configured as x16 PCIe Gen 5. MI300X uses seven as scale-up Infinity Fabric links (896 GB/s aggregate, fully connecting 8 GPUs on an OCP UBB 2.0 board) plus one x16 PCIe Gen 5 host link; MI300A dedicates 4 to Infinity Fabric and leaves 4 assignable to Infinity Fabric or PCIe Gen 5",
+        "Performance": {
+          "TransferRate": 32,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 128, "Unit": "GB/s", "Mode": "Bidirectional", "Source": "Published" }
+          ]
+        }
       },
       "HBM3 Memory Controller": {
         "Count": 2,
         "Size": 1,
-        "Description": "Each IOD fans out through the package to 2 HBM3 stacks; the controllers drive the bus at 5.2 Gbps"
+        "Description": "Each IOD fans out through the package to 2 HBM3 stacks; the controllers drive the bus at 5.2 Gbps",
+        "Performance": {
+          "TransferRate": 5.2,
+          "Source": "Published"
+        }
       },
       "Video Decoder": {
         "Count": 1,
@@ -91,55 +123,64 @@
   },
   "MemorySubsystem": {
     "SupportedMemoryTypes": ["HBM3"],
-    "MemoryTypes": [
-      {
-        "Type": "Vector Register File (VGPR, per SIMD)",
+    "MemoryTypes": {
+      "VGPR": {
         "Size": 128,
         "description": "A wavefront may allocate up to 512 VGPRs, split flexibly between at most 256 architectural VGPRs and at most 256 accumulation VGPRs (AGPRs) used by the matrix VALU instructions; 64-bit operands and AGPR tuples require even alignment (LLVM vgpr-align2). 512 registers x 64 lanes x 4 bytes gives the 128 KB per-SIMD figure recorded here (512 KB per CU); AMD did not publish a change to the physical register file capacity between CDNA 2 and CDNA 3"
       },
-      {
-        "Type": "Scalar Register File (SGPR)",
+      "SGPR": {
         "description": "A wavefront is allocated 16 to 102 SGPRs in units of 16 dwords, with VCC stored in the top two and 16 further SGPRs reserved when a trap handler is present. AMD does not publish the physical SGPR file capacity for CDNA 3, so no size is recorded"
       },
-      {
-        "Type": "LDS (Local Data Share, per CU)",
+      "LDS": {
         "Size": 64,
         "BankCount": 32,
-        "description": "64 KB of software-managed on-chip memory per compute unit, organized as 32 banks of 512 dwords with 32 integer atomic units. Shared by the work-items of a work-group; a work-group may request the full 64 KB. Reads across a wavefront are dispatched over four cycles. Unchanged from CDNA 2"
+        "description": "64 KB of software-managed Local Data Share (LDS) on-chip memory per compute unit, organized as 32 banks of 512 dwords with 32 integer atomic units. Shared by the work-items of a work-group; a work-group may request the full 64 KB. Reads across a wavefront are dispatched over four cycles. Unchanged from CDNA 2"
       },
-      {
-        "Type": "L1 Vector Data Cache (per CU)",
+      "L1 Vector Cache": {
         "Size": 32,
         "description": "Per-CU L1 vector data cache. CDNA 3 doubles the line size to 128 B and the capacity to 32 KB versus CDNA 2, and widens both the request bus to the core and the fill path from L2 to match, doubling bandwidth to the core. Relaxed coherency model requiring explicit synchronization"
       },
-      {
-        "Type": "Instruction Cache (shared by 2 CUs)",
+      "Instruction Cache": {
         "Size": 64,
         "description": "64 KB 8-way set-associative instruction cache shared between two compute units, doubling both capacity and associativity versus CDNA 2"
       },
-      {
-        "Type": "L2 Cache (per XCD)",
+      "L2": {
         "Size": 4096,
         "BankCount": 16,
         "MaxMemoryBandwidth": 34400,
-        "description": "4 MB 16-way set-associative writeback, write-allocate cache shared by the 38 active CUs of an XCD, built from 16 channels of 256 KB. Each channel reads out a 128 B line and the cache sustains four requests from different CUs per cycle for 2 KB/clock per XCD; writes are half-line (64 B) per channel. Lowest level at which coherency is maintained in hardware. The recorded bandwidth is the whitepaper's 34.4 TB/s aggregate read bandwidth across all 8 XCD L2 instances (its memory-hierarchy figure legend instead labels the L2-to-XCD path 51.6 TB/s)"
+        "description": "4 MB 16-way set-associative writeback, write-allocate cache shared by the 38 active CUs of an XCD, built from 16 channels of 256 KB. Each channel reads out a 128 B line and the cache sustains four requests from different CUs per cycle for 2 KB/clock per XCD; writes are half-line (64 B) per channel. Lowest level at which coherency is maintained in hardware. The recorded bandwidth is the whitepaper's 34.4 TB/s aggregate read bandwidth across all 8 XCD L2 instances (its memory-hierarchy figure legend instead labels the L2-to-XCD path 51.6 TB/s)",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 2048, "Unit": "byte/cycle", "Mode": "Read", "Source": "Published" }
+          ]
+        }
       },
-      {
-        "Type": "AMD Infinity Cache (MALL, per package)",
+      "Infinity Cache": {
         "Size": 262144,
         "BankCount": 128,
         "MaxMemoryBandwidth": 17200,
-        "description": "256 MB 16-way set-associative memory-side last level cache distributed across the 4 IODs: 16 channels per HBM3 stack, 128 channels total, each 64 B wide and backed by 2 MB of banked data array, for 17.2 TB/s peak bandwidth. Being memory-side it holds no dirty data evicted from lower levels, does not participate in coherency or absorb snoop traffic, and can cache nominally uncacheable memory; it does contain a snoop filter covering the XCD L2 caches. On MI300A it is shared between the XCDs and the 'Zen 4' CPU dies"
+        "description": "256 MB 16-way set-associative memory-side last level cache (MALL) per package, distributed across the 4 IODs: 16 channels per HBM3 stack, 128 channels total, each 64 B wide and backed by 2 MB of banked data array, for 17.2 TB/s peak bandwidth. Being memory-side it holds no dirty data evicted from lower levels, does not participate in coherency or absorb snoop traffic, and can cache nominally uncacheable memory; it does contain a snoop filter covering the XCD L2 caches. On MI300A it is shared between the XCDs and the 'Zen 4' CPU dies",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 17200, "Unit": "GB/s", "Source": "Published" }
+          ]
+        }
       },
-      {
-        "Type": "HBM3 (Device Memory)",
+      "HBM3": {
         "Size": 201326592,
         "BankCount": 8,
         "MaxMemoryBandwidth": 5300,
         "maxBusWidth": 8192,
-        "description": "192 GB of HBM3 on MI300X across 8 stacks of 24 GB, on an 8192-bit interface clocked at 5.2 Gbps for 5.3 TB/s peak theoretical bandwidth. MI300A carries 128 GB (8 stacks of 16 GB) at the same 5.3 TB/s, unified and cache-coherent between the CPU and GPU dies in a single physical and virtual address space. Full-chip ECC with page retirement and page avoidance"
+        "description": "192 GB of HBM3 on MI300X across 8 stacks of 24 GB, on an 8192-bit interface clocked at 5.2 Gbps for 5.3 TB/s peak theoretical bandwidth. MI300A carries 128 GB (8 stacks of 16 GB) at the same 5.3 TB/s, unified and cache-coherent between the CPU and GPU dies in a single physical and virtual address space. Full-chip ECC with page retirement and page avoidance",
+        "Performance": {
+          "TransferRate": 5.2,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 5300, "Unit": "GB/s", "Source": "Published" }
+          ]
+        }
       }
-    ]
+    }
   },
   "KernelModel": {
     "LLVMTarget": "amdgcn",
@@ -330,7 +371,7 @@
         "Description": "Wavefronts are 64 work-items wide; gfx942 is wave64 only"
       }
     ],
-    "SubUnits": [
+    "Toolchains": [
       {
         "Type": "HIP",
         "Version": "6.0"

@@ -17,8 +17,27 @@
         "Count": 1,
         "Size": 132,
         "Description": "GH100 die: 80 billion transistors on 814 mm2, built on the TSMC 4N process customized for NVIDIA. The primary configuration described by this file is H100 SXM5 (132 SMs, 16896 FP32 CUDA cores, 528 Tensor Cores, 80 GB HBM3, 700 W). The full GH100 die is larger than any shipping product: 8 GPCs / 72 TPCs / 144 SMs, 18432 FP32 cores, 576 Tensor Cores, 60 MB L2 and 6 HBM stacks. H100 PCIe ships 114 SMs (57 TPCs, 14592 FP32 cores, 456 Tensor Cores) with 80 GB HBM2e at 2 TB/s and a configurable 300-350 W; H100 NVL ships 132 SMs with 94 GB HBM3 at 3.9 TB/s and 350-400 W. Supports up to 7 MIG instances of 10 GB each (12 GB each on H100 NVL), ECC, and Confidential Computing. GH100 is a compute-only part: no display outputs and no RT cores",
-        "Memory": ["L2 Cache", "HBM3 (Device DRAM)", "Constant Memory"],
-        "Subunits": ["GPC", "Memory Controller", "HBM3 Stack", "NVLink 4 Link", "PCIe Controller", "NVDEC Engine", "NVJPEG Engine"]
+        "Memory": ["L2", "HBM3", "Constant Memory"],
+        "Subunits": ["GPC", "Memory Controller", "HBM3 Stack", "NVLink 4 Link", "PCIe Controller", "NVDEC Engine", "NVJPEG Engine"],
+        "Performance": {
+          "ClockRate": 1980,
+          "Source": "Derived",
+          "Throughput": [
+            { "Rate": 67, "Unit": "TFLOP/s", "Precision": "FP32", "Mode": "Non-Tensor", "Source": "Published" },
+            { "Rate": 34, "Unit": "TFLOP/s", "Precision": "FP64", "Mode": "Non-Tensor", "Source": "Published" },
+            { "Rate": 67, "Unit": "TFLOP/s", "Precision": "FP64", "Mode": "Tensor", "Source": "Published" },
+            { "Rate": 989, "Unit": "TFLOP/s", "Precision": "TF32", "Mode": "Sparse", "Source": "Published" },
+            { "Rate": 494.5, "Unit": "TFLOP/s", "Precision": "TF32", "Mode": "Dense", "Source": "Derived" },
+            { "Rate": 1979, "Unit": "TFLOP/s", "Precision": "BF16", "Mode": "Sparse", "Source": "Published" },
+            { "Rate": 989.5, "Unit": "TFLOP/s", "Precision": "BF16", "Mode": "Dense", "Source": "Derived" },
+            { "Rate": 1979, "Unit": "TFLOP/s", "Precision": "FP16", "Mode": "Sparse", "Source": "Published" },
+            { "Rate": 989.5, "Unit": "TFLOP/s", "Precision": "FP16", "Mode": "Dense", "Source": "Derived" },
+            { "Rate": 3958, "Unit": "TFLOP/s", "Precision": "FP8", "Mode": "Sparse", "Source": "Published" },
+            { "Rate": 1979, "Unit": "TFLOP/s", "Precision": "FP8", "Mode": "Dense", "Source": "Derived" },
+            { "Rate": 3958, "Unit": "TOP/s", "Precision": "INT8", "Mode": "Sparse", "Source": "Published" },
+            { "Rate": 1979, "Unit": "TOP/s", "Precision": "INT8", "Mode": "Dense", "Source": "Derived" }
+          ]
+        }
       },
       "GPC": {
         "Count": 8,
@@ -36,13 +55,25 @@
         "Count": 2,
         "Size": 128,
         "Description": "Hopper Streaming Multiprocessor, organized as 4 processing blocks (partitions) that each hold one warp scheduler, one dispatch unit, a 64 KB register file slice, one fourth-generation Tensor Core, 32 FP32 lanes, 16 INT32 lanes, 16 FP64 lanes, 4 SFUs, 8 LD/ST units and 1 texture unit. Compute capability 9.0 limits: 2048 resident threads (64 warps), 32 resident thread blocks, 255 registers per thread, 65536 32-bit registers per SM, 228 KB of shared memory per SM. Hopper adds thread block clusters (portable maximum 8 blocks, non-portable 16 on H100) with distributed shared memory across the cluster, and DPX dynamic-programming instructions at 128 operations per cycle per SM. FP32 throughput per SM per clock is 2x that of compute capability 8.0",
-        "Memory": ["Register File (per SM)", "L1 Data Cache / Shared Memory (per SM)"],
-        "Subunits": ["FP32 CUDA Core", "INT32 Core", "FP64 Core", "Tensor Core", "SFU", "LD/ST Unit", "Warp Scheduler", "Texture Unit", "Tensor Memory Accelerator"]
+        "Memory": ["Register File", "L1 and Shared Memory"],
+        "Subunits": ["FP32 CUDA Core", "INT32 Core", "FP64 Core", "Tensor Core", "SFU", "LD/ST Unit", "Warp Scheduler", "Texture Unit", "Tensor Memory Accelerator"],
+        "Performance": {
+          "ClockRate": 1980,
+          "Source": "Derived",
+          "Throughput": [
+            { "Rate": 128, "Unit": "OP/cycle", "Mode": "DPX", "Source": "Published" }
+          ]
+        }
       },
       "FP32 CUDA Core": {
         "Count": 128,
         "Size": 1,
-        "Description": "Single-precision FP32 lane, 32 per processing block. 16896 per H100 SXM5 (14592 on H100 PCIe, 18432 on the full GH100 die), giving 67 TFLOPS of peak non-tensor FP32 on H100 SXM5 and 51 TFLOPS on H100 PCIe"
+        "Description": "Single-precision FP32 lane, 32 per processing block. 16896 per H100 SXM5 (14592 on H100 PCIe, 18432 on the full GH100 die), giving 67 TFLOPS of peak non-tensor FP32 on H100 SXM5 and 51 TFLOPS on H100 PCIe",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 2, "Unit": "FLOP/cycle", "Precision": "FP32", "Source": "Published" }
+          ]
+        }
       },
       "INT32 Core": {
         "Count": 64,
@@ -93,17 +124,32 @@
         "Count": 5,
         "Size": 1,
         "Description": "16 GB HBM3 stack, 5 stacks for 80 GB on H100 SXM5 at 3.35 TB/s. The full GH100 die supports 6 HBM3 or HBM2e stacks. H100 PCIe uses 5 HBM2e stacks (80 GB at 2 TB/s); H100 NVL exposes 94 GB of HBM3 per GPU at 3.9 TB/s",
-        "Memory": ["HBM3 (Device DRAM)"]
+        "Memory": ["HBM3"],
+        "Performance": {
+          "Throughput": [
+            { "Rate": 670, "Unit": "GB/s", "Source": "Derived" }
+          ]
+        }
       },
       "NVLink 4 Link": {
         "Count": 18,
         "Size": 1,
-        "Description": "Fourth-generation NVLink port, 50 GB/s bidirectional each, 18 ports for 900 GB/s total on H100 SXM5. An HGX/DGX H100 baseboard connects 8 GPUs through NVSwitch, and the NVLink Switch System extends the domain to 256 GPUs. H100 PCIe instead uses a 3-way NVLink bridge (600 GB/s) across 2 GPUs; H100 NVL pairs two boards at 600 GB/s"
+        "Description": "Fourth-generation NVLink port, 50 GB/s bidirectional each, 18 ports for 900 GB/s total on H100 SXM5. An HGX/DGX H100 baseboard connects 8 GPUs through NVSwitch, and the NVLink Switch System extends the domain to 256 GPUs. H100 PCIe instead uses a 3-way NVLink bridge (600 GB/s) across 2 GPUs; H100 NVL pairs two boards at 600 GB/s",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 50, "Unit": "GB/s", "Mode": "Bidirectional", "Source": "Published" }
+          ]
+        }
       },
       "PCIe Controller": {
         "Count": 1,
         "Size": 1,
-        "Description": "PCIe Gen 5 x16 host interface, 128 GB/s bidirectional, with SR-IOV and Confidential Computing support"
+        "Description": "PCIe Gen 5 x16 host interface, 128 GB/s bidirectional, with SR-IOV and Confidential Computing support",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 128, "Unit": "GB/s", "Mode": "Bidirectional", "Source": "Published" }
+          ]
+        }
       },
       "NVDEC Engine": {
         "Count": 7,
@@ -119,40 +165,40 @@
   },
   "MemorySubsystem": {
     "SupportedMemoryTypes": ["HBM3", "HBM2e"],
-    "MemoryTypes": [
-      {
-        "Type": "Register File (per SM)",
+    "MemoryTypes": {
+      "Register File": {
         "Size": 256,
         "BankCount": 4,
         "description": "65536 32-bit registers (256 KB) per SM, split evenly across the 4 processing blocks. A single thread may use at most 255 registers. Aggregate register file on H100 SXM5 is 33 MB across 132 SMs"
       },
-      {
-        "Type": "L1 Data Cache / Shared Memory (per SM)",
+      "L1 and Shared Memory": {
         "Size": 256,
         "BankCount": 32,
         "description": "256 KB of unified L1 data cache, texture cache and shared memory per SM, up 33% from 192 KB on Ampere. The shared-memory carveout is configurable to 0, 8, 16, 32, 64, 100, 132, 164, 196 or 228 KB per SM; a single thread block may address at most 227 KB because CUDA reserves 1 KB. Shared memory is banked 32 ways, and Hopper thread block clusters can address the shared memory of peer blocks as distributed shared memory"
       },
-      {
-        "Type": "L2 Cache",
+      "L2": {
         "Size": 51200,
         "MaxMemoryBandwidth": 3350,
         "maxBusWidth": 5120,
         "description": "50 MB of GPU-wide L2 on both H100 SXM5 and H100 PCIe; the full GH100 die has 60 MB. Backs all SMs and fronts the HBM controllers, and supports L2 residency controls and compression"
       },
-      {
-        "Type": "HBM3 (Device DRAM)",
+      "HBM3": {
         "Size": 83886080,
         "BankCount": 5,
         "MaxMemoryBandwidth": 3350,
         "maxBusWidth": 5120,
-        "description": "80 GB of HBM3 across 5 stacks on a 5120-bit interface, 3.35 TB/s on H100 SXM5. H100 PCIe uses 80 GB of HBM2e on the same 5120-bit interface at 2 TB/s; H100 NVL exposes 94 GB of HBM3 per GPU at 3.9 TB/s. ECC is enabled on all SKUs"
+        "description": "80 GB of HBM3 across 5 stacks on a 5120-bit interface, 3.35 TB/s on H100 SXM5. H100 PCIe uses 80 GB of HBM2e on the same 5120-bit interface at 2 TB/s; H100 NVL exposes 94 GB of HBM3 per GPU at 3.9 TB/s. ECC is enabled on all SKUs",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 3350, "Unit": "GB/s", "Source": "Published" }
+          ]
+        }
       },
-      {
-        "Type": "Constant Memory",
+      "Constant Memory": {
         "Size": 64,
         "description": "64 KB constant memory window per device context for compute capability 9.0, served through a per-SM constant cache whose size NVIDIA does not publish"
       }
-    ]
+    }
   },
   "KernelModel": {
     "LLVMTarget": "nvptx64",
@@ -175,7 +221,7 @@
         "Description": "PTX ISA 8.0 (CUDA 12.0), the first release able to target sm_90a"
       }
     ],
-    "SubUnits": [
+    "Toolchains": [
       {
         "Type": "CUDA",
         "Version": "11.8"

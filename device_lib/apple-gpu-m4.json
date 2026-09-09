@@ -36,20 +36,22 @@
   },
   "MemorySubsystem": {
     "SupportedMemoryTypes": ["LPDDR5"],
-    "MemoryTypes": [
-      {
-        "Type": "Threadgroup Memory",
+    "MemoryTypes": {
+      "Threadgroup Memory": {
         "Size": 32,
         "description": "Maximum threadgroup (shared) memory allocation per threadgroup is 32 KB for the Apple9 GPU family (Apple Metal Feature Set Tables); maximum threads per threadgroup is 1024 and maximum buffer length is 2 GB. On M3-generation and later GPUs this storage is drawn from the Dynamic Caching on-chip pool that also backs registers and stack, so the physical pool size per core is not a published constant"
       },
-      {
-        "Type": "Unified Memory",
+      "Unified Memory": {
         "Size": 33554432,
         "MaxMemoryBandwidth": 120,
         "maxBusWidth": 128,
-        "description": "LPDDR5X unified memory shared by CPU, GPU, Neural Engine and media engine with zero-copy access. Apple publishes 120 GB/s of memory bandwidth and configurations of 16 GB, 24 GB or 32 GB; the 32 GB maximum is recorded here. The 128-bit bus width is the arithmetic match for 120 GB/s at LPDDR5X-7500 (Apple does not state bus width directly). LPDDR5X is reported as LPDDR5 above because the schema enum has no LPDDR5X value. Apple publishes no GPU L1/L2 or system-level cache sizes for M4, so no cache levels are listed"
+        "description": "LPDDR5X unified memory shared by CPU, GPU, Neural Engine and media engine with zero-copy access. Apple publishes 120 GB/s of memory bandwidth and configurations of 16 GB, 24 GB or 32 GB; the 32 GB maximum is recorded here. The 128-bit bus width is the arithmetic match for 120 GB/s at LPDDR5X-7500 (Apple does not state bus width directly). LPDDR5X is reported as LPDDR5 above because the schema enum has no LPDDR5X value. Apple publishes no GPU L1/L2 or system-level cache sizes for M4, so no cache levels are listed",
+        "Performance": {
+          "TransferRate": 7.5,
+          "Source": "Derived"
+        }
       }
-    ]
+    }
   },
   "KernelModel": {
     "LLVMTarget": "air64",
@@ -60,7 +62,7 @@
         "Description": "Apple Intermediate Representation (AIR), the LLVM-bitcode-based IR emitted by Apple's metal compiler (-target air64-apple-macos<version>, or air64-apple-ios<version> for iPadOS). AIR is Apple-private and is not an upstream LLVM backend target; there is no public LLVM target for the Apple GPU ISA"
       }
     ],
-    "SubUnits": [
+    "Toolchains": [
       {
         "Type": "metal",
         "Version": "4"

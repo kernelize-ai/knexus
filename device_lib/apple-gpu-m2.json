@@ -17,8 +17,13 @@
         "Count": 1,
         "Size": 10,
         "Description": "Integrated GPU block of the Apple M2 SoC. Apple publishes up to 10 GPU cores (8-core bins also ship) and 100 GB/s of unified memory bandwidth. There is no dedicated VRAM: the GPU reads and writes the same LPDDR5 unified memory as the CPU, the 16-core Neural Engine (15.8 trillion operations per second) and the media engine, all of which are separate blocks on the same die. Apple reports 20 billion transistors for the whole M2 SoC. The media engine listed under SpecializedHardware is a separate fixed-function block, not part of the GPU cores; its \"Other\" codec entries are ProRes and ProRes RAW, which have a dedicated encode and decode engine. AV1 decode is absent on M2 - Apple states it arrived with the M3 media engine for the first time - and the VP9 decode entry is third-party verified rather than Apple-documented",
-        "Memory": ["L2 Cache (GPU)", "System Level Cache", "Unified Memory (LPDDR5)"],
-        "Subunits": ["GPU Core"]
+        "Memory": ["L2", "SLC", "Unified Memory"],
+        "Subunits": ["GPU Core"],
+        "Performance": {
+          "Throughput": [
+            { "Rate": 3.58, "Unit": "TFLOP/s", "Precision": "FP32", "Source": "Derived" }
+          ]
+        }
       },
       "GPU Core": {
         "Count": 10,
@@ -36,45 +41,42 @@
   },
   "MemorySubsystem": {
     "SupportedMemoryTypes": ["LPDDR5"],
-    "MemoryTypes": [
-      {
-        "Type": "Register File",
+    "MemoryTypes": {
+      "Register File": {
         "Size": 208,
         "description": "Approximately 208 KB of registers per GPU core across the Apple7/Apple8 generations. Not published by Apple; measured by public microbenchmarking. Apple's register file is large relative to its very small L1 and L2, and occupancy on Apple8 ranges from 384 to 3072 resident threads per core depending on register pressure"
       },
-      {
-        "Type": "Threadgroup Memory",
+      "Threadgroup Memory": {
         "Size": 32,
         "description": "Metal caps a single threadgroup at 32 KB of threadgroup memory on the Apple8 family, with explicit imageblock (tile) allocation also capped at 32 KB per threadgroup and implicit imageblock allocation at 128 KB (Metal Feature Set Tables). Maximum threads per threadgroup is 1024 and threadgroup memory length alignment is 16 B. Physical per-core threadgroup memory is larger than the per-threadgroup cap - public microbenchmarking measures roughly 60 KB per core - which allows several threadgroups to be resident at once"
       },
-      {
-        "Type": "L1 Data Cache",
+      "L1 Data Cache": {
         "Size": 8,
         "description": "8 KB L1 data cache per GPU core with a 128-byte global cache line. Not published by Apple; measured by public microbenchmarking. Deliberately small compared with contemporary AMD and NVIDIA cores, offset by a large register file and a very low-latency L2"
       },
-      {
-        "Type": "L1 Instruction Cache",
+      "L1 Instruction Cache": {
         "Size": 12,
         "description": "12 KB L1 instruction cache per GPU core. Not published by Apple; measured by public microbenchmarking"
       },
-      {
-        "Type": "L2 Cache (GPU)",
+      "L2": {
         "Size": 1536,
         "description": "GPU-wide L2 cache, approximately 1.5 MB on the base M2. Apple publishes no GPU cache sizes. This figure rests on a single public microbenchmarking estimate and is explicitly marked approximate by its source; independent measurements of the M1 and of the M2 Pro die report different capacities, so treat it as indicative only. Apple L2 capacity is known to vary non-monotonically across a family"
       },
-      {
-        "Type": "System Level Cache",
+      "SLC": {
         "Size": 8192,
         "description": "8 MB SoC-wide system level cache shared by the CPU, GPU, Neural Engine and media engine, backing the GPU L2 in front of LPDDR5. Not published by Apple; measured by public microbenchmarking"
       },
-      {
-        "Type": "Unified Memory (LPDDR5)",
+      "Unified Memory": {
         "Size": 25165824,
         "MaxMemoryBandwidth": 100,
         "maxBusWidth": 128,
-        "description": "LPDDR5 unified memory shared with the CPU, Neural Engine and media engine; there is no separate VRAM and no copy across a bus. Apple publishes 100 GB/s of unified memory bandwidth and 8 GB, 16 GB and 24 GB configurations; the Size given here is the maximum 24 GB configuration in KB. Apple does not publish the bus width or LPDDR5 speed grade; public die-shot analysis identifies a 128-bit LPDDR5 bus at 6400 MT/s, which yields 102.4 GB/s and is consistent with Apple's rounded 100 GB/s. Per-package and per-channel counts for the base M2 are not publicly established and are therefore omitted"
+        "description": "LPDDR5 unified memory shared with the CPU, Neural Engine and media engine; there is no separate VRAM and no copy across a bus. Apple publishes 100 GB/s of unified memory bandwidth and 8 GB, 16 GB and 24 GB configurations; the Size given here is the maximum 24 GB configuration in KB. Apple does not publish the bus width or LPDDR5 speed grade; public die-shot analysis identifies a 128-bit LPDDR5 bus at 6400 MT/s, which yields 102.4 GB/s and is consistent with Apple's rounded 100 GB/s. Per-package and per-channel counts for the base M2 are not publicly established and are therefore omitted",
+        "Performance": {
+          "TransferRate": 6.4,
+          "Source": "Derived"
+        }
       }
-    ]
+    }
   },
   "KernelModel": {
     "LLVMTarget": "air64",
@@ -85,7 +87,7 @@
         "Description": "Apple Intermediate Representation (AIR), the LLVM-bitcode-based IR that Apple's Metal compiler emits into a .metallib. The triple air64-apple-macosx<version> is what Apple's toolchain uses (air64-apple-ios / air64-apple-tvos for the other platforms), but air64 is not a registered upstream LLVM target and Apple publishes no GPU ISA documentation"
       }
     ],
-    "SubUnits": [
+    "Toolchains": [
       {
         "Type": "Metal",
         "Version": "3"

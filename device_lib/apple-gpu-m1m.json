@@ -17,14 +17,18 @@
         "Count": 1,
         "Size": 32,
         "Description": "Integrated GPU block of the M1 Max SoC (57 billion transistors total). Up to 32 GPU cores, 4,096 ALUs, approximately 10.4 TFLOPS FP32 at the peak 1296 MHz clock. Cores share the SoC's system level cache and the unified memory pool with the CPU, Neural Engine, and media engine. The 16-core Neural Engine and the ProRes/video media engines are separate SoC blocks and are not part of the GPU or addressable from Metal. A 24-core GPU binned variant of the same die is also sold; this entry describes the full 32-core configuration. Two M1 Max dies can be joined by Apple's UltraFusion silicon interposer at 2.5 TB/s to form the 64-core-GPU M1 Ultra",
-        "Memory": ["System Level Cache", "Unified Memory (LPDDR5)"],
-        "Subunits": ["GPU Core"]
+        "Memory": ["SLC", "Unified Memory"],
+        "Subunits": ["GPU Core"],
+        "Performance": {
+          "ClockRate": 1296,
+          "Source": "Measured"
+        }
       },
       "GPU Core": {
         "Count": 32,
         "Size": 128,
         "Description": "Unified shader core. Apple publishes only the core count; the 128 ALUs per core figure is derived from the widely reported 4,096 total ALUs divided across 32 cores. Each core has its own L1 texture cache and L1 buffer cache (Apple confirms both exist but publishes no capacities) plus 32 KB of on-chip threadgroup/imageblock memory. Threads execute in SIMD groups of 32",
-        "Memory": ["L1 Texture Cache", "L1 Buffer Cache", "Threadgroup Memory", "Imageblock (Tile) Memory"],
+        "Memory": ["L1 Texture Cache", "L1 Buffer Cache", "Threadgroup Memory", "Tile Memory"],
         "Subunits": ["ALU"]
       },
       "ALU": {
@@ -36,39 +40,37 @@
   },
   "MemorySubsystem": {
     "SupportedMemoryTypes": ["LPDDR5"],
-    "MemoryTypes": [
-      {
-        "Type": "Threadgroup Memory",
+    "MemoryTypes": {
+      "Threadgroup Memory": {
         "Size": 32,
         "description": "32 KB maximum total threadgroup memory allocation per threadgroup on the Apple7 GPU family, per Apple's Metal Feature Set Tables. Shared with explicit imageblock (tile) memory: the sum of the two allocations cannot exceed the imageblock limit"
       },
-      {
-        "Type": "Imageblock (Tile) Memory",
+      "Tile Memory": {
         "Size": 128,
         "description": "On-chip tile storage for the tile-based deferred renderer. Apple7 allows up to 128 KB of implicit imageblock allocation and up to 32 KB of explicit imageblock allocation. Maximum tile size is 32x32 pixels without MSAA (32x16 with 4x MSAA)"
       },
-      {
-        "Type": "L1 Texture Cache",
+      "L1 Texture Cache": {
         "description": "Per-GPU-core read path cache for texture fetches, described in Apple's 'Metal Compute on MacBook Pro' tech talk. Apple does not publish its capacity and no authoritative measurement is available, so no size is recorded"
       },
-      {
-        "Type": "L1 Buffer Cache",
+      "L1 Buffer Cache": {
         "description": "Per-GPU-core cache for buffer reads, separate from the texture cache, described in Apple's 'Metal Compute on MacBook Pro' tech talk. Capacity is not published by Apple, so no size is recorded"
       },
-      {
-        "Type": "System Level Cache",
+      "SLC": {
         "Size": 49152,
         "MaxMemoryBandwidth": 400,
         "description": "48 MB SoC-wide system level cache sitting in front of the memory controllers and shared by the GPU, CPU, and other SoC blocks. Apple does not publish this figure; 48 MB is AnandTech's measured value for M1 Max. There is no publicly established figure for a GPU-private L2, so none is listed"
       },
-      {
-        "Type": "Unified Memory (LPDDR5)",
+      "Unified Memory": {
         "Size": 67108864,
         "MaxMemoryBandwidth": 400,
         "maxBusWidth": 512,
-        "description": "Up to 64 GB of LPDDR5-6400 unified memory on a 512-bit interface delivering Apple's stated 400 GB/s peak bandwidth, shared coherently by CPU, GPU, Neural Engine, and media engine with no separate VRAM copy. Sold in 32 GB and 64 GB configurations; Metal reports a recommended GPU working set of about 21 GB on a 32 GB system and about 48 GB on a 64 GB system"
+        "description": "Up to 64 GB of LPDDR5-6400 unified memory on a 512-bit interface delivering Apple's stated 400 GB/s peak bandwidth, shared coherently by CPU, GPU, Neural Engine, and media engine with no separate VRAM copy. Sold in 32 GB and 64 GB configurations; Metal reports a recommended GPU working set of about 21 GB on a 32 GB system and about 48 GB on a 64 GB system",
+        "Performance": {
+          "TransferRate": 6.4,
+          "Source": "Derived"
+        }
       }
-    ]
+    }
   },
   "KernelModel": {
     "LLVMTarget": "air64",
@@ -79,7 +81,7 @@
         "Description": "Apple Intermediate Representation. The Metal compiler is Clang/LLVM based and emits LLVM bitcode carrying an air64-apple-macos triple, but air64 is not an upstream LLVM target: it is only accepted by Apple's metal compiler shipped with Xcode"
       }
     ],
-    "SubUnits": [
+    "Toolchains": [
       {
         "Type": "Metal",
         "Version": "4"

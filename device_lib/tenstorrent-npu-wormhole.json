@@ -17,42 +17,69 @@
         "Count": 1,
         "Size": 80,
         "Description": "One Wormhole B0 ASIC: a ~670 mm2 GlobalFoundries 12 nm die whose two NoCs form a 2D torus over a 10x12 grid of tiles. The grid holds 80 Tensix compute tiles, 18 GDDR6 DRAM tiles, 16 Ethernet tiles, 1 PCI Express tile and 1 ARC management tile. Tensix tiles are harvested per product: Tenstorrent's spec sheet lists 72 enabled on n150 and 64 per ASIC on n300 (128 across the card's two ASICs); 80 is the full unharvested die and is the count used throughout this file",
-        "Memory": ["GDDR6 (Off-chip DRAM)", "SRAM (L1 per Tensix Core)"],
+        "Memory": ["GDDR6", "Tensix L1"],
         "Subunits": ["Tensix Core", "DRAM Controller", "Ethernet Controller", "PCIe Controller", "ARC Management Core"]
       },
       "Tensix Core": {
         "Count": 80,
         "Size": 5,
         "Description": "Compute tile (worker tile) holding 5 Baby RISC-V cores, a matrix unit (FPU), a vector unit (SFPU), packers and unpackers, 2 NoC router interfaces, and 1464 KiB of local L1 SRAM (marketed by Tenstorrent as 1.5 MB). Of the 80 tiles on the die, n150 cards expose 72 and n300 cards expose 64 per ASIC (128 per card); the rest are fused off",
-        "Memory": ["SRAM (L1 per Tensix Core)"],
-        "Subunits": ["Baby RISC-V", "Matrix Unit (FPU)", "Vector Unit (SFPU)"]
+        "Memory": ["Tensix L1"],
+        "Subunits": ["Baby RISC-V", "Matrix Unit (FPU)", "Vector Unit (SFPU)"],
+        "Performance": {
+          "ClockRate": 1000,
+          "Source": "Published"
+        }
       },
       "Baby RISC-V": {
         "Count": 5,
         "Size": 1,
         "Description": "Small in-order RV32IM cores (RV32I plus hardware multiply and divide; no compressed, atomic or hardware floating-point extensions). They mostly dispatch instructions to the Tensix coprocessor and drive the NoC rather than computing directly. Roles: RISCV B (BRISC, control, exposed by TT-Metalium as Data Movement 0), RISCV NC (NCRISC, network control, Data Movement 1) and RISCV T0/T1/T2 (the TRISCs) driving Unpack, Math and Pack. All five run concurrently, so data movement and compute overlap natively",
-        "Memory": ["Instruction Cache (per Baby RISC-V)", "Private RISC-V Data RAM"]
+        "Memory": ["Instruction Cache", "Private RISC-V Data RAM"]
       },
       "Matrix Unit (FPU)": {
         "Count": 1,
         "Size": 1,
-        "Description": "Per-Tensix matrix engine. It multiplies low-precision (<= 19-bit) source matrices held in SrcA/SrcB and accumulates into Dst at 16- or 32-bit precision. Native source formats are TF32, BF16, FP16 and INT8; BFP8/BFP4/BFP2 block-float tiles (8/4/2 bits per datum with a shared 8-bit exponent per 16 datums) are decompressed by the unpackers on the way in, and higher effective precision is reached by running 2-4 fidelity phases. Tenstorrent's ISA documentation gives a theoretical peak of 4.096 TFLOP/s per matrix unit at the 1 GHz AI clock for MVMUL/DOTPV at 1 fidelity phase, halving as phases are added. Tenstorrent's published card figures are 262 TFLOPS FP8, 148 TFLOPS BFP8 and 74 TFLOPS FP16 for n150, and 466 / 262 / 131 TFLOPS for n300; no INT8 TOPS figure is published"
+        "Description": "Per-Tensix matrix engine. It multiplies low-precision (<= 19-bit) source matrices held in SrcA/SrcB and accumulates into Dst at 16- or 32-bit precision. Native source formats are TF32, BF16, FP16 and INT8; BFP8/BFP4/BFP2 block-float tiles (8/4/2 bits per datum with a shared 8-bit exponent per 16 datums) are decompressed by the unpackers on the way in, and higher effective precision is reached by running 2-4 fidelity phases. Tenstorrent's ISA documentation gives a theoretical peak of 4.096 TFLOP/s per matrix unit at the 1 GHz AI clock for MVMUL/DOTPV at 1 fidelity phase, halving as phases are added. Tenstorrent's published card figures are 262 TFLOPS FP8, 148 TFLOPS BFP8 and 74 TFLOPS FP16 for n150, and 466 / 262 / 131 TFLOPS for n300; no INT8 TOPS figure is published",
+        "Performance": {
+          "ClockRate": 1000,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 4.096, "Unit": "TFLOP/s", "Mode": "LoFi", "Source": "Published" }
+          ]
+        }
       },
       "Vector Unit (SFPU)": {
         "Count": 1,
         "Size": 32,
-        "Description": "Per-Tensix SIMD unit, 32 lanes of 32 bits wide with 8 general-purpose vector registers (LRegs), used for element-wise unary and binary operations: activations, comparisons, reductions and transcendentals. Programmed through Tenstorrent's SFPI C++ intrinsics in the riscv-tt-elf GCC toolchain"
+        "Description": "Per-Tensix SIMD unit, 32 lanes of 32 bits wide with 8 general-purpose vector registers (LRegs), used for element-wise unary and binary operations: activations, comparisons, reductions and transcendentals. Programmed through Tenstorrent's SFPI C++ intrinsics in the riscv-tt-elf GCC toolchain",
+        "Performance": {
+          "LaneWidth": 32,
+          "Source": "Published"
+        }
       },
       "DRAM Controller": {
         "Count": 6,
         "Size": 1,
-        "Description": "The 18 GDDR6 DRAM tiles on the die are arranged in 6 groups of 3 tiles, and each group fronts 2 GDDR6 channels of 1 GiB, so 2 GiB per group and 12 GiB per ASIC. The three tiles in a group are separate NoC endpoints for the same memory, which improves NoC connectivity. Each of the 12 channels is 16 bits wide at 12 GT/s, giving 24 GB/s per channel and 288 GB/s per ASIC"
+        "Description": "The 18 GDDR6 DRAM tiles on the die are arranged in 6 groups of 3 tiles, and each group fronts 2 GDDR6 channels of 1 GiB, so 2 GiB per group and 12 GiB per ASIC. The three tiles in a group are separate NoC endpoints for the same memory, which improves NoC connectivity. Each of the 12 channels is 16 bits wide at 12 GT/s, giving 24 GB/s per channel and 288 GB/s per ASIC",
+        "Performance": {
+          "TransferRate": 12,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 48, "Unit": "GB/s", "Source": "Derived" }
+          ]
+        }
       },
       "Ethernet Controller": {
         "Count": 16,
         "Size": 1,
         "Description": "16 Ethernet tiles per ASIC, each carrying one 100 GbE link and containing 256 KiB of L1 and one RV32IM Baby RISC-V core. Aggregate chip-to-chip bandwidth is 1.6 Tbps (200 GB/s) per ASIC. On an n300 card two of these links join the two ASICs on-card at 400 GbE; each card also exposes 2x QSFP-DD 400GbE ports and 2x Warp 100 Bridge notches for card-to-card meshes",
-        "Memory": ["SRAM (L1 per Ethernet Core)"]
+        "Memory": ["Ethernet L1"],
+        "Performance": {
+          "Throughput": [
+            { "Rate": 100, "Unit": "Gb/s", "Source": "Published" }
+          ]
+        }
       },
       "PCIe Controller": {
         "Count": 1,
@@ -68,40 +95,54 @@
   },
   "MemorySubsystem": {
     "SupportedMemoryTypes": ["GDDR6"],
-    "MemoryTypes": [
-      {
-        "Type": "SRAM (L1 per Tensix Core)",
+    "MemoryTypes": {
+      "Tensix L1": {
         "Size": 1464,
         "BankCount": 16,
         "MaxMemoryBandwidth": 256,
-        "description": "1464 KiB (1,499,136 bytes) of software-managed scratchpad SRAM per Tensix tile, organised as 16 banks of 91.5 KiB; each bank sustains one 128-bit read or one 128-bit write per cycle, which works out to 256 B/cycle, i.e. the 256 GB/s figure above at the 1 GHz AI clock (derived from the bank organisation, not a vendor-published number). It is not a cache: there is no automatic fill, eviction or coherence, and data is placed explicitly by NoC transfers. It holds kernel code, circular buffers, tiles and inter-core data. Tenstorrent markets it as 1.5 MB per Tensix core and 120 MB per ASIC; the exact totals are 114.4 MiB over the full 80 tiles, 103.0 MiB on n150 (72 tiles) and 91.5 MiB per ASIC on n300 (64 tiles)"
+        "description": "1464 KiB (1,499,136 bytes) of software-managed scratchpad SRAM per Tensix tile, organised as 16 banks of 91.5 KiB; each bank sustains one 128-bit read or one 128-bit write per cycle, which works out to 256 B/cycle, i.e. the 256 GB/s figure above at the 1 GHz AI clock (derived from the bank organisation, not a vendor-published number). It is not a cache: there is no automatic fill, eviction or coherence, and data is placed explicitly by NoC transfers. It holds kernel code, circular buffers, tiles and inter-core data. Tenstorrent markets it as 1.5 MB per Tensix core and 120 MB per ASIC; the exact totals are 114.4 MiB over the full 80 tiles, 103.0 MiB on n150 (72 tiles) and 91.5 MiB per ASIC on n300 (64 tiles)",
+        "Performance": {
+          "ClockRate": 1000,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 256, "Unit": "byte/cycle", "Source": "Derived" },
+            { "Rate": 256, "Unit": "GB/s", "Source": "Derived" }
+          ]
+        }
       },
-      {
-        "Type": "SRAM (L1 per Ethernet Core)",
+      "Ethernet L1": {
         "Size": 256,
         "description": "256 KiB of L1 SRAM in each of the 16 Ethernet tiles, holding the Ethernet firmware, the transmit/receive queues and chip-to-chip staging buffers. 4 MiB per ASIC in total. This memory is addressable over the NoC just like Tensix L1"
       },
-      {
-        "Type": "GDDR6 (Off-chip DRAM)",
+      "GDDR6": {
         "Size": 12582912,
         "BankCount": 12,
         "MaxMemoryBandwidth": 288,
         "maxBusWidth": 192,
-        "description": "12 GiB of GDDR6 per ASIC, exposed as 12 independent 1 GiB channels reached through 18 DRAM tiles on the NoC. Each channel is 16 bits wide at 12 GT/s for 24 GB/s, so 192 bits and 288 GB/s in aggregate; measured throughput is roughly 92% of theoretical. n150 cards have 12 GB at 288 GB/s, n300 cards 24 GB at 576 GB/s across their two ASICs. DRAM is not cached - Tensix cores stage data into L1 explicitly over the NoC"
+        "description": "12 GiB of off-chip GDDR6 per ASIC, exposed as 12 independent 1 GiB channels reached through 18 DRAM tiles on the NoC. Each channel is 16 bits wide at 12 GT/s for 24 GB/s, so 192 bits and 288 GB/s in aggregate; measured throughput is roughly 92% of theoretical. n150 cards have 12 GB at 288 GB/s, n300 cards 24 GB at 576 GB/s across their two ASICs. DRAM is not cached - Tensix cores stage data into L1 explicitly over the NoC",
+        "Performance": {
+          "TransferRate": 12,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 288, "Unit": "GB/s", "Source": "Derived" }
+          ]
+        }
       },
-      {
-        "Type": "Instruction Cache (per Baby RISC-V)",
+      "Instruction Cache": {
         "Size": 2,
         "BankCount": 1,
-        "description": "Kernel code lives in L1 and is fetched through a small per-core instruction cache: 2 KiB each on RISCV B, T0, T1 and T2. RISCV NC is the exception, with 16 KiB of local instruction RAM backed by a 0.5 KiB cache"
+        "description": "Kernel code lives in L1 and is fetched through a small instruction cache private to each Baby RISC-V core: 2 KiB each on RISCV B, T0, T1 and T2. RISCV NC is the exception, with 16 KiB of local instruction RAM backed by a 0.5 KiB cache"
       },
-      {
-        "Type": "Private RISC-V Data RAM",
+      "Private RISC-V Data RAM": {
         "Size": 4,
         "BankCount": 1,
-        "description": "Private data RAM per Baby RISC-V core with 2-cycle load latency, used for stack and thread-local storage: 4 KiB on RISCV B and RISCV NC, 2 KiB on each of RISCV T0, T1 and T2. Private to its own core, unlike L1, which all five cores see at the same addresses"
+        "description": "Private data RAM per Baby RISC-V core with 2-cycle load latency, used for stack and thread-local storage: 4 KiB on RISCV B and RISCV NC, 2 KiB on each of RISCV T0, T1 and T2. Private to its own core, unlike L1, which all five cores see at the same addresses",
+        "Performance": {
+          "Latency": 2,
+          "Source": "Published"
+        }
       }
-    ]
+    }
   },
   "KernelModel": {
     "LLVMTarget": "riscv32",
@@ -116,7 +157,7 @@
         "Description": "Tenstorrent's Wormhole SFPU vector extension. Tensix kernels are built with the SFPI riscv-tt-elf GCC toolchain and select it with -mcpu=tt-wh-tensix (historically -march=rv32iw); it exposes the 32-lane SFPU and its 8 LRegs. There is no upstream LLVM equivalent, so LLVM can only target the plain RV32IM scalar core"
       }
     ],
-    "SubUnits": [
+    "Toolchains": [
       {
         "Type": "TT-Metalium",
         "Version": "0.76.0"

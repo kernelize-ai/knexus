@@ -40,6 +40,23 @@ function(add_knexus_it)
   # add_dependencies(KNexusIntegrationTest ${__NAME})
 endfunction()
 
+# Device-library schema validation. Pure Python: needs neither a build artifact nor the
+# knexus extension module, only `jsonschema` (see requirements.txt), so it runs anywhere.
+find_package(Python3 QUIET COMPONENTS Interpreter)
+if(Python3_Interpreter_FOUND)
+  add_test(NAME device_schema
+           COMMAND ${Python3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/python/test_device_schema.py)
+  # Provenance audit of the Derived figures the schema validator cannot check.
+  # Pure stdlib Python: not even jsonschema.
+  add_test(NAME derived_provenance
+           COMMAND ${Python3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/python/test_derived_provenance.py)
+else()
+  message(STATUS "Python3 interpreter not found; skipping the device_schema and "
+                 "derived_provenance tests")
+endif()
+
 add_subdirectory(kernels)
 add_subdirectory(cpp)
 #add_subdirectory(pyknexus)

@@ -17,28 +17,36 @@
         "Count": 1,
         "Size": 8,
         "Description": "One Instinct MI350-series OAM package: 8 XCDs 3D-stacked in pairs of 4 on top of 2 IODs, plus 8 HBM3E stacks, 185 billion transistors total. 256 active compute units, 16384 stream processors and 1024 Matrix Cores. Primary device modelled here is the liquid-cooled MI355X (up to 2.4 GHz, 1400 W TBP); the air-cooled MI350X is the same silicon at up to 2.2 GHz and 1000 W TBP, giving proportionally ~9% lower peak throughput at identical memory capacity and bandwidth. Eight packages form a fully connected Infinity Fabric platform",
-        "Memory": ["HBM3E (Device DRAM)", "Infinity Cache (LLC, per IOD)"],
-        "Subunits": ["XCD", "IOD", "HBM3E Stack", "Infinity Fabric Link", "PCIe Controller"]
+        "Memory": ["HBM3E", "Infinity Cache"],
+        "Subunits": ["XCD", "IOD", "HBM3E Stack", "Infinity Fabric Link", "PCIe Controller"],
+        "Performance": {
+          "ClockRate": 2400,
+          "Source": "Published"
+        }
       },
       "XCD": {
         "Count": 8,
         "Size": 32,
         "Description": "Accelerator Complex Die built on TSMC N3P. Each XCD holds 36 physical compute units of which 32 are active (4 disabled for yield), a shared command processor and workgroup dispatcher, and 4 MB of L2 cache. Down from 38 active CUs per XCD on CDNA 3 / MI300X, offset by higher clocks",
-        "Memory": ["L2 (per XCD)"],
+        "Memory": ["L2"],
         "Subunits": ["Compute Unit"]
       },
       "Compute Unit": {
         "Count": 32,
         "Size": 4,
         "Description": "CDNA 4 compute unit: 4 SIMD16 vector units, 4 Matrix Cores, 1 scalar unit, 160 KB of LDS and 32 KB of L1 vector cache. Executes wavefronts of 64 work-items, up to 8 waves per SIMD (32 per CU). Delivers 128 FP32 lanes worth of throughput per clock via packed FP32 dual-issue, and half that for FP64",
-        "Memory": ["LDS (per CU)", "L1 Vector Cache (per CU)", "Vector Register File (per SIMD)"],
-        "Subunits": ["SIMD", "Matrix Core", "Scalar Unit"]
+        "Memory": ["LDS", "L1 Vector Cache", "VGPR"],
+        "Subunits": ["SIMD", "Matrix Core", "Scalar Unit"],
+        "Performance": {
+          "ClockRate": 2400,
+          "Source": "Published"
+        }
       },
       "SIMD": {
         "Count": 4,
         "Size": 16,
         "Description": "16-lane vector ALU; a wave64 is issued over 4 cycles. Backed by a 128 KB vector register file (512 32-bit VGPRs per lane) that is unified between architected VGPRs and accumulation AGPRs",
-        "Memory": ["Vector Register File (per SIMD)"]
+        "Memory": ["VGPR"]
       },
       "Matrix Core": {
         "Count": 4,
@@ -54,18 +62,32 @@
         "Count": 2,
         "Size": 4,
         "Description": "I/O die on TSMC N6. Each IOD hosts 4 of the 8 XCDs stacked above it and 4 of the 8 HBM3E stacks, and carries 128 MB of Infinity Cache plus the Infinity Fabric switching. IOD-to-IOD bisection bandwidth is 5.5 TB/s",
-        "Memory": ["Infinity Cache (LLC, per IOD)"]
+        "Memory": ["Infinity Cache"]
       },
       "HBM3E Stack": {
         "Count": 8,
         "Size": 12,
         "Description": "12-high HBM3E stack, 36 GB each, on a 1024-bit interface at 8 Gbps per pin. 8 stacks give 288 GB at 8 TB/s aggregate",
-        "Memory": ["HBM3E (Device DRAM)"]
+        "Memory": ["HBM3E"],
+        "Performance": {
+          "TransferRate": 8,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 1024, "Unit": "GB/s", "Source": "Derived" }
+          ]
+        }
       },
       "Infinity Fabric Link": {
         "Count": 7,
         "Size": 1,
-        "Description": "One of 7 4th-generation Infinity Fabric peer-to-peer links, each 16 bits wide at 38.4 Gbps, for 1075.2 GB/s of aggregate GPU-to-GPU bandwidth in an 8-way fully connected platform"
+        "Description": "One of 7 4th-generation Infinity Fabric peer-to-peer links, each 16 bits wide at 38.4 Gbps, for 1075.2 GB/s of aggregate GPU-to-GPU bandwidth in an 8-way fully connected platform",
+        "Performance": {
+          "TransferRate": 38.4,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 153.6, "Unit": "GB/s", "Source": "Derived" }
+          ]
+        }
       },
       "PCIe Controller": {
         "Count": 1,
@@ -76,41 +98,47 @@
   },
   "MemorySubsystem": {
     "SupportedMemoryTypes": ["Other"],
-    "MemoryTypes": [
-      {
-        "Type": "Vector Register File (per SIMD)",
+    "MemoryTypes": {
+      "VGPR": {
         "Size": 128,
         "description": "512 32-bit vector registers per lane across 64 lanes = 128 KB per SIMD, 512 KB per CU. The file is unified: a wave can use up to 512 architected VGPRs, or split the space between architected VGPRs and accumulation AGPRs (up to 256 of each)"
       },
-      {
-        "Type": "LDS (per CU)",
+      "LDS": {
         "Size": 160,
-        "description": "160 KB software-managed Local Data Share per compute unit, up from 64 KB on CDNA 3 — the single largest occupancy-relevant change in CDNA 4. Read bandwidth doubled to 256 bytes per clock, GLOBAL_LOAD_LDS widened to 128 bits per lane, and new read-with-transpose instructions feed the Matrix Cores directly. Total 40 MB across 256 CUs"
+        "description": "160 KB software-managed Local Data Share per compute unit, up from 64 KB on CDNA 3 — the single largest occupancy-relevant change in CDNA 4. Read bandwidth doubled to 256 bytes per clock, GLOBAL_LOAD_LDS widened to 128 bits per lane, and new read-with-transpose instructions feed the Matrix Cores directly. Total 40 MB across 256 CUs",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 256, "Unit": "byte/cycle", "Mode": "Read", "Source": "Published" }
+          ]
+        }
       },
-      {
-        "Type": "L1 Vector Cache (per CU)",
+      "L1 Vector Cache": {
         "Size": 32,
         "description": "32 KB per-CU vector L1 data cache, unchanged from CDNA 3"
       },
-      {
-        "Type": "L2 (per XCD)",
+      "L2": {
         "Size": 4096,
         "description": "4 MB L2 cache per XCD, coherent across all 8 XCDs; 32 MB total per package. CDNA 4 improves L2 writeback handling of dirty data"
       },
-      {
-        "Type": "Infinity Cache (LLC, per IOD)",
+      "Infinity Cache": {
         "Size": 131072,
         "description": "128 MB of memory-attached last-level Infinity Cache per IOD, 256 MB total, sitting in front of HBM3E and shared by all XCDs"
       },
-      {
-        "Type": "HBM3E (Device DRAM)",
+      "HBM3E": {
         "Size": 301989888,
         "BankCount": 8,
         "MaxMemoryBandwidth": 8000,
         "maxBusWidth": 8192,
-        "description": "288 GB of HBM3E across 8 12-high stacks at 8 Gbps per pin, 8 TB/s peak bandwidth over an aggregate 8192-bit interface (1024 bits per stack). Identical on MI350X and MI355X"
+        "description": "288 GB of HBM3E across 8 12-high stacks at 8 Gbps per pin, 8 TB/s peak bandwidth over an aggregate 8192-bit interface (1024 bits per stack). Identical on MI350X and MI355X",
+        "Performance": {
+          "TransferRate": 8,
+          "Source": "Published",
+          "Throughput": [
+            { "Rate": 8000, "Unit": "GB/s", "Source": "Published" }
+          ]
+        }
       }
-    ]
+    }
   },
   "KernelModel": {
     "LLVMTarget": "amdgcn",
@@ -201,7 +229,7 @@
         "Description": "Hardware supports preloading of kernel arguments into user SGPRs"
       }
     ],
-    "SubUnits": [
+    "Toolchains": [
       {
         "Type": "ROCm",
         "Version": "7.0"

@@ -17,8 +17,26 @@
         "Count": 1,
         "Size": 2,
         "Description": "GB100 dual-die package, the datacenter Blackwell part with compute capability 10.0. The primary configuration described by this file is B200 SXM as shipped in HGX B200 and DGX B200: 148 SMs, 180 GB HBM3E, 7.7 TB/s, configurable up to 1000 W. NVIDIA states 208 billion transistors per package and that each of the two dies is the largest that reticle limits allow; the per-die figure of 104 billion is simply that total halved by reporters, and NVIDIA publishes no die area. The dies are joined by NV-HBI at 10 TB/s into what NVIDIA calls one fully coherent chip, so CUDA enumerates the package as a SINGLE GPU with one L2 and one address space; every count in this file is labelled per-die or per-package. Related SKUs on the same silicon: B100 is a lower-power 700 W part (60 TFLOPS FP32, 192 GB) now effectively delisted by NVIDIA, and the GB200 Grace Blackwell Superchip pairs one Grace CPU with TWO of these packages over NVLink-C2C at 900 GB/s, running a higher power bin of up to 1200 W per GPU for roughly 11 percent more throughput at every precision (80 vs 75 TFLOPS FP32) and exposing 186 GB HBM3E at 8 TB/s. Blackwell adds a second-generation Transformer Engine with micro-tensor scaling, a Decompression Engine, a dedicated RAS engine, and the industry's first TEE-I/O capable GPU for Confidential Computing with inline NVLink protection. Supports up to 7 MIG instances, the smallest being 23 GB, and exposes 16 copy engines on the full GPU, double H100's 8, consistent with the dual-die build. NOTE ON RAY TRACING: this file deliberately omits a RayTracingAccelerators block rather than asserting a value. NVIDIA's Blackwell Datasheet enumerates MIG, the Decompression Engine and the decoders for this GPU but lists no RT cores, and no NVIDIA datacenter Blackwell material mentions ray tracing; the fourth-generation RT core claims made for Blackwell come from the consumer RTX Blackwell whitepaper and describe the GB20x dies (sm_120), not GB100. Since NVIDIA states neither presence nor absence for GB100, neither is recorded. Note on FabricationProcess: NVIDIA markets the node as 4NP, a custom enhancement of the 4N node used for Hopper; ProcessNode is recorded as 5 because TSMC places N4P in its 5 nm family, matching the sm_90 entry for the same node family",
-        "Memory": ["L2 Cache", "HBM3E (Device DRAM)", "Constant Memory"],
-        "Subunits": ["Die", "NV-HBI Link", "NVLink 5 Link", "PCIe Controller", "NVDEC Engine", "NVJPEG Engine", "Decompression Engine"]
+        "Memory": ["L2", "HBM3E", "Constant Memory"],
+        "Subunits": ["Die", "NV-HBI Link", "NVLink 5 Link", "PCIe Controller", "NVDEC Engine", "NVJPEG Engine", "Decompression Engine"],
+        "Performance": {
+          "ClockRate": 1980,
+          "Source": "Derived",
+          "Throughput": [
+            { "Rate": 75, "Unit": "TFLOP/s", "Precision": "FP32", "Mode": "Non-Tensor", "Source": "Published" },
+            { "Rate": 37, "Unit": "TFLOP/s", "Precision": "FP64", "Source": "Published" },
+            { "Rate": 2200, "Unit": "TFLOP/s", "Precision": "TF32", "Mode": "Sparse", "Source": "Published" },
+            { "Rate": 1100, "Unit": "TFLOP/s", "Precision": "TF32", "Mode": "Dense", "Source": "Published" },
+            { "Rate": 4500, "Unit": "TFLOP/s", "Precision": "BF16", "Mode": "Sparse", "Source": "Published" },
+            { "Rate": 2250, "Unit": "TFLOP/s", "Precision": "BF16", "Mode": "Dense", "Source": "Published" },
+            { "Rate": 4500, "Unit": "TFLOP/s", "Precision": "FP16", "Mode": "Sparse", "Source": "Published" },
+            { "Rate": 2250, "Unit": "TFLOP/s", "Precision": "FP16", "Mode": "Dense", "Source": "Published" },
+            { "Rate": 9000, "Unit": "TFLOP/s", "Precision": "FP8", "Mode": "Sparse", "Source": "Published" },
+            { "Rate": 4500, "Unit": "TFLOP/s", "Precision": "FP8", "Mode": "Dense", "Source": "Published" },
+            { "Rate": 9000, "Unit": "TOP/s", "Precision": "INT8", "Mode": "Sparse", "Source": "Published" },
+            { "Rate": 4500, "Unit": "TOP/s", "Precision": "INT8", "Mode": "Dense", "Source": "Published" }
+          ]
+        }
       },
       "Die": {
         "Count": 2,
@@ -36,13 +54,27 @@
         "Count": 2,
         "Size": 128,
         "Description": "Blackwell Streaming Multiprocessor, 74 per die and 148 per B200 package. NVIDIA's CUDA C++ Programming Guide states verbatim for compute capability 10.0 that an SM consists of 128 FP32 cores, 64 FP64 cores, 64 INT32 cores, 4 mixed-precision fifth-generation Tensor Cores with sparsity support, 16 special function units and 4 warp schedulers, organized as 4 processing blocks. NVIDIA does NOT publish load/store or texture unit counts for compute capability 10.0, so unlike the sm_90 entry those units are omitted here rather than carried over from Hopper. Occupancy and storage limits are unchanged from compute capability 9.0: 2048 resident threads (64 warps), 32 resident thread blocks, 255 registers per thread, 65536 32-bit registers per SM, 228 KB of shared memory per SM out of a 256 KB unified data cache, and a 2:1 FP32:FP64 throughput ratio. What is new at 10.0 is the fifth-generation Tensor Core with its dedicated Tensor Memory and tcgen05 instruction family, FP6 and FP4 tensor input types, and a non-portable thread block cluster size of 16 on B200 against the portable maximum of 8, opted into with cudaFuncAttributeNonPortableClusterSizeAllowed",
-        "Memory": ["Register File (per SM)", "L1 Data Cache / Shared Memory (per SM)", "Tensor Memory (per SM)"],
-        "Subunits": ["FP32 CUDA Core", "INT32 Core", "FP64 Core", "Tensor Core", "SFU", "Warp Scheduler", "Tensor Memory Accelerator"]
+        "Memory": ["Register File", "L1 and Shared Memory", "Tensor Memory"],
+        "Subunits": ["FP32 CUDA Core", "INT32 Core", "FP64 Core", "Tensor Core", "SFU", "Warp Scheduler", "Tensor Memory Accelerator"],
+        "Performance": {
+          "ClockRate": 1980,
+          "Source": "Derived",
+          "Throughput": [
+            { "Rate": 128, "Unit": "OP/cycle", "Precision": "FP32", "Source": "Published" },
+            { "Rate": 64, "Unit": "OP/cycle", "Precision": "INT32", "Source": "Published" },
+            { "Rate": 64, "Unit": "OP/cycle", "Precision": "FP64", "Source": "Derived" }
+          ]
+        }
       },
       "FP32 CUDA Core": {
         "Count": 128,
         "Size": 1,
-        "Description": "Single-precision FP32 lane, 32 per processing block, confirmed by the 128 FP32 add/multiply/FMA operations per clock per SM listed for compute capability 10.0 in NVIDIA's native arithmetic throughput table. 18944 per B200 package across 148 SMs, giving NVIDIA's published 75 TFLOPS of peak non-tensor FP32 per B200 GPU (600 TFLOPS across the 8 GPUs of an HGX B200 board) and 80 TFLOPS per GPU on GB200. Both figures were revised down after launch, when NVIDIA quoted 80 and 90 TFLOPS respectively"
+        "Description": "Single-precision FP32 lane, 32 per processing block, confirmed by the 128 FP32 add/multiply/FMA operations per clock per SM listed for compute capability 10.0 in NVIDIA's native arithmetic throughput table. 18944 per B200 package across 148 SMs, giving NVIDIA's published 75 TFLOPS of peak non-tensor FP32 per B200 GPU (600 TFLOPS across the 8 GPUs of an HGX B200 board) and 80 TFLOPS per GPU on GB200. Both figures were revised down after launch, when NVIDIA quoted 80 and 90 TFLOPS respectively",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 2, "Unit": "FLOP/cycle", "Precision": "FP32", "Source": "Published" }
+          ]
+        }
       },
       "INT32 Core": {
         "Count": 64,
@@ -67,7 +99,12 @@
       "Warp Scheduler": {
         "Count": 4,
         "Size": 1,
-        "Description": "One warp scheduler per processing block. An SM statically distributes its warps among the 4 schedulers, each issuing one instruction per cycle for one ready warp, up to the 64-warp per-SM occupancy limit"
+        "Description": "One warp scheduler per processing block. An SM statically distributes its warps among the 4 schedulers, each issuing one instruction per cycle for one ready warp, up to the 64-warp per-SM occupancy limit",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 1, "Unit": "instruction/cycle", "Source": "Published" }
+          ]
+        }
       },
       "Tensor Memory Accelerator": {
         "Count": 1,
@@ -83,22 +120,43 @@
         "Count": 4,
         "Size": 1,
         "Description": "24 GB HBM3E stack, 4 per die and 8 per package. NVIDIA does not publish the stack count or stack height; the 8-stack organization and the resulting 24 GB per stack are inferred from the 192 GB of physical capacity announced at GTC 2024. Shipping SKUs expose less than the full 192 GB: 180 GB per GPU on HGX B200 and DGX B200 (1440 GB per 8-GPU board) and 186 GB per GPU on GB200 (13.4 TB across the 72 GPUs of an NVL72 rack)",
-        "Memory": ["HBM3E (Device DRAM)"]
+        "Memory": ["HBM3E"],
+        "Performance": {
+          "Throughput": [
+            { "Rate": 962.5, "Unit": "GB/s", "Source": "Derived" }
+          ]
+        }
       },
       "NV-HBI Link": {
         "Count": 1,
         "Size": 1,
-        "Description": "NV-High Bandwidth Interface, one per package: the 10 TB/s die-to-die link that NVIDIA describes as connecting and unifying the two dies into one fully coherent chip. Fast enough that the two dies share a single coherent L2 address space, so software sees one monolithic GPU rather than two devices, with no CUDA-visible NUMA split and no peer-access call between dies. NVIDIA does not state whether the 10 TB/s figure is aggregate or per direction"
+        "Description": "NV-High Bandwidth Interface, one per package: the 10 TB/s die-to-die link that NVIDIA describes as connecting and unifying the two dies into one fully coherent chip. Fast enough that the two dies share a single coherent L2 address space, so software sees one monolithic GPU rather than two devices, with no CUDA-visible NUMA split and no peer-access call between dies. NVIDIA does not state whether the 10 TB/s figure is aggregate or per direction",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 10000, "Unit": "GB/s", "Source": "Published" }
+          ]
+        }
       },
       "NVLink 5 Link": {
         "Count": 18,
         "Size": 1,
-        "Description": "Fifth-generation NVLink port, counted per package since NVLink is exposed at whole-GPU level. NVIDIA states 18 links per GPU giving 1.8 TB/s total, 900 GB/s in each direction; as on Hopper each link uses two high-speed differential pairs per direction, but Blackwell doubles the per-link rate to 50 GB/s each direction, i.e. 100 GB/s bidirectional per link. Through the NVLink 5 Switch these form scale-up domains of 8 GPUs (HGX B200, 14.4 TB/s aggregate) or 72 GPUs (GB200 NVL72, 130 TB/s aggregate across 9 switch trays and 18 compute trays); NVIDIA states the fifth generation scales up to 576 GPUs"
+        "Description": "Fifth-generation NVLink port, counted per package since NVLink is exposed at whole-GPU level. NVIDIA states 18 links per GPU giving 1.8 TB/s total, 900 GB/s in each direction; as on Hopper each link uses two high-speed differential pairs per direction, but Blackwell doubles the per-link rate to 50 GB/s each direction, i.e. 100 GB/s bidirectional per link. Through the NVLink 5 Switch these form scale-up domains of 8 GPUs (HGX B200, 14.4 TB/s aggregate) or 72 GPUs (GB200 NVL72, 130 TB/s aggregate across 9 switch trays and 18 compute trays); NVIDIA states the fifth generation scales up to 576 GPUs",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 100, "Unit": "GB/s", "Mode": "Bidirectional", "Source": "Published" },
+            { "Rate": 50, "Unit": "GB/s", "Mode": "Unidirectional", "Source": "Published" }
+          ]
+        }
       },
       "PCIe Controller": {
         "Count": 1,
         "Size": 1,
-        "Description": "PCIe Gen 5 x16 host interface, one per package, 128 GB/s bidirectional. NVIDIA's Blackwell Datasheet and architecture brief both list PCIe Gen5 for HGX B200, GB200 NVL72 and GB200 NVL4, reserving PCIe Gen6 for the later B300; NVIDIA's own MLPerf submissions record the host interconnect as PCIe Gen5 x16. Some launch-day press tables claimed Gen6 for B200, which the shipping documentation does not support. In GB200 the GPU reaches its Grace CPU over NVLink-C2C at 900 GB/s rather than PCIe"
+        "Description": "PCIe Gen 5 x16 host interface, one per package, 128 GB/s bidirectional. NVIDIA's Blackwell Datasheet and architecture brief both list PCIe Gen5 for HGX B200, GB200 NVL72 and GB200 NVL4, reserving PCIe Gen6 for the later B300; NVIDIA's own MLPerf submissions record the host interconnect as PCIe Gen5 x16. Some launch-day press tables claimed Gen6 for B200, which the shipping documentation does not support. In GB200 the GPU reaches its Grace CPU over NVLink-C2C at 900 GB/s rather than PCIe",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 128, "Unit": "GB/s", "Mode": "Bidirectional", "Source": "Published" }
+          ]
+        }
       },
       "NVDEC Engine": {
         "Count": 7,
@@ -113,49 +171,53 @@
       "Decompression Engine": {
         "Count": 1,
         "Size": 1,
-        "Description": "Dedicated hardware decompression engine new to Blackwell, decompressing at up to 800 GB/s with support for LZ4, Snappy and Deflate, and feeding compressed data straight into the GPU for database and analytics pipelines. NVIDIA quotes 18x CPU and 6x H100 on query benchmarks. NVIDIA describes the engine but does not publish how many instances a GPU carries, so it is recorded here as one logical engine per package"
+        "Description": "Dedicated hardware decompression engine new to Blackwell, decompressing at up to 800 GB/s with support for LZ4, Snappy and Deflate, and feeding compressed data straight into the GPU for database and analytics pipelines. NVIDIA quotes 18x CPU and 6x H100 on query benchmarks. NVIDIA describes the engine but does not publish how many instances a GPU carries, so it is recorded here as one logical engine per package",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 800, "Unit": "GB/s", "Source": "Published" }
+          ]
+        }
       }
     }
   },
   "MemorySubsystem": {
     "SupportedMemoryTypes": ["HBM3", "Other"],
-    "MemoryTypes": [
-      {
-        "Type": "Register File (per SM)",
+    "MemoryTypes": {
+      "Register File": {
         "Size": 256,
         "BankCount": 4,
         "description": "65536 32-bit registers (256 KB) per SM, split evenly across the 4 processing blocks, unchanged from compute capability 9.0. A single thread may use at most 255 registers and a single thread block at most 65536. Aggregate register file is about 37 MB per B200 package across 148 SMs"
       },
-      {
-        "Type": "L1 Data Cache / Shared Memory (per SM)",
+      "L1 and Shared Memory": {
         "Size": 256,
         "BankCount": 32,
         "description": "256 KB of unified L1 data cache, texture cache and shared memory per SM, the same total as Hopper and twice the 128 KB of consumer Blackwell sm_120. The shared-memory carveout is configurable to 0, 8, 16, 32, 64, 100, 132, 164, 196 or 228 KB per SM; a single thread block may address at most 227 KB because CUDA reserves 1 KB, and allocations above 48 KB must use dynamic shared memory with an explicit opt-in. NVIDIA publishes no separate L1 figure: L1 is whatever remains of the 256 KB after the carveout. Shared memory is banked 32 ways and is addressable across a thread block cluster as distributed shared memory"
       },
-      {
-        "Type": "Tensor Memory (per SM)",
+      "Tensor Memory": {
         "Size": 256,
-        "description": "Tensor Memory (TMEM), dedicated on-chip storage introduced with the fifth-generation Tensor Core and entirely new at compute capability 10.0. NVIDIA documents it only in the PTX ISA and states a geometry rather than a byte total: 512 columns by 128 lanes per CTA with each cell 32 bits, which works out to 256 KB. It is allocated dynamically by a single warp via tcgen05.alloc in granules of 32 columns, always spanning all 128 lanes, and must be explicitly freed before the kernel exits. Access is partitioned, each warp of a warpgroup reaching only its own 32 lanes, so a full warpgroup is needed to cover an allocation. It exists only on the sm_100 family; sm_120 has neither Tensor Memory nor the tcgen05 instructions"
+        "description": "Tensor Memory (TMEM), dedicated per-SM on-chip storage introduced with the fifth-generation Tensor Core and entirely new at compute capability 10.0. NVIDIA documents it only in the PTX ISA and states a geometry rather than a byte total: 512 columns by 128 lanes per CTA with each cell 32 bits, which works out to 256 KB. It is allocated dynamically by a single warp via tcgen05.alloc in granules of 32 columns, always spanning all 128 lanes, and must be explicitly freed before the kernel exits. Access is partitioned, each warp of a warpgroup reaching only its own 32 lanes, so a full warpgroup is needed to cover an allocation. It exists only on the sm_100 family; sm_120 has neither Tensor Memory nor the tcgen05 instructions"
       },
-      {
-        "Type": "L2 Cache",
+      "L2": {
         "Size": 129024,
         "description": "126 MB of L2 per package, more than double Hopper's 50 MB on H100, and kept coherent across NV-HBI so the two dies present a single L2 address space. NVIDIA publishes only the package total; the roughly 63 MB per die follows from measurements showing the two L2 partitions correspond to the two dies, with accesses to the near partition faster than those crossing NV-HBI. Supports the L2 residency and persistence controls introduced with Ampere"
       },
-      {
-        "Type": "HBM3E (Device DRAM)",
+      "HBM3E": {
         "Size": 188743680,
         "BankCount": 8,
         "MaxMemoryBandwidth": 7700,
         "maxBusWidth": 8192,
-        "description": "180 GB of HBM3E per B200 GPU at 7.7 TB/s across 8 stacks, 4 attached to each die but pooled into one address space. NVIDIA's own figures disagree slightly: the Blackwell Datasheet says 180 GB at 7.7 TB/s per GPU while DGX B200 says 1440 GB and 64 TB/s across 8 GPUs, i.e. 180 GB at 8 TB/s, and an early architecture-brief cell still reads 192 GB while the rest of its own table implies 180. The package physically carries 192 GB, the capacity announced at GTC 2024. GB200 exposes 186 GB per GPU at 8 TB/s, an NVL72 rack totalling 13.4 TB at 576 TB/s. The 8192-bit bus width is not published by NVIDIA and is inferred from 8 stacks of 1024 bits. The Blackwell tuning guide records support for both HBM3 and HBM3E; HBM3E has no dedicated value in this schema's memory-type enum and is reported as Other. ECC is enabled on all SKUs"
+        "description": "180 GB of HBM3E per B200 GPU at 7.7 TB/s across 8 stacks, 4 attached to each die but pooled into one address space. NVIDIA's own figures disagree slightly: the Blackwell Datasheet says 180 GB at 7.7 TB/s per GPU while DGX B200 says 1440 GB and 64 TB/s across 8 GPUs, i.e. 180 GB at 8 TB/s, and an early architecture-brief cell still reads 192 GB while the rest of its own table implies 180. The package physically carries 192 GB, the capacity announced at GTC 2024. GB200 exposes 186 GB per GPU at 8 TB/s, an NVL72 rack totalling 13.4 TB at 576 TB/s. The 8192-bit bus width is not published by NVIDIA and is inferred from 8 stacks of 1024 bits. The Blackwell tuning guide records support for both HBM3 and HBM3E; HBM3E has no dedicated value in this schema's memory-type enum and is reported as Other. ECC is enabled on all SKUs",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 7700, "Unit": "GB/s", "Source": "Published" }
+          ]
+        }
       },
-      {
-        "Type": "Constant Memory",
+      "Constant Memory": {
         "Size": 64,
         "description": "64 KB constant memory window per device context at compute capability 10.0, served by a per-SM read-only constant cache with an 8 KB working set"
       }
-    ]
+    }
   },
   "KernelModel": {
     "LLVMTarget": "nvptx64",
@@ -182,7 +244,7 @@
         "Description": "PTX ISA 8.7, shipped in CUDA 12.8 with the r570 driver, the first publicly released toolkit able to compile for sm_100"
       }
     ],
-    "SubUnits": [
+    "Toolchains": [
       {
         "Type": "CUDA",
         "Version": "12.8"

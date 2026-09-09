@@ -106,7 +106,7 @@ KNEXUS_API_PROP(Count,                 _prop_int,        "Number of Units")
 KNEXUS_API_PROP(Size,                  _prop_int,        "Number of Sub-Units")
 KNEXUS_API_PROP(Rank,                  _prop_int,        "Rank")
 KNEXUS_API_PROP(Shape,                 _prop_int_vec,    "Shape")
-KNEXUS_API_PROP(SubUnits,              _prop_str_vec,    "Sub-Unit Vector")
+KNEXUS_API_PROP(Toolchains,            _prop_obj_vec,    "Supported Kernel Toolchains")
 KNEXUS_API_PROP(ChipType,              _prop_str,        "Chip Unit Type Name")
 KNEXUS_API_PROP(CoreType,              _prop_str,        "Core Unit Type Name")
 KNEXUS_API_PROP(UnitTypes,             _prop_obj_vec,    "Unit Type Map (keyed by type name)")
@@ -160,6 +160,42 @@ KNEXUS_API_PROP(MaxPower,              _prop_flt,        "Max Power")
 
 KNEXUS_API_PROP(CoreUtilization,      _prop_int,          "Core Utilization")
 KNEXUS_API_PROP(MemoryUtilization,    _prop_int,          "Memory Utilization")
+
+/* Performance Properties
+ *
+ * The speeds-and-feeds vocabulary of schema/device_info_schema.json
+ * (#/definitions/Performance, documented in docs/JSON_API.md), carried by every
+ * CoreSubsystem.UnitTypes entry and every MemorySubsystem.MemoryTypes entry. Both are
+ * name-keyed maps, so a path to a figure names its unit or its memory rather than
+ * numbering it: {"MemorySubsystem", "MemoryTypes", "HBM3", "Performance",
+ * "TransferRate"}. NP_Keys lists either map's names.
+ *
+ * Every numeric field below MUST have a row here, and the type is a decision, not a
+ * transcription of whatever the first device file happened to write. InfoImpl::getProp
+ * (src/info.cpp) uses nxsGetPropEnum() on the last path segment only as a hint; on a miss
+ * it falls through to getNodeType(), which answers NPT_INT for a whole-number JSON literal
+ * and NPT_FLT for a fractional one. So an *undeclared* numeric field is an int on one
+ * device file and a double on the next, purely from how the number was written -- and a
+ * fractional value asked for as an int is silently truncated. Rate, ClockRate,
+ * TransferRate and Latency are quantities that can be fractional, so they are _prop_flt
+ * and read back as doubles even from a literal such as 1350 or 664. LaneWidth counts
+ * discrete bits, so it is _prop_int. test/cpp/test_property_types.cpp pins all of it.
+ *
+ * The throughput figure is named Rate, not Value: NP_Value is already _prop_int and is
+ * used as an integer by the runtime plugins (plugins/{cpu,cuda,tenstorrent}/*_runtime.cpp),
+ * so a Throughput "Value" of 5.4 would be truncated to 5.
+ */
+KNEXUS_API_PROP(Performance,          _prop_obj_vec,      "Speeds and feeds of one unit")
+KNEXUS_API_PROP(ClockRate,            _prop_flt,          "Clock rate of one unit (MHz)")
+KNEXUS_API_PROP(LaneWidth,            _prop_int,          "Width of one SIMD lane (bits)")
+KNEXUS_API_PROP(TransferRate,         _prop_flt,          "Interface signalling rate (GT/s)")
+KNEXUS_API_PROP(Latency,              _prop_flt,          "Access latency (cycles)")
+KNEXUS_API_PROP(Source,               _prop_str,          "Figure provenance (Published/Derived/Measured)")
+KNEXUS_API_PROP(Throughput,           _prop_obj_vec,      "Rate figures, one per precision and mode")
+KNEXUS_API_PROP(Rate,                 _prop_flt,          "Throughput figure, expressed in Unit")
+KNEXUS_API_PROP(Unit,                 _prop_str,          "Unit of Rate (e.g. TFLOP/s, GB/s)")
+KNEXUS_API_PROP(Precision,            _prop_str,          "Numeric format Rate applies to")
+KNEXUS_API_PROP(Mode,                 _prop_str,          "Operating mode Rate applies to")
 
 /************************************************************************
  * Cleanup

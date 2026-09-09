@@ -17,14 +17,14 @@
         "Count": 1,
         "Size": 10,
         "Description": "Integrated GPU block of the Apple M3 system on chip (25 billion transistors, 3 nm). Apple ships M3 with a 10-core GPU; an 8-core binned variant ships in the base MacBook Air and iMac. Metal reports it as MTLGPUFamily.apple9. It is a tile-based deferred renderer whose family 9 shader core introduces Dynamic Caching, hardware-accelerated ray tracing and hardware-accelerated mesh shading, all new to the Mac with M3. The GPU shares LPDDR5 unified memory with the 8-core CPU, the 16-core Neural Engine and the media engine (H.264, HEVC, ProRes and ProRes RAW encode and decode, plus AV1 decode)",
-        "Memory": ["Unified Memory (LPDDR5)"],
+        "Memory": ["Unified Memory"],
         "Subunits": ["GPU Core"]
       },
       "GPU Core": {
         "Count": 10,
         "Size": 128,
         "Description": "Apple family 9 \"next-generation shader core\". Each core runs shader, compute, texture and tile work and owns the on-chip memory pool that Dynamic Caching allocates from. Apple does not publish a per-core ALU count for M3: Size 128 is inferred from Apple's own M1 figures (8 GPU cores, 1024 ALUs, 2.6 TFLOPS FP32) and is consistent with third-party FP32 throughput measurements of the 10-core M3 GPU",
-        "Memory": ["Dynamic Shader Core Memory", "Threadgroup Memory (per threadgroup)", "Tile Memory (per threadgroup)"],
+        "Memory": ["Dynamic Shader Core Memory", "Threadgroup Memory", "Tile Memory"],
         "Subunits": ["SIMD Unit", "Hardware Intersector"]
       },
       "SIMD Unit": {
@@ -41,34 +41,30 @@
   },
   "MemorySubsystem": {
     "SupportedMemoryTypes": ["LPDDR5"],
-    "MemoryTypes": [
-      {
-        "Type": "Unified Memory (LPDDR5)",
+    "MemoryTypes": {
+      "Unified Memory": {
         "Size": 25165824,
         "MaxMemoryBandwidth": 100,
         "maxBusWidth": 128,
         "description": "LPDDR5 unified memory shared by the GPU, CPU, Neural Engine and media engine. Apple publishes 100 GB/s of memory bandwidth for M3 and ships 8 GB, 16 GB and 24 GB configurations; Size records the 24 GB maximum. The 128-bit bus width is third-party reported and not published by Apple. There is no separate VRAM: Metal buffers and textures are allocated from this pool and are addressable by CPU and GPU without copies"
       },
-      {
-        "Type": "Dynamic Shader Core Memory",
+      "Dynamic Shader Core Memory": {
         "description": "Unified on-chip memory pool of the Apple family 9 shader core. Dynamic Caching allocates registers, threadgroup memory, tile memory, stack space and buffer data from the same set of larger caches on demand over the lifetime of a shader, instead of reserving a fixed worst-case allocation per shader, which raises occupancy for register-heavy kernels. Apple publishes neither the capacity of this pool nor the sizes of the GPU L1 and L2 caches, so no Size is recorded"
       },
-      {
-        "Type": "Threadgroup Memory (per threadgroup)",
+      "Threadgroup Memory": {
         "Size": 32,
         "description": "Maximum threadgroup (shared) memory one threadgroup may allocate, from Apple's Metal Feature Set Tables for the Apple9 family, with a 16-byte length alignment and a maximum of 1024 threads per threadgroup. This is an API limit rather than the physical capacity of a shader core; on M3 the storage is carved out of the shared on-chip pool by Dynamic Caching"
       },
-      {
-        "Type": "Tile Memory (per threadgroup)",
+      "Tile Memory": {
         "Size": 32,
         "description": "Maximum imageblock/tile memory per threadgroup for the Apple9 family per Apple's Metal Feature Set Tables (with a maximum of 8 KB per thread). The tile-based deferred renderer keeps render-pass attachments and meshlet data here to avoid memory traffic; on M3 it is also dynamically allocated by Dynamic Caching"
       }
-    ]
+    }
   },
   "KernelModel": {
     "LLVMTarget": "air64",
     "LLVMTriple": "air64-apple-macos14.0",
-    "SubUnits": [
+    "Toolchains": [
       {
         "Type": "Metal",
         "Version": "3.1"

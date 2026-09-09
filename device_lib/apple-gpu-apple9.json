@@ -1,0 +1,145 @@
+{
+  "Name": "Apple GPU (M3)",
+  "Vendor": "Apple",
+  "Architecture": "Apple9",
+  "ReleaseYear": 2023,
+  "FabricationProcess": {
+    "ProcessNode": 3,
+    "Manufacturer": "TSMC",
+    "Technology": "N3B"
+  },
+  "CoreSubsystem": {
+    "Name": "GPU Core",
+    "ChipType": "GPU",
+    "CoreType": "GPU Core",
+    "UnitTypes": {
+      "GPU": {
+        "Count": 1,
+        "Size": 10,
+        "Description": "Integrated GPU block of the Apple M3 SoC, which Apple describes as one of 'the industry's first 3-nanometer chips for a personal computer' with 25 billion transistors (Apple names neither foundry nor node name; TSMC N3B is the third-party attribution, supported by Apple later calling M4's node 'second-generation 3-nanometer'). Apple ships 10-core and binned 8-core GPU configurations; the 10-core part is described here. Metal reports GPU family Apple9, alongside A17 Pro. Apple calls this the next-generation GPU architecture and states it introduces Dynamic Caching, which 'unlike traditional GPUs, allocates the use of local memory in hardware in real time' so that only the exact amount of memory needed is used per task, and brings hardware-accelerated ray tracing and mesh shading to the Mac for the first time. Apple publishes 100 GB/s of unified memory bandwidth and up to 24 GB of unified memory for M3, but no teraflops rating and no GPU clock; the frequently quoted ~1400 MHz figure has no traceable source and is therefore not recorded. The GPU shares unified memory with the CPU, the 16-core Neural Engine (Apple states only that it is up to 60 percent faster than the M1 family; the '18 TOPS' figure in circulation is press arithmetic, not an Apple number) and the media engine, which adds AV1 decode. Apple provides no native Vulkan implementation (MoltenVK translation only), and OpenGL and OpenCL are deprecated on macOS",
+        "Memory": ["Unified Memory"],
+        "Subunits": ["GPU Core"]
+      },
+      "GPU Core": {
+        "Count": 10,
+        "Size": 5,
+        "Description": "Apple9 'next-generation shader core', which Apple describes as pairing the shader ALUs with a texture unit and a new ray tracing unit. 128 FP32 ALUs per core arranged as 4 SIMD pipelines of 32 lanes is carried forward from the Apple7/Apple8 generations and is not confirmed by Apple or by any measurement for Apple9, so it is stated here as an assumption. Apple publishes no per-core register file, L1 or L2 capacity for this generation, and Dynamic Caching makes the register, threadgroup-memory and stack split dynamic in hardware rather than a fixed partition, so no per-core cache sizes are listed",
+        "Memory": ["Threadgroup Memory"],
+        "Subunits": ["SIMD Pipeline", "Ray Tracing Unit"]
+      },
+      "SIMD Pipeline": {
+        "Count": 4,
+        "Size": 32,
+        "Description": "32-lane SIMD execution pipeline issuing one instruction per cycle for one 32-thread SIMD-group. The 32-thread SIMD-group width is a run-time Metal property (threadExecutionWidth) and is not tabulated per family in Apple's feature-set tables; the 4-pipeline decomposition of the core's 128 ALUs is inferred from earlier Apple GPU generations rather than documented for Apple9"
+      },
+      "Ray Tracing Unit": {
+        "Count": 1,
+        "Description": "Dedicated ray intersection hardware. Apple's Tech Talk 'Explore GPU advancements in M3 and A17 Pro' describes the new shader core as paired with 'a brand new ray tracing unit that accelerates ray intersection requests', which is the basis for one unit per shader core here. Apple publishes no ray-throughput figure, so no rays-per-second rating is recorded. Note that the Metal ray-tracing API itself is available from the Apple6 family; what Apple9 adds is hardware acceleration of it, plus Apple9-exclusive features such as ray tracing with per-component motion interpolation"
+      }
+    }
+  },
+  "MemorySubsystem": {
+    "SupportedMemoryTypes": ["LPDDR5"],
+    "MemoryTypes": {
+      "Threadgroup Memory": {
+        "Size": 32,
+        "description": "Apple's Metal Feature Set Tables cap a single threadgroup at 32 KB of threadgroup memory on the Apple9 family, with 1024 maximum threads per threadgroup, 16 B length alignment, 32 KB maximum explicit imageblock allocation and 256 KB implicit (doubled from the 128 KB of Apple7/Apple8). On Apple9 this storage is drawn from the Dynamic Caching on-chip pool that also backs registers and stack, so the physical pool size per core is not a published constant"
+      },
+      "Unified Memory": {
+        "Size": 25165824,
+        "MaxMemoryBandwidth": 100,
+        "maxBusWidth": 128,
+        "description": "LPDDR5 unified memory shared by CPU, GPU, Neural Engine and media engine with zero-copy access and no separate VRAM. Apple's Mac technical specifications state 100 GB/s of memory bandwidth, and Apple's announcement states support for up to 24 GB of unified memory; the 24 GB maximum is recorded here in KB. Apple does not state the bus width - the 128-bit figure (8 x 16-bit LPDDR5-6400 controllers) is third-party analysis. Apple publishes no GPU L1/L2 or system-level cache sizes for M3, and unlike the M1 and M2 generations no public microbenchmarking of the M3 GPU cache hierarchy was found, so no cache levels are listed rather than carrying earlier figures forward",
+        "Performance": {
+          "TransferRate": 6.4,
+          "Source": "Derived"
+        }
+      }
+    }
+  },
+  "KernelModel": {
+    "LLVMTarget": "air64",
+    "LLVMTriple": "air64-apple-macos",
+    "LLVMFeatures": [
+      {
+        "Name": "air64",
+        "Description": "Apple Intermediate Representation (AIR), the LLVM-bitcode-based IR that Apple's metal compiler emits into a .metallib (-target air64-apple-macos<version>). AIR is Apple-private and is not an upstream LLVM backend target; Apple publishes no GPU ISA documentation"
+      }
+    ],
+    "Toolchains": [
+      {
+        "Type": "Metal",
+        "Version": "3"
+      },
+      {
+        "Type": "Metal",
+        "Version": "4"
+      },
+      {
+        "Type": "OpenGL",
+        "Version": "4.1"
+      },
+      {
+        "Type": "OpenCL",
+        "Version": "1.2"
+      }
+    ]
+  },
+  "SpecializedHardware": {
+    "RayTracingAccelerators": {
+      "Present": true,
+      "Name": "Ray tracing unit",
+      "Count": 1
+    },
+    "AiAccelerators": {
+      "Present": true,
+      "Name": "16-core Neural Engine",
+      "Count": 16
+    },
+    "videoCodecs": {
+      "encoders": [
+        {
+          "codec": "H.264"
+        },
+        {
+          "codec": "H.265/HEVC"
+        },
+        {
+          "codec": "Other"
+        }
+      ],
+      "decoders": [
+        {
+          "codec": "H.264"
+        },
+        {
+          "codec": "H.265/HEVC"
+        },
+        {
+          "codec": "Other"
+        },
+        {
+          "codec": "AV1"
+        }
+      ]
+    }
+  },
+  "PowerEfficiency": {
+    "PowerStates": [
+      {
+        "Name": "Active",
+        "Description": "GPU active. Apple publishes neither GPU clock frequencies nor a chip- or GPU-level TDP for M3, so BaseClock, BoostClock and MaxTDP are all omitted rather than estimated. No third-party measurement of the base M3 GPU clock could be substantiated either, so the 1424 MHz figure that circulates for this part is not recorded"
+      },
+      {
+        "Name": "Idle",
+        "Description": "Low-power state when no GPU work is scheduled; frequency and voltage are managed by the SoC power controller"
+      }
+    ],
+    "ClockGating": true,
+    "DynamicVoltageFrequencyScaling": true
+  },
+  "MultiGpuSupport": {
+    "Technologies": ["None"],
+    "MaxGpus": 1
+  }
+}

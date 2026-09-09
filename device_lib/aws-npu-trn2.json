@@ -18,7 +18,17 @@
         "Size": 8,
         "Description": "One Trainium2 device: eight NeuronCore-v3 cores, 96 GiB of device memory across four 24 GB HBM banks at 2.9 TB/s, 16 CC-Cores and 3.5 TB/s of DMA bandwidth with inline memory compression. Collectively the cores deliver 1299 cFP8 TFLOPS, 667 BF16/FP16/TF32 TFLOPS and 181 FP32 TFLOPS dense, and 2563 sparse TFLOPS. A trn2.48xlarge or trn2u.48xlarge holds 16 chips wired as a 4x4 2D torus over NeuronLink-v3 with 3.2 Tbps of EFAv3 networking; trn2.3xlarge exposes a single chip. Four trn2u.48xlarge instances form a Trn2 UltraServer of 64 chips",
         "Memory": ["HBM3", "SBUF", "PSUM"],
-        "Subunits": ["NeuronCore-v3", "Collective Compute Core", "DMA Engine", "HBM Stack", "NeuronLink Controller", "PCIe Controller"]
+        "Subunits": ["NeuronCore-v3", "Collective Compute Core", "DMA Engine", "HBM Stack", "NeuronLink Controller", "PCIe Controller"],
+        "Performance": {
+          "Throughput": [
+            { "Rate": 1299, "Unit": "TFLOP/s", "Precision": "FP8", "Mode": "Dense", "Source": "Published" },
+            { "Rate": 667, "Unit": "TFLOP/s", "Precision": "BF16", "Mode": "Dense", "Source": "Published" },
+            { "Rate": 667, "Unit": "TFLOP/s", "Precision": "FP16", "Mode": "Dense", "Source": "Published" },
+            { "Rate": 667, "Unit": "TFLOP/s", "Precision": "TF32", "Mode": "Dense", "Source": "Published" },
+            { "Rate": 181, "Unit": "TFLOP/s", "Precision": "FP32", "Mode": "Dense", "Source": "Published" },
+            { "Rate": 2563, "Unit": "TFLOP/s", "Mode": "Sparse", "Source": "Published" }
+          ]
+        }
       },
       "NeuronCore-v3": {
         "Count": 8,
@@ -31,25 +41,50 @@
         "Count": 1,
         "Size": 16384,
         "Description": "Systolic array of 128 rows by 128 columns of processing elements per NeuronCore for matrix multiplication and convolution, streaming operands from SBUF and accumulating into PSUM. Delivers 79 BF16/FP16/TF32 TFLOPS and 158 cFP8 TFLOPS per core. In double-pumped FP8 mode each PE performs two pairs of FP8 multiplications per cycle, presenting a 256x128 array to the programmer. Supports configurable FP8 (cFP8, in FP8_E4 and FP8_E5 forms with adjustable exponent bias), FP16, BF16, TF32, FP32 and INT8. Structured sparsity in 4:16, 4:12, 4:8, 2:8, 2:4, 1:4 and 1:2 patterns raises throughput to 316 sparse TFLOPS per core",
-        "Memory": ["SBUF", "PSUM"]
+        "Memory": ["SBUF", "PSUM"],
+        "Performance": {
+          "Throughput": [
+            { "Rate": 79, "Unit": "TFLOP/s", "Precision": "BF16", "Source": "Published" },
+            { "Rate": 79, "Unit": "TFLOP/s", "Precision": "FP16", "Source": "Published" },
+            { "Rate": 79, "Unit": "TFLOP/s", "Precision": "TF32", "Source": "Published" },
+            { "Rate": 158, "Unit": "TFLOP/s", "Precision": "FP8", "Source": "Published" },
+            { "Rate": 316, "Unit": "TFLOP/s", "Mode": "Sparse", "Source": "Published" }
+          ]
+        }
       },
       "Vector Engine": {
         "Count": 1,
         "Size": 128,
         "Description": "SIMD unit per NeuronCore operating across the 128 SBUF partitions for element-wise and reduction operations such as normalization, softmax reductions and accumulation, rated at 1 TFLOPS of FP32. Runs SBUF-to-SBUF or PSUM-to-SBUF in parallel with the Tensor Engine",
-        "Memory": ["SBUF", "PSUM"]
+        "Memory": ["SBUF", "PSUM"],
+        "Performance": {
+          "Throughput": [
+            { "Rate": 1, "Unit": "TFLOP/s", "Precision": "FP32", "Source": "Published" }
+          ]
+        }
       },
       "Scalar Engine": {
         "Count": 1,
         "Size": 128,
         "Description": "Per-element engine for activation functions and transcendentals such as GELU, exp, sigmoid and tanh, applied across the 128 SBUF partitions and rated at 1.2 TFLOPS of FP32, running concurrently with the other engines",
-        "Memory": ["SBUF", "PSUM"]
+        "Memory": ["SBUF", "PSUM"],
+        "Performance": {
+          "Throughput": [
+            { "Rate": 1.2, "Unit": "TFLOP/s", "Precision": "FP32", "Source": "Published" }
+          ]
+        }
       },
       "GPSIMD Engine": {
         "Count": 1,
         "Size": 8,
         "Description": "Eight fully programmable 512-bit wide vector processors per NeuronCore with integrated DMA providing 307 GB/s (153 GB/s per direction). Handles irregular operations such as embeddings, gather/scatter and dynamic control flow that do not map to the fixed-function engines. On Trainium2 these are programmed through NKI; the aws-neuronx-gpsimd-customop-lib C++ custom-operator library ships only for Trn1 and Inf2",
-        "Memory": ["SBUF"]
+        "Memory": ["SBUF"],
+        "Performance": {
+          "Throughput": [
+            { "Rate": 307, "Unit": "GB/s", "Mode": "Bidirectional", "Source": "Published" },
+            { "Rate": 153, "Unit": "GB/s", "Mode": "Unidirectional", "Source": "Published" }
+          ]
+        }
       },
       "Collective Compute Core": {
         "Count": 16,
@@ -65,13 +100,25 @@
       "HBM Stack": {
         "Count": 4,
         "Size": 1,
-        "Description": "Four HBM stacks per chip forming four 24 GB banks, 96 GiB of device memory at 2.9 TB/s aggregate. Each bank is shared by two physical NeuronCore-v3, so under the default LNC=2 configuration one logical NeuronCore maps onto one 24 GB bank in a single shared address space"
+        "Description": "Four HBM stacks per chip forming four 24 GB banks, 96 GiB of device memory at 2.9 TB/s aggregate. Each bank is shared by two physical NeuronCore-v3, so under the default LNC=2 configuration one logical NeuronCore maps onto one 24 GB bank in a single shared address space",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 725, "Unit": "GB/s", "Source": "Derived" }
+          ]
+        }
       },
       "NeuronLink Controller": {
         "Count": 1,
         "Size": 1,
         "Description": "NeuronLink-v3 chip-to-chip interconnect controller providing 1.28 TB/s per chip and enabling memory pooling across up to 64 chips: 1024 GB/s per chip intra-instance across the 4x4 2D torus of a trn2.48xlarge, plus a further 256 GB/s per chip inter-instance for the UltraServer, where chips with the same coordinates in each of the four instances are joined in a ring. NeuronCore-v2 provided 384 GB/s per chip",
-        "Memory": ["HBM3"]
+        "Memory": ["HBM3"],
+        "Performance": {
+          "Throughput": [
+            { "Rate": 1280, "Unit": "GB/s", "Source": "Published" },
+            { "Rate": 1024, "Unit": "GB/s", "Mode": "Intra-instance", "Source": "Published" },
+            { "Rate": 256, "Unit": "GB/s", "Mode": "Inter-instance", "Source": "Published" }
+          ]
+        }
       },
       "PCIe Controller": {
         "Count": 1,
@@ -82,31 +129,33 @@
   },
   "MemorySubsystem": {
     "SupportedMemoryTypes": ["HBM3"],
-    "MemoryTypes": [
-      {
-        "Type": "SBUF (State Buffer, per NeuronCore)",
+    "MemoryTypes": {
+      "SBUF": {
         "Size": 28672,
         "BankCount": 128,
-        "description": "28 MiB of on-chip software-managed SRAM per NeuronCore, organized as 128 partitions of 224 KiB, up from 24 MiB per core in NeuronCore-v2. Not a cache - there is no automatic fill, eviction or coherence. All engines read and write operands here, and data must be explicitly staged from HBM by the DMA engines. Totals 224 MiB per chip across the eight NeuronCores, against 48 MiB per chip on Trainium"
+        "description": "28 MiB of on-chip software-managed State Buffer SRAM per NeuronCore, organized as 128 partitions of 224 KiB, up from 24 MiB per core in NeuronCore-v2. Not a cache - there is no automatic fill, eviction or coherence. All engines read and write operands here, and data must be explicitly staged from HBM by the DMA engines. Totals 224 MiB per chip across the eight NeuronCores, against 48 MiB per chip on Trainium"
       },
-      {
-        "Type": "PSUM (Partial Sum Buffer, per NeuronCore)",
+      "PSUM": {
         "Size": 2048,
         "BankCount": 8,
         "description": "2 MiB accumulation SRAM per NeuronCore, unchanged from NeuronCore-v2: 128 partitions of 16 KiB, each partition holding 8 banks of 512 32-bit values. Holds FP32 matmul partial sums written by the Tensor Engine and supports read-modify-write accumulation, so multi-pass matmuls accumulate in place before being copied back to SBUF"
       },
-      {
-        "Type": "HBM3 (Device DRAM)",
+      "HBM3": {
         "Size": 100663296,
         "BankCount": 4,
         "MaxMemoryBandwidth": 2900,
         "maxBusWidth": 4096,
-        "description": "96 GiB of device memory per chip across four 24 GB HBM3 stacks at 2.9 TB/s, up from 32 GiB at 0.8 TB/s on Trainium. A trn2.48xlarge exposes 1536 GiB at 46.4 TB/s across its 16 chips, and a Trn2 UltraServer 6144 GiB at 185.6 TB/s across 64. Bus width is derived from four JEDEC-standard 1024-bit HBM stacks and is not published by AWS. Moved to and from SBUF explicitly by the DMA engines; there is no hardware cache hierarchy between HBM and SBUF"
+        "description": "96 GiB of device memory per chip across four 24 GB HBM3 stacks at 2.9 TB/s, up from 32 GiB at 0.8 TB/s on Trainium. A trn2.48xlarge exposes 1536 GiB at 46.4 TB/s across its 16 chips, and a Trn2 UltraServer 6144 GiB at 185.6 TB/s across 64. Bus width is derived from four JEDEC-standard 1024-bit HBM stacks and is not published by AWS. Moved to and from SBUF explicitly by the DMA engines; there is no hardware cache hierarchy between HBM and SBUF",
+        "Performance": {
+          "Throughput": [
+            { "Rate": 2900, "Unit": "GB/s", "Source": "Published" }
+          ]
+        }
       }
-    ]
+    }
   },
   "KernelModel": {
-    "SubUnits": [
+    "Toolchains": [
       {
         "Type": "NKI (Neuron Kernel Interface)",
         "Version": "0.6.0"
