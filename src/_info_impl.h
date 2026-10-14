@@ -57,6 +57,7 @@ class InfoImpl {
   json getNode(const std::vector<std::string_view> &path) const;
   nxs_property_type getNodeType(json node) const;
   std::optional<Property> getValue(json node, nxs_int propTypeId) const;
+  bool isUnitTypeEntry(const std::vector<std::string_view> &path) const;
   std::optional<Property> getKeys(json node) const;
   std::optional<Property> getProp(
       const std::vector<std::string_view> &path) const;

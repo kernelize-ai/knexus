@@ -123,8 +123,8 @@ jobs:
     name: Tenstorrent plugin
     runs-on: ubuntu-24.04
     env:
-      TT_METALIUM_TAG: "v0.71.0-rc1"
-      TT_METALIUM_DEB_VERSION: "0.71.0.rc1"
+      TT_METALIUM_TAG: "v0.80.0-rc7"
+      TT_METALIUM_DEB_VERSION: "0.80.0.rc7"
 
     steps:
       - uses: actions/checkout@v4

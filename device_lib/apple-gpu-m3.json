@@ -1,184 +1,131 @@
 {
-    "Name": "Apple GPU (M3)",
-    "Vendor": "Apple",
-    "Architecture": "Apple GPU Gen 3",
-    "ReleaseYear": 2023,
-    "FabricationProcess": {
-      "ProcessNode": 3,
-      "Manufacturer": "TSMC",
-      "Technology": "N3B"
-    },
-    "CoreSubsystem": {
-      "Name": "GPU Core",
-      "subUnits": [
-        {
-          "Type": "Execution Unit",
-          "Count": 10,
-          "Size": 128,
-          "Description": "Next-generation unified shader processors with hardware ray tracing support",
-          "Memory": ["L1", "L2"],
-          "SubunitType": "SIMD"
-        },
-        {
-          "Type": "Ray Tracing Unit",
-          "Count": 10,
-          "Size": 1,
-          "Description": "Dedicated hardware ray tracing acceleration units",
-          "Memory": ["L1"],
-          "SubunitType": "RT"
-        },
-        {
-          "Type": "Tile Memory",
-          "Count": 10,
-          "Size": 32,
-          "Description": "On-chip tile memory for efficient rendering",
-          "Memory": ["Tile"],
-          "SubunitType": "Memory"
-        }
-      ]
-    },
-    "MemorySubsystem": {
-      "SupportedMemoryTypes": ["LPDDR5"],
-      "MemoryTypes": [
-        {
-          "Type": "L1",
-          "Size": 64,
-          "BankCount": 10,
-          "MaxMemoryBandwidth": 100,
-          "maxBusWidth": 128,
-          "description": "L1 cache per GPU core"
-        },
-        {
-          "Type": "L2",
-          "Size": 4096,
-          "BankCount": 1,
-          "MaxMemoryBandwidth": 100,
-          "maxBusWidth": 128,
-          "description": "Shared L2 cache"
-        },
-        {
-          "Type": "Unified Memory",
-          "Size": 25165824,
-          "BankCount": 6,
-          "MaxMemoryBandwidth": 100,
-          "maxBusWidth": 128,
-          "description": "Unified memory shared with CPU"
-        }
-      ]
-    },
-    "KernelModel": {
-      "SubUnits": [
-        {
-          "Type": "Metal",
-          "Version": "3.1"
-        },
-        {
-          "Type": "OpenGL ES",
-          "Version": "3.0"
-        },
-        {
-          "Type": "Vulkan",
-          "Version": "1.3"
-        }
-      ]
-    },
-    "SpecializedHardware": {
-      "RayTracingAccelerators": {
-        "Present": true,
-        "Name": "RT Unit",
+  "Name": "Apple GPU (M3)",
+  "Vendor": "Apple",
+  "Architecture": "Apple9",
+  "ReleaseYear": 2023,
+  "FabricationProcess": {
+    "ProcessNode": 3,
+    "Manufacturer": "TSMC",
+    "Technology": "N3B"
+  },
+  "CoreSubsystem": {
+    "Name": "GPU Core",
+    "ChipType": "GPU",
+    "CoreType": "GPU Core",
+    "UnitTypes": {
+      "GPU": {
         "Count": 1,
-        "Performance": {
-          "RaysPerSecond": 2.5
-        }
+        "Size": 10,
+        "Description": "Integrated GPU block of the Apple M3 system on chip (25 billion transistors, 3 nm). Apple ships M3 with a 10-core GPU; an 8-core binned variant ships in the base MacBook Air and iMac. Metal reports it as MTLGPUFamily.apple9. It is a tile-based deferred renderer whose family 9 shader core introduces Dynamic Caching, hardware-accelerated ray tracing and hardware-accelerated mesh shading, all new to the Mac with M3. The GPU shares LPDDR5 unified memory with the 8-core CPU, the 16-core Neural Engine and the media engine (H.264, HEVC, ProRes and ProRes RAW encode and decode, plus AV1 decode)",
+        "Memory": ["Unified Memory (LPDDR5)"],
+        "Subunits": ["GPU Core"]
       },
-      "AiAccelerators": {
-        "Present": false,
-        "Name": null,
-        "Count": 0,
-        "SupportedPrecisions": [],
-        "Performance": {
-          "fp16TopsPerGPU": 0,
-          "int8TopsPerGPU": 0
-        }
+      "GPU Core": {
+        "Count": 10,
+        "Size": 128,
+        "Description": "Apple family 9 \"next-generation shader core\". Each core runs shader, compute, texture and tile work and owns the on-chip memory pool that Dynamic Caching allocates from. Apple does not publish a per-core ALU count for M3: Size 128 is inferred from Apple's own M1 figures (8 GPU cores, 1024 ALUs, 2.6 TFLOPS FP32) and is consistent with third-party FP32 throughput measurements of the 10-core M3 GPU",
+        "Memory": ["Dynamic Shader Core Memory", "Threadgroup Memory (per threadgroup)", "Tile Memory (per threadgroup)"],
+        "Subunits": ["SIMD Unit", "Hardware Intersector"]
       },
-      "videoCodecs": {
-        "encoders": [
-          {
-            "codec": "H.264",
-            "maxResolution": "4K",
-            "maxBitrate": 200,
-            "maxFPS": 60
-          },
-          {
-            "codec": "H.265/HEVC",
-            "maxResolution": "4K",
-            "maxBitrate": 200,
-            "maxFPS": 60
-          },
-          {
-            "codec": "AV1",
-            "maxResolution": "4K",
-            "maxBitrate": 200,
-            "maxFPS": 60
-          }
-        ],
-        "decoders": [
-          {
-            "codec": "H.264",
-            "maxResolution": "8K",
-            "maxBitrate": 400,
-            "maxFPS": 30
-          },
-          {
-            "codec": "H.265/HEVC",
-            "maxResolution": "8K",
-            "maxBitrate": 400,
-            "maxFPS": 30
-          },
-          {
-            "codec": "VP9",
-            "maxResolution": "4K",
-            "maxBitrate": 200,
-            "maxFPS": 60
-          },
-          {
-            "codec": "AV1",
-            "maxResolution": "4K",
-            "maxBitrate": 200,
-            "maxFPS": 60
-          }
-        ]
+      "SIMD Unit": {
+        "Count": 4,
+        "Size": 32,
+        "Description": "32-wide SIMD execution unit. The width of 32 is Apple's documented SIMD-group size, reported by Metal as threadExecutionWidth on Apple GPUs. Apple has never published the internal issue organization of a GPU core: 4 units of 32 lanes is a modeling choice that reproduces the 128 ALUs per core implied by Apple's M1 figures, which describe the same silicon as 16 execution units of 8 ALUs per core. Neither breakdown has been restated by Apple for M3"
+      },
+      "Hardware Intersector": {
+        "Count": 1,
+        "Size": 1,
+        "Description": "Fixed-function ray tracing unit introduced with Apple family 9 and called the \"hardware intersector\" by Apple. It traverses the acceleration structure independently of the shader cores and regroups intersection-function invocations into coherent SIMD-groups to remove divergence overhead; custom intersection functions still execute as Metal Shading Language code on the shader core. Apple publishes neither the number of intersectors per GPU core nor a ray throughput figure, so this is modeled as one unit per GPU core"
       }
+    }
+  },
+  "MemorySubsystem": {
+    "SupportedMemoryTypes": ["LPDDR5"],
+    "MemoryTypes": [
+      {
+        "Type": "Unified Memory (LPDDR5)",
+        "Size": 25165824,
+        "MaxMemoryBandwidth": 100,
+        "maxBusWidth": 128,
+        "description": "LPDDR5 unified memory shared by the GPU, CPU, Neural Engine and media engine. Apple publishes 100 GB/s of memory bandwidth for M3 and ships 8 GB, 16 GB and 24 GB configurations; Size records the 24 GB maximum. The 128-bit bus width is third-party reported and not published by Apple. There is no separate VRAM: Metal buffers and textures are allocated from this pool and are addressable by CPU and GPU without copies"
+      },
+      {
+        "Type": "Dynamic Shader Core Memory",
+        "description": "Unified on-chip memory pool of the Apple family 9 shader core. Dynamic Caching allocates registers, threadgroup memory, tile memory, stack space and buffer data from the same set of larger caches on demand over the lifetime of a shader, instead of reserving a fixed worst-case allocation per shader, which raises occupancy for register-heavy kernels. Apple publishes neither the capacity of this pool nor the sizes of the GPU L1 and L2 caches, so no Size is recorded"
+      },
+      {
+        "Type": "Threadgroup Memory (per threadgroup)",
+        "Size": 32,
+        "description": "Maximum threadgroup (shared) memory one threadgroup may allocate, from Apple's Metal Feature Set Tables for the Apple9 family, with a 16-byte length alignment and a maximum of 1024 threads per threadgroup. This is an API limit rather than the physical capacity of a shader core; on M3 the storage is carved out of the shared on-chip pool by Dynamic Caching"
+      },
+      {
+        "Type": "Tile Memory (per threadgroup)",
+        "Size": 32,
+        "description": "Maximum imageblock/tile memory per threadgroup for the Apple9 family per Apple's Metal Feature Set Tables (with a maximum of 8 KB per thread). The tile-based deferred renderer keeps render-pass attachments and meshlet data here to avoid memory traffic; on M3 it is also dynamically allocated by Dynamic Caching"
+      }
+    ]
+  },
+  "KernelModel": {
+    "LLVMTarget": "air64",
+    "LLVMTriple": "air64-apple-macos14.0",
+    "SubUnits": [
+      {
+        "Type": "Metal",
+        "Version": "3.1"
+      },
+      {
+        "Type": "Metal Shading Language",
+        "Version": "3.1"
+      }
+    ]
+  },
+  "SpecializedHardware": {
+    "RayTracingAccelerators": {
+      "Present": true,
+      "Name": "Hardware Intersector"
     },
-    "PowerEfficiency": {
-      "BaseClock": 1000,
-      "BoostClock": 1424,
-      "MaxTDP": 22,
-      "PowerStates": [
+    "AiAccelerators": {
+      "Present": false
+    },
+    "videoCodecs": {
+      "encoders": [
         {
-          "Name": "Performance",
-          "Description": "Maximum performance for demanding workloads"
+          "codec": "H.264"
         },
         {
-          "Name": "Balanced",
-          "Description": "Balance between performance and power efficiency"
-        },
-        {
-          "Name": "Power Saving",
-          "Description": "Optimized for battery life"
+          "codec": "H.265/HEVC"
         }
       ],
-      "ClockGating": true,
-      "DynamicVoltageFrequencyScaling": true
-    },
-    "PciExpress": {
-      "Version": "N/A",
-      "Lanes": 0,
-      "Bandwidth": 0
-    },
-    "MultiGpuSupport": {
-      "Technologies": ["None"],
-      "MaxGpus": 1,
-      "InterconnectBandwidth": 0
+      "decoders": [
+        {
+          "codec": "H.264"
+        },
+        {
+          "codec": "H.265/HEVC"
+        },
+        {
+          "codec": "AV1"
+        }
+      ]
     }
+  },
+  "PowerEfficiency": {
+    "PowerStates": [
+      {
+        "Name": "Active",
+        "Description": "Full power state with all GPU cores available. Apple publishes no GPU base or boost clock and no GPU or package TDP for M3, so no clock or TDP values are recorded"
+      },
+      {
+        "Name": "Idle",
+        "Description": "Reduced power state when no graphics or compute work is scheduled"
+      }
+    ],
+    "ClockGating": true,
+    "DynamicVoltageFrequencyScaling": true
+  },
+  "MultiGpuSupport": {
+    "Technologies": ["None"],
+    "MaxGpus": 1,
+    "InterconnectBandwidth": 0
   }
+}

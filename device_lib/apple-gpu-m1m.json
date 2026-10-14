@@ -1,164 +1,147 @@
 {
-    "Name": "Apple GPU (M1 Max)",
-    "Vendor": "Apple",
-    "Architecture": "Apple GPU Gen 1 Max",
-    "ReleaseYear": 2021,
-    "FabricationProcess": {
-      "ProcessNode": 5,
-      "Manufacturer": "TSMC",
-      "Technology": "N5P"
-    },
-    "CoreSubsystem": {
-      "Name": "GPU Core",
-      "subUnits": [
-        {
-          "Type": "Execution Unit",
-          "Count": 32,
-          "Size": 128,
-          "Description": "Unified shader processors with 128 ALUs per core",
-          "Memory": ["L1", "L2"],
-          "SubunitType": "SIMD"
-        },
-        {
-          "Type": "Tile Memory",
-          "Count": 32,
-          "Size": 32,
-          "Description": "On-chip tile memory for efficient rendering",
-          "Memory": ["Tile"],
-          "SubunitType": "Memory"
-        }
-      ]
-    },
-    "MemorySubsystem": {
-      "SupportedMemoryTypes": ["LPDDR5"],
-      "MemoryTypes": [
-        {
-          "Type": "L1",
-          "Size": 64,
-          "BankCount": 32,
-          "MaxMemoryBandwidth": 400,
-          "maxBusWidth": 512,
-          "description": "L1 cache per GPU core"
-        },
-        {
-          "Type": "L2",
-          "Size": 16384,
-          "BankCount": 1,
-          "MaxMemoryBandwidth": 400,
-          "maxBusWidth": 512,
-          "description": "Shared L2 cache"
-        },
-        {
-          "Type": "Unified Memory",
-          "Size": 67108864,
-          "BankCount": 16,
-          "MaxMemoryBandwidth": 400,
-          "maxBusWidth": 512,
-          "description": "Unified memory shared with CPU"
-        }
-      ]
-    },
-    "KernelModel": {
-      "SubUnits": [
-        {
-          "Type": "Metal",
-          "Version": "2.4"
-        },
-        {
-          "Type": "OpenGL ES",
-          "Version": "3.0"
-        },
-        {
-          "Type": "Vulkan",
-          "Version": "1.2"
-        }
-      ]
-    },
-    "SpecializedHardware": {
-      "RayTracingAccelerators": {
-        "Present": false,
-        "Name": null,
-        "Count": 0,
-        "Performance": {
-          "RaysPerSecond": 0
-        }
+  "Name": "Apple GPU (M1 Max)",
+  "Vendor": "Apple",
+  "Architecture": "Apple7",
+  "ReleaseYear": 2021,
+  "FabricationProcess": {
+    "ProcessNode": 5,
+    "Manufacturer": "TSMC",
+    "Technology": "N5"
+  },
+  "CoreSubsystem": {
+    "Name": "GPU Core",
+    "ChipType": "GPU",
+    "CoreType": "GPU Core",
+    "UnitTypes": {
+      "GPU": {
+        "Count": 1,
+        "Size": 32,
+        "Description": "Integrated GPU block of the M1 Max SoC (57 billion transistors total). Up to 32 GPU cores, 4,096 ALUs, approximately 10.4 TFLOPS FP32 at the peak 1296 MHz clock. Cores share the SoC's system level cache and the unified memory pool with the CPU, Neural Engine, and media engine. The 16-core Neural Engine and the ProRes/video media engines are separate SoC blocks and are not part of the GPU or addressable from Metal. A 24-core GPU binned variant of the same die is also sold; this entry describes the full 32-core configuration. Two M1 Max dies can be joined by Apple's UltraFusion silicon interposer at 2.5 TB/s to form the 64-core-GPU M1 Ultra",
+        "Memory": ["System Level Cache", "Unified Memory (LPDDR5)"],
+        "Subunits": ["GPU Core"]
       },
-      "AiAccelerators": {
-        "Present": false,
-        "Name": null,
-        "Count": 0,
-        "SupportedPrecisions": [],
-        "Performance": {
-          "fp16TopsPerGPU": 0,
-          "int8TopsPerGPU": 0
-        }
+      "GPU Core": {
+        "Count": 32,
+        "Size": 128,
+        "Description": "Unified shader core. Apple publishes only the core count; the 128 ALUs per core figure is derived from the widely reported 4,096 total ALUs divided across 32 cores. Each core has its own L1 texture cache and L1 buffer cache (Apple confirms both exist but publishes no capacities) plus 32 KB of on-chip threadgroup/imageblock memory. Threads execute in SIMD groups of 32",
+        "Memory": ["L1 Texture Cache", "L1 Buffer Cache", "Threadgroup Memory", "Imageblock (Tile) Memory"],
+        "Subunits": ["ALU"]
       },
-      "videoCodecs": {
-        "encoders": [
-          {
-            "codec": "H.264",
-            "maxResolution": "4K",
-            "maxBitrate": 240,
-            "maxFPS": 60
-          },
-          {
-            "codec": "H.265/HEVC",
-            "maxResolution": "4K",
-            "maxBitrate": 240,
-            "maxFPS": 60
-          }
-        ],
-        "decoders": [
-          {
-            "codec": "H.264",
-            "maxResolution": "8K",
-            "maxBitrate": 480,
-            "maxFPS": 30
-          },
-          {
-            "codec": "H.265/HEVC",
-            "maxResolution": "8K",
-            "maxBitrate": 480,
-            "maxFPS": 30
-          },
-          {
-            "codec": "VP9",
-            "maxResolution": "4K",
-            "maxBitrate": 240,
-            "maxFPS": 60
-          }
-        ]
+      "ALU": {
+        "Count": 128,
+        "Size": 1,
+        "Description": "Scalar shader lane executing FP32/FP16/integer operations. Work is issued as 32-wide SIMD groups (Metal threadExecutionWidth is 32 on Apple GPUs), and up to 1024 threads may occupy one threadgroup. Apple does not publish how the 128 lanes of a core are partitioned into issue units, so no finer hierarchy is modeled here. Apple7 adds SIMD-scoped reduction and SIMD-scoped matrix multiply (simdgroup_matrix) operations, which run on these lanes rather than on dedicated matrix hardware"
       }
+    }
+  },
+  "MemorySubsystem": {
+    "SupportedMemoryTypes": ["LPDDR5"],
+    "MemoryTypes": [
+      {
+        "Type": "Threadgroup Memory",
+        "Size": 32,
+        "description": "32 KB maximum total threadgroup memory allocation per threadgroup on the Apple7 GPU family, per Apple's Metal Feature Set Tables. Shared with explicit imageblock (tile) memory: the sum of the two allocations cannot exceed the imageblock limit"
+      },
+      {
+        "Type": "Imageblock (Tile) Memory",
+        "Size": 128,
+        "description": "On-chip tile storage for the tile-based deferred renderer. Apple7 allows up to 128 KB of implicit imageblock allocation and up to 32 KB of explicit imageblock allocation. Maximum tile size is 32x32 pixels without MSAA (32x16 with 4x MSAA)"
+      },
+      {
+        "Type": "L1 Texture Cache",
+        "description": "Per-GPU-core read path cache for texture fetches, described in Apple's 'Metal Compute on MacBook Pro' tech talk. Apple does not publish its capacity and no authoritative measurement is available, so no size is recorded"
+      },
+      {
+        "Type": "L1 Buffer Cache",
+        "description": "Per-GPU-core cache for buffer reads, separate from the texture cache, described in Apple's 'Metal Compute on MacBook Pro' tech talk. Capacity is not published by Apple, so no size is recorded"
+      },
+      {
+        "Type": "System Level Cache",
+        "Size": 49152,
+        "MaxMemoryBandwidth": 400,
+        "description": "48 MB SoC-wide system level cache sitting in front of the memory controllers and shared by the GPU, CPU, and other SoC blocks. Apple does not publish this figure; 48 MB is AnandTech's measured value for M1 Max. There is no publicly established figure for a GPU-private L2, so none is listed"
+      },
+      {
+        "Type": "Unified Memory (LPDDR5)",
+        "Size": 67108864,
+        "MaxMemoryBandwidth": 400,
+        "maxBusWidth": 512,
+        "description": "Up to 64 GB of LPDDR5-6400 unified memory on a 512-bit interface delivering Apple's stated 400 GB/s peak bandwidth, shared coherently by CPU, GPU, Neural Engine, and media engine with no separate VRAM copy. Sold in 32 GB and 64 GB configurations; Metal reports a recommended GPU working set of about 21 GB on a 32 GB system and about 48 GB on a 64 GB system"
+      }
+    ]
+  },
+  "KernelModel": {
+    "LLVMTarget": "air64",
+    "LLVMTriple": "air64-apple-macos13.0",
+    "LLVMFeatures": [
+      {
+        "Name": "air64",
+        "Description": "Apple Intermediate Representation. The Metal compiler is Clang/LLVM based and emits LLVM bitcode carrying an air64-apple-macos triple, but air64 is not an upstream LLVM target: it is only accepted by Apple's metal compiler shipped with Xcode"
+      }
+    ],
+    "SubUnits": [
+      {
+        "Type": "Metal",
+        "Version": "4"
+      },
+      {
+        "Type": "OpenCL",
+        "Version": "1.2"
+      }
+    ]
+  },
+  "SpecializedHardware": {
+    "RayTracingAccelerators": {
+      "Present": false
     },
-    "PowerEfficiency": {
-      "BaseClock": 1000,
-      "BoostClock": 1296,
-      "MaxTDP": 60,
-      "PowerStates": [
+    "AiAccelerators": {
+      "Present": false
+    },
+    "videoCodecs": {
+      "encoders": [
         {
-          "Name": "Performance",
-          "Description": "Maximum performance for demanding workloads"
+          "codec": "H.264"
         },
         {
-          "Name": "Balanced",
-          "Description": "Balance between performance and power efficiency"
+          "codec": "H.265/HEVC"
         },
         {
-          "Name": "Power Saving",
-          "Description": "Optimized for battery life"
+          "codec": "Other"
         }
       ],
-      "ClockGating": true,
-      "DynamicVoltageFrequencyScaling": true
-    },
-    "PciExpress": {
-      "Version": "N/A",
-      "Lanes": 0,
-      "Bandwidth": 0
-    },
-    "MultiGpuSupport": {
-      "Technologies": ["None"],
-      "MaxGpus": 1,
-      "InterconnectBandwidth": 0
+      "decoders": [
+        {
+          "codec": "H.264"
+        },
+        {
+          "codec": "H.265/HEVC"
+        },
+        {
+          "codec": "Other",
+          "maxResolution": "8K"
+        }
+      ]
     }
+  },
+  "PowerEfficiency": {
+    "BaseClock": 389,
+    "BoostClock": 1296,
+    "PowerStates": [
+      {
+        "Name": "Active",
+        "Description": "The GPU runs at one of six measured DVFS steps (389, 486, 648, 778, 972, 1296 MHz); Apple publishes neither the frequency table nor a GPU TDP, so no MaxTDP is recorded here. Independent measurements of sustained GPU-limited load on M1 Max disagree (roughly 40-60 W attributed to the GPU within a package total near 90 W), so no single figure is asserted"
+      },
+      {
+        "Name": "Idle",
+        "Description": "Low-power state with the GPU clock-gated when no Metal work is in flight"
+      }
+    ],
+    "ClockGating": true,
+    "DynamicVoltageFrequencyScaling": true
+  },
+  "MultiGpuSupport": {
+    "Technologies": ["Other"],
+    "MaxGpus": 2,
+    "InterconnectBandwidth": 2500
   }
+}

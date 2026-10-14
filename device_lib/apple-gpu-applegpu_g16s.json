@@ -1,227 +1,142 @@
 {
-  "Name": "Apple GPU G16S",
+  "Name": "Apple GPU G16S (M4 Pro)",
   "Vendor": "Apple",
-  "Type": "gpu",
   "Architecture": "applegpu_g16s",
   "ReleaseYear": 2024,
   "FabricationProcess": {
     "ProcessNode": 3,
     "Manufacturer": "TSMC",
-    "Technology": "N3E"
+    "Technology": "N3E (Apple: second-generation 3-nanometer)"
   },
   "CoreSubsystem": {
-    "Name": "Core",
-    "SubUnits": [
-      {
-        "Type": "Chip",
+    "Name": "GPU Core",
+    "ChipType": "Chip",
+    "CoreType": "GPU Core",
+    "UnitTypes": {
+      "Chip": {
         "Count": 1,
-        "Size": 10,
-        "Description": "Chip containing multiple Clusters",
-        "Memory": ["L2 Cache"],
-        "SubunitType": "GPU Cluster"
+        "Size": 20,
+        "Description": "Integrated GPU block of the Apple M4 Pro SoC (SoC codename H16S / Brava Chop, t6040). Apple GPU generation G16, die-tier suffix S = Pro (matching the G13G = M1, G13S = M1 Pro naming reported by the Mesa/Asahi driver). Ships in 16-core and 20-core GPU bins; Size 20 is the full configuration. Apple GPUs group cores into clusters, but the cluster geometry of the G16 generation is not published, so no cluster level is modeled here",
+        "Memory": ["L2 / System Level Cache", "Unified Memory (LPDDR5X)"],
+        "Subunits": ["GPU Core"]
       },
-      {
-        "Type": "GPU Cluster",
-        "Count": 10,
-        "Size": 2,
-        "Description": "High-level GPU cluster containing multiple cores",
-        "SubunitType": "Core"
-      },
-      {
-        "Type": "Core",
-        "Count": 2,
-        "Size": 4,
-        "ISA": "",
-        "Description": "Individual GPU compute core with 128 ALUs",
-        "Memory": ["L1 Cache", "Tile Memory", "Vector Register File", "Scalar Register File", "Shared Memory"],
-        "SubunitType": "SIMD"
-      },
-      {
-        "Type": "SIMD",
-        "Count": 4,
-        "Size": 32,
-        "Description": "SIMD with Warp Size"
-      },
-      {
-        "Type": "Neural Engine Core",
-        "Count": 16,
+      "GPU Core": {
+        "Count": 20,
         "Size": 1,
-        "Description": "Dedicated neural processing unit for AI/ML workloads"
+        "Description": "Tile-based deferred rendering (TBDR) shader core of Metal GPU family Apple9 (A17 Pro, M3-series and M4-series per Apple's Metal Feature Set Tables). Features Dynamic Caching (on-chip memory allocated dynamically among registers, threadgroup memory and stack), a hardware ray tracing accelerator (Apple: 2x the M3 engine) and hardware mesh shading. There is no dedicated matrix engine in this generation: SIMD-scoped matrix multiply operations (Apple7 and later) execute on the shader ALUs. Apple does not publish per-core ALU counts, cache sizes or clock frequencies",
+        "Memory": ["L1 Cache (per GPU core)", "Threadgroup Memory", "Imageblock (Tile) Memory"],
+        "Subunits": ["SIMD Group"]
+      },
+      "SIMD Group": {
+        "Count": 1,
+        "Size": 32,
+        "Description": "Execution is 32-wide: an Apple GPU SIMD group (Metal threadExecutionWidth) is 32 threads, and up to 1024 threads may be launched per threadgroup on Apple9. Count is 1 because Apple does not publish how many 32-wide SIMD pipelines each core contains; the value describes the execution width itself, not an ALU-pipeline count"
       }
-    ]
+    }
   },
   "MemorySubsystem": {
     "SupportedMemoryTypes": ["LPDDR5"],
-    "SubUnits": [
+    "MemoryTypes": [
       {
-        "Type": "Vector Register File",
-        "Size": 256,
-        "BankCount": 4,
-        "Description": "Vector register file for SIMD operations per GPU core"
+        "Type": "L1 Cache (per GPU core)",
+        "description": "Per-core cache and Dynamic Caching pool backing registers, threadgroup memory, tile memory and stack. Apple does not publish its capacity, banking or line size, so no Size is given"
       },
       {
-        "Type": "Scalar Register File",
-        "Size": 16,
-        "BankCount": 2,
-        "Description": "Scalar register file for control flow and addressing per GPU core"
-      },
-      {
-        "Type": "Shared Memory",
+        "Type": "Threadgroup Memory",
         "Size": 32,
-        "BankCount": 32,
-        "Description": "Threadgroup shared memory for inter-thread communication within a GPU core"
+        "description": "Maximum total threadgroup memory allocation is 32 KB per threadgroup on GPU family Apple9 (Apple Metal Feature Set Tables). Threadgroup memory length alignment is 16 B. On M3 and later this storage is carved out of the core's on-chip memory by Dynamic Caching rather than being statically partitioned"
       },
       {
-        "Type": "L1 Cache",
-        "Size": 16,
-        "BankCount": 4,
-        "Description": "Per-core L1 cache for fast data access"
-      },
-      {
-        "Type": "L2 Cache",
-        "Size": 4096,
-        "BankCount": 8,
-        "Description": "Shared L2 cache across GPU cores"
-      },
-      {
-        "Type": "Tile Memory",
+        "Type": "Imageblock (Tile) Memory",
         "Size": 32,
-        "BankCount": 1,
-        "Description": "On-chip tile memory for efficient rendering"
+        "description": "On-chip tile storage used by TBDR rendering and imageblocks. Apple9 allows up to 32 KB of explicit imageblock allocation and up to 256 KB of implicit imageblock allocation; explicit imageblock and threadgroup allocations share the same budget"
       },
       {
-        "Type": "System Memory",
-        "Size": 0,
+        "Type": "L2 / System Level Cache",
+        "description": "GPU-shared L2 plus the SoC system level cache in front of unified memory. Apple publishes no capacity, bandwidth or banking figures for either level, so no Size is given"
+      },
+      {
+        "Type": "Unified Memory (LPDDR5X)",
+        "Size": 67108864,
         "MaxMemoryBandwidth": 273,
         "maxBusWidth": 256,
-        "Description": "Unified memory architecture shared with CPU"
+        "description": "On-package LPDDR5X at up to 8533 MT/s on a 256-bit bus, giving Apple's published 273 GB/s. Unified memory is shared coherently with the CPU, Neural Engine and media engine. Size is the maximum 64 GB configuration (67108864 KB); M4 Pro also ships with 24 GB and 48 GB. LPDDR5X is reported as LPDDR5 because the schema enumeration has no LPDDR5X value"
       }
     ]
   },
   "KernelModel": {
-    "LLVMTriple": "aarch64-apple-macosx",
-    "LLVMFeatures": [
-      {
-        "Name": "apple-gpu",
-        "Description": "Apple GPU specific optimizations"
-      },
-      {
-        "Name": "neon",
-        "Description": "Advanced SIMD (NEON) support"
-      },
-      {
-        "Name": "fp16",
-        "Description": "Half-precision floating-point support"
-      }
-    ],
+    "LLVMTarget": "air64",
+    "LLVMTriple": "air64-apple-macosx",
     "SubUnits": [
       {
         "Type": "metal",
-        "Version": "3.2"
+        "Version": "3"
+      },
+      {
+        "Type": "metal",
+        "Version": "4"
       },
       {
         "Type": "opencl",
-        "Version": "3.0"
+        "Version": "1.2"
       }
     ]
   },
   "SpecializedHardware": {
     "RayTracingAccelerators": {
       "Present": true,
-      "Name": "Ray Tracing Cores",
-      "Count": 1,
-      "Performance": {
-        "RaysPerSecond": 2.5
-      }
+      "Name": "Hardware-accelerated ray tracing (second-generation ray tracing engine)"
     },
     "AiAccelerators": {
       "Present": true,
-      "Name": "Neural Engine",
+      "Name": "Neural Engine (SoC-level block, not part of the GPU)",
       "Count": 16,
-      "SupportedPrecisions": ["FP32", "FP16", "INT8"],
+      "SupportedPrecisions": ["FP16", "INT8"],
       "Performance": {
-        "fp16TopsPerGPU": 35.0,
-        "int8TopsPerGPU": 70.0
+        "int8TopsPerGPU": 38
       }
     },
     "videoCodecs": {
       "encoders": [
         {
-          "codec": "H.264",
-          "maxResolution": "8K",
-          "maxBitrate": 1000,
-          "maxFPS": 60
+          "codec": "H.264"
         },
         {
-          "codec": "H.265/HEVC",
-          "maxResolution": "8K",
-          "maxBitrate": 1000,
-          "maxFPS": 60
+          "codec": "H.265/HEVC"
         },
         {
-          "codec": "AV1",
-          "maxResolution": "4K",
-          "maxBitrate": 500,
-          "maxFPS": 60
+          "codec": "Other"
         }
       ],
       "decoders": [
         {
-          "codec": "H.264",
-          "maxResolution": "8K",
-          "maxBitrate": 1000,
-          "maxFPS": 120
+          "codec": "H.264"
         },
         {
-          "codec": "H.265/HEVC",
-          "maxResolution": "8K",
-          "maxBitrate": 1000,
-          "maxFPS": 120
+          "codec": "H.265/HEVC"
         },
         {
-          "codec": "AV1",
-          "maxResolution": "8K",
-          "maxBitrate": 800,
-          "maxFPS": 60
+          "codec": "AV1"
         },
         {
-          "codec": "VP9",
-          "maxResolution": "8K",
-          "maxBitrate": 800,
-          "maxFPS": 60
+          "codec": "Other"
         }
       ]
     }
   },
   "PowerEfficiency": {
-    "BaseClock": 1300,
-    "BoostClock": 1580,
-    "MaxTDP": 40,
     "PowerStates": [
       {
         "Name": "Active",
-        "Description": "Full performance mode"
-      },
-      {
-        "Name": "Automatic",
-        "Description": "Dynamic performance scaling based on workload"
-      },
-      {
-        "Name": "Low Power",
-        "Description": "Reduced performance for battery efficiency"
+        "Description": "GPU executing work. Apple publishes neither GPU clock frequencies nor a GPU or package TDP for M4 Pro, so BaseClock, BoostClock and MaxTDP are omitted rather than estimated"
       },
       {
         "Name": "Idle",
-        "Description": "Minimal power consumption when not in use"
+        "Description": "Low-power state when no Metal work is queued; power is managed by the SoC power controller"
       }
     ],
     "ClockGating": true,
     "DynamicVoltageFrequencyScaling": true
-  },
-  "PciExpress": {
-    "Version": "4.0",
-    "Lanes": 16,
-    "Bandwidth": 32
   },
   "MultiGpuSupport": {
     "Technologies": ["None"],

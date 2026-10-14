@@ -1,0 +1,174 @@
+{
+  "Name": "Trainium",
+  "Vendor": "Other",
+  "Architecture": "trn1",
+  "ReleaseYear": 2022,
+  "FabricationProcess": {
+    "ProcessNode": 7,
+    "Manufacturer": "TSMC",
+    "Technology": "N7 (widely reported; AWS does not publish the Trainium process node)"
+  },
+  "CoreSubsystem": {
+    "Name": "NeuronCore-v2",
+    "ChipType": "Chip",
+    "CoreType": "NeuronCore-v2",
+    "UnitTypes": {
+      "Chip": {
+        "Count": 1,
+        "Size": 2,
+        "Description": "One Trainium NeuronDevice: 2 NeuronCore-v2, 2 HBM stacks (32 GiB at 820 GB/s), 32 DMA engines, 6 CC-Cores and 4 NeuronLink-v2 links. AWS rates the chip at 190 FP16/BF16/cFP8/TF32 TFLOPS, 47.5 FP32 TFLOPS and 380 INT8 TOPS. A trn1.32xlarge holds 16 chips (32 NeuronCores) wired into a 2D torus over NeuronLink-v2 and delivers up to 3 PFLOPS FP16/BF16; trn1.2xlarge exposes a single chip. Scale-out beyond the instance goes over EFAv2 (800 Gbps on trn1.32xlarge, 1600 Gbps on trn1n.32xlarge)",
+        "Memory": ["HBM", "SBUF", "PSUM", "TCM"],
+        "Subunits": ["NeuronCore-v2", "DMA Engine", "CC-Core", "HBM Stack", "NeuronLink-v2 Link", "PCIe Controller"]
+      },
+      "NeuronCore-v2": {
+        "Count": 2,
+        "Size": 5,
+        "Description": "Independent accelerator core with 4 heterogeneous compute engines (Tensor, Vector, Scalar, GpSimd) plus a Sync Engine, all executing concurrently over a shared software-managed state buffer. Cores can be used individually or logically merged (Logical NeuronCore config) so a chip appears as one larger core",
+        "Memory": ["SBUF", "PSUM", "TCM"],
+        "Subunits": ["Tensor Engine", "Vector Engine", "Scalar Engine", "GPSIMD Engine", "Sync Engine"]
+      },
+      "Tensor Engine": {
+        "Count": 1,
+        "Size": 16384,
+        "Description": "Systolic array of 128 rows by 128 columns of processing elements per NeuronCore, for matrix multiplication and convolution. Runs at 2.8 GHz, reads operands from SBUF and accumulates into PSUM. Accepts BF16, FP16, TF32 and configurable FP8 (cFP8) inputs at 92 TFLOPS and FP32 inputs at 23 TFLOPS; INT8 inputs produce INT32 results. Accumulation is mixed-precision with FP32 accumulators and FP32 output. On v2 cFP8 runs at the same rate as BF16 - the FP8 rate doubling only arrives with NeuronCore-v3"
+      },
+      "Vector Engine": {
+        "Count": 1,
+        "Size": 128,
+        "Description": "SIMD engine at 1.12 GHz processing 128 elements per cycle, one per SBUF partition, for element-wise and reduction operations (normalization, softmax reductions, accumulation). Operates SBUF-to-SBUF or PSUM-to-SBUF in parallel with the Tensor Engine, at roughly 2.3 FP32 TFLOPS per NeuronCore"
+      },
+      "Scalar Engine": {
+        "Count": 1,
+        "Size": 128,
+        "Description": "128-lane engine at 1.4 GHz for activation functions and transcendentals (GELU, exp, sigmoid, tanh), applied at one element per cycle per lane while the other engines run concurrently, at roughly 2.9 FP32 TFLOPS per NeuronCore"
+      },
+      "GPSIMD Engine": {
+        "Count": 1,
+        "Size": 8,
+        "Description": "8 fully programmable 512-bit wide general-purpose SIMD DSP processors per NeuronCore at 1.4 GHz, together presenting a 128-lane 32-bit data path. Each processor is wired to 16 SBUF partitions and has 64 KB of tightly-coupled memory. Addressable from Neuron Custom C++ Operators, it handles irregular ops (embeddings, gather/scatter, dynamic control flow) that do not map to the fixed-function engines",
+        "Memory": ["TCM"]
+      },
+      "Sync Engine": {
+        "Count": 1,
+        "Size": 1,
+        "Description": "Engine sequencer inside each NeuronCore that executes the same class of control instructions as the compute-engine sequencers. Its role is to trigger DMA transfers without interfering with compute-engine instruction scheduling and ordering"
+      },
+      "DMA Engine": {
+        "Count": 32,
+        "Size": 1,
+        "Description": "32 descriptor-driven DMA engines per chip for intra- and inter-device data movement. Each processes one transfer at a time at a peak of about 27 GiB/s, for roughly 1 TB/s of aggregate DMA bandwidth with inline memory compression and decompression. They stage tensors between HBM and SBUF/PSUM and overlap data movement with compute"
+      },
+      "CC-Core": {
+        "Count": 6,
+        "Size": 1,
+        "Description": "6 cores per chip dedicated to collective communication (all-reduce, all-gather, reduce-scatter), driving the 4 NeuronLink-v2 links. On NeuronCore-v2 collectives execute on these device-level cores rather than on an engine inside the NeuronCore; NeuronCore-v3 scales the count to 20"
+      },
+      "HBM Stack": {
+        "Count": 2,
+        "Size": 1,
+        "Description": "2 HBM stacks per chip, 16 GiB each, for 32 GiB of device memory at 820 GB/s aggregate. AWS does not state the HBM generation; 820 GB/s across 2 stacks implies about 3.2 Gbps per pin on a 1024-bit stack, which is an HBM2e-class data rate"
+      },
+      "NeuronLink-v2 Link": {
+        "Count": 4,
+        "Size": 1,
+        "Description": "4 NeuronLink-v2 chip-to-chip links per Trainium chip (Inferentia2 has 2), wiring the 16 chips of a trn1.32xlarge into a 2D torus. AWS publishes 'up to 768 GB/s of NeuronLink' for Trn1 instances but does not publish a per-link or per-device-pair figure"
+      },
+      "PCIe Controller": {
+        "Count": 1,
+        "Size": 1,
+        "Description": "Host interface controller attaching the Trainium chip to the EC2 host as a PCIe endpoint. AWS does not publish the PCIe generation or lane count for Trainium"
+      }
+    }
+  },
+  "MemorySubsystem": {
+    "SupportedMemoryTypes": ["HBM2e"],
+    "MemoryTypes": [
+      {
+        "Type": "SBUF (State Buffer, per NeuronCore)",
+        "Size": 24576,
+        "BankCount": 128,
+        "description": "24 MiB of on-chip software-managed SRAM per NeuronCore, organized as 128 partitions of 192 KiB. Not a cache - no automatic fill, eviction, or coherence. All engines read and write operands here, and data must be explicitly staged from HBM by the DMA engines. BankCount is the partition count. Total 48 MiB per chip across 2 NeuronCores"
+      },
+      {
+        "Type": "PSUM (Partial Sum Buffer, per NeuronCore)",
+        "Size": 2048,
+        "BankCount": 8,
+        "description": "2 MiB accumulation SRAM per NeuronCore, organized as 128 partitions of 16 KiB, each partition split into 8 banks holding 512 FP32 values (2 KiB) each. Holds FP32 matmul partial sums written by the Tensor Engine, which has exclusive near-memory read-accumulate-write to every 4-byte element, so multi-pass matmuls accumulate in place before being copied back to SBUF. BankCount is banks per partition"
+      },
+      {
+        "Type": "TCM (GpSimd tightly-coupled memory, per processor)",
+        "Size": 64,
+        "description": "64 KB of local data RAM private to each of the 8 GpSimd processors in a NeuronCore, giving 512 KB per NeuronCore. Used as scratch by Neuron Custom C++ Operators"
+      },
+      {
+        "Type": "HBM (Device DRAM)",
+        "Size": 33554432,
+        "BankCount": 2,
+        "MaxMemoryBandwidth": 820,
+        "maxBusWidth": 2048,
+        "description": "32 GiB of device memory per chip across 2 HBM stacks at 820 GB/s. A trn1.32xlarge exposes 512 GB of shared accelerator memory with 9.8 TB/s of total memory bandwidth as published by AWS (16 x 820 GB/s would be 13.1 TB/s; AWS quotes the lower figure). BankCount is the stack count; maxBusWidth assumes the standard 1024-bit interface per HBM stack. AWS does not state the HBM generation, but the implied per-pin data rate is HBM2e class. Moved to and from SBUF explicitly by the DMA engines; there is no hardware cache hierarchy between HBM and SBUF"
+      }
+    ]
+  },
+  "KernelModel": {
+    "SubUnits": [
+      {
+        "Type": "NKI (Neuron Kernel Interface)",
+        "Version": "0.6.0"
+      },
+      {
+        "Type": "Neuron Custom C++ Operators (aws-neuronx-gpsimd-customop-lib)",
+        "Version": "0.24.1.0"
+      },
+      {
+        "Type": "Neuron Compiler (neuronx-cc)",
+        "Version": "2.27.5334.0"
+      },
+      {
+        "Type": "PyTorch NeuronX (torch-neuronx)",
+        "Version": "2.9.0.2.15.32035"
+      },
+      {
+        "Type": "AWS Neuron SDK",
+        "Version": "2.32.0"
+      }
+    ]
+  },
+  "SpecializedHardware": {
+    "RayTracingAccelerators": {
+      "Present": false
+    },
+    "AiAccelerators": {
+      "Present": true,
+      "Name": "NeuronCore-v2 Tensor Engine",
+      "Count": 2,
+      "SupportedPrecisions": ["FP32", "FP16", "BF16", "INT8", "Other"],
+      "Performance": {
+        "fp16TopsPerGPU": 190,
+        "int8TopsPerGPU": 380
+      }
+    },
+    "videoCodecs": {
+      "encoders": [],
+      "decoders": []
+    }
+  },
+  "PowerEfficiency": {
+    "MaxTDP": 350,
+    "PowerStates": [
+      {
+        "Name": "Active",
+        "Description": "Full power state with both NeuronCores and HBM stacks active. AWS publishes no per-chip TDP for Trainium and no per-instance power figure; the 350 W here is a third-party estimate, not an AWS number. For scale, the later Trainium2 chip is reported at roughly 500 W"
+      },
+      {
+        "Name": "Idle",
+        "Description": "Reduced power state when no workloads are running. AWS does not document the idle power level or the transition policy"
+      }
+    ]
+  },
+  "MultiGpuSupport": {
+    "Technologies": ["Other"],
+    "MaxGpus": 16,
+    "InterconnectBandwidth": 768
+  }
+}

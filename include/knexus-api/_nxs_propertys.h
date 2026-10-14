@@ -107,7 +107,10 @@ KNEXUS_API_PROP(Size,                  _prop_int,        "Number of Sub-Units")
 KNEXUS_API_PROP(Rank,                  _prop_int,        "Rank")
 KNEXUS_API_PROP(Shape,                 _prop_int_vec,    "Shape")
 KNEXUS_API_PROP(SubUnits,              _prop_str_vec,    "Sub-Unit Vector")
-KNEXUS_API_PROP(SubUnitType,           _prop_str,        "Sub-Unit Type")
+KNEXUS_API_PROP(ChipType,              _prop_str,        "Chip Unit Type Name")
+KNEXUS_API_PROP(CoreType,              _prop_str,        "Core Unit Type Name")
+KNEXUS_API_PROP(UnitTypes,             _prop_obj_vec,    "Unit Type Map (keyed by type name)")
+KNEXUS_API_PROP(Subunits,              _prop_str_vec,    "Contained Sub-Unit Type Names")
 
 KNEXUS_API_PROP(Keys,                  _prop_int_vec,    "Node Keys")
 

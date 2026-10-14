@@ -1,4 +1,5 @@
 setuptools>=40.8.0
 wheel
 cmake
-pybind11>=2.13.6
+# Must match torch-nexus/pyproject.toml's pybind11 pin.
+pybind11==3.1.0
