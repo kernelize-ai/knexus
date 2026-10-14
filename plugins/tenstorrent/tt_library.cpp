@@ -37,6 +37,7 @@ nxs_status TTLibrary::jitProgram(std::shared_ptr<ttmd::MeshDevice> device, ttm::
         program, compute_kernel_str, cores,
         ttm::ComputeConfig{.math_fidelity = ttm::MathFidelity::HiFi4, .compile_args = ctas});
 
+    /* Pre-compile is now deprecated
     try {
       TT_CHECK(ttm::detail::CompileProgram, device->get_devices()[0], program);
     } catch (const std::exception& e) {
@@ -44,6 +45,7 @@ nxs_status TTLibrary::jitProgram(std::shared_ptr<ttmd::MeshDevice> device, ttm::
       NXSLOG_ERROR("Compilation failed: {}", e.what());
       return NXS_InvalidCommand;
     }
+    */
 
     return NXS_Success;
 }
