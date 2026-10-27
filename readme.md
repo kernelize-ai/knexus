@@ -9,9 +9,9 @@ recent commits; knexus ships no orient of its own.
 > **Reference, don't restate.** Canonical truth lives in the product's own
 > `docs/` and in each header's and module's comments. Follow the pointer.
 >
-> **knexus predates its governance.** The repository is `kernelize-ai/nexus`
-> (GitHub also answers to `knexus`), a plain pull-request history with no
-> kqv vocabulary in it. Its first governed work — the host and link
+> **knexus predates its governance.** The repository is `kernelize-ai/knexus`
+> (GitHub redirects its old name, `nexus`, which both checkouts' remotes still
+> spell), a plain pull-request history with no kqv vocabulary in it. Its first governed work — the host and link
 > properties kmap's probe reads — was planned and folded on kmap's side,
 > ※kmap/plans/knexus-discovery; this tree starts after that.
 
@@ -37,7 +37,8 @@ and ※ktools (`kgen` reads the device brief through kmap's ladder).
 ## Repo layout
 
 Two gitignored checkouts under kqv, **both branches of one repository**,
-`git@github.com:kernelize-ai/nexus.git`:
+`git@github.com:kernelize-ai/knexus.git` (the remotes spell the old name,
+`nexus.git`, and GitHub redirects):
 
 - **product**: the working tree is a **sibling of kqv** (`../nexus.0`);
   `knexus/` under kqv is a **symlink** to it. If `/orient knexus` halts on
