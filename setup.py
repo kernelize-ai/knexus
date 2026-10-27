@@ -334,7 +334,7 @@ CLASSIFIERS = BASE_CLASSIFIERS + PYTHON_CLASSIFIERS
 setup(
     name=os.environ.get("KNEXUS_WHEEL_NAME", "knexus"),
     version=get_version(),
-    author="Simon Waters, Matthew Leon, Alex Baden",
+    author="Simon Waters",
     author_email="simon@kernelize.ai",
     description="",
     long_description="",
