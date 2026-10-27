@@ -174,15 +174,21 @@ KNEXUS_API_PROP(NumaNodeMemorySize,   _prop_int_vec,      "Per NUMA node, its me
 KNEXUS_API_PROP(NumaDistance,         _prop_int_vec,      "NUMA distance table, row-major")
 KNEXUS_API_PROP(NumaNodeCpuList,      _prop_str_vec,      "Per NUMA node, its cpus in the kernel's cpulist syntax")
 
-/* Link Properties — a device's PCIe link and its path to each other device
- * of the same runtime; see docs/Python_API.md */
+/* Link Properties — the links a device has, one row each: to the host and
+ * to each peer device of the same runtime. Every Link* vector is indexed by
+ * row and LinkCount long; LinkType names the kind of each row ("PCIe",
+ * "NVLink", ...); -1 or "" where a row states no such figure. See
+ * docs/Python_API.md */
 KNEXUS_API_PROP(PciBusId,             _prop_str,          "PCI bus id (domain:bus:device.function)")
-KNEXUS_API_PROP(PcieLinkGenMax,       _prop_int,          "PCIe link generation, maximum")
-KNEXUS_API_PROP(PcieLinkGenCurrent,   _prop_int,          "PCIe link generation, current")
-KNEXUS_API_PROP(PcieLinkWidthMax,     _prop_int,          "PCIe link width (lanes), maximum")
-KNEXUS_API_PROP(PcieLinkWidthCurrent, _prop_int,          "PCIe link width (lanes), current")
-KNEXUS_API_PROP(NvLinkCount,          _prop_int_vec,      "Per device index, active NVLinks to that device")
-KNEXUS_API_PROP(PcieTopologyLevel,    _prop_int_vec,      "Per device index, PCIe common-ancestor level (NVML, -1 self)")
+KNEXUS_API_PROP(LinkCount,            _prop_int,          "Links stated, the length of every Link* vector")
+KNEXUS_API_PROP(LinkType,             _prop_str_vec,      "Per link, its kind: PCIe, NVLink, ...")
+KNEXUS_API_PROP(LinkPeer,             _prop_int_vec,      "Per link, the peer device index in this runtime (-1 the host or no device)")
+KNEXUS_API_PROP(LinkPeerId,           _prop_str_vec,      "Per link, the peer's id where known (a PCI bus id)")
+KNEXUS_API_PROP(LinkGenMax,           _prop_int_vec,      "Per link, generation or version, maximum (-1 unstated)")
+KNEXUS_API_PROP(LinkGenCurrent,       _prop_int_vec,      "Per link, generation or version, current (-1 unstated)")
+KNEXUS_API_PROP(LinkWidthMax,         _prop_int_vec,      "Per link, width in lanes, maximum (-1 unstated)")
+KNEXUS_API_PROP(LinkWidthCurrent,     _prop_int_vec,      "Per link, width in lanes, current (-1 unstated)")
+KNEXUS_API_PROP(LinkTopologyLevel,    _prop_int_vec,      "Per link, the path's common-ancestor level where the kind has one (-1 unstated)")
 
 /************************************************************************
  * Cleanup

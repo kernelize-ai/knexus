@@ -213,23 +213,41 @@ The three `Thread*` vectors are indexed by the cpu number the kernel uses
 (`cpu<N>`), so their length is one past the highest present cpu; an int
 vector carries at most 1024 entries across the plugin boundary.
 
-**A link** is stated on the device it belongs to. The `cuda` plugin reads
-NVML, which it already links; no `nvidia-smi` is run.
+**A link** is stated on the device it belongs to, one row per link, and
+every `Link*` property is a vector over those rows, `LinkCount` long. The
+row's `LinkType` says what kind of link it is; the other columns hold what
+that kind states and `-1` or `""` where it states nothing. The `cuda` plugin
+reads NVML, which it already links; no `nvidia-smi` is run.
 
 | property | type | states |
 | --- | --- | --- |
-| `PciBusId` | str | `nvmlDeviceGetPciInfo` `busId`, `domain:bus:device.function` |
-| `PcieLinkGenMax` | int | `nvmlDeviceGetMaxPcieLinkGeneration` |
-| `PcieLinkGenCurrent` | int | `nvmlDeviceGetCurrPcieLinkGeneration` |
-| `PcieLinkWidthMax` | int | `nvmlDeviceGetMaxPcieLinkWidth` |
-| `PcieLinkWidthCurrent` | int | `nvmlDeviceGetCurrPcieLinkWidth` |
-| `NvLinkCount` | int_vec | per device index of this runtime, the active NVLinks from this device whose remote PCI bus id is that device's; `0` at its own index and where the device has none |
-| `PcieTopologyLevel` | int_vec | per device index of this runtime, `nvmlDeviceGetTopologyCommonAncestor` as NVML's `nvmlGpuTopologyLevel_t` value — 0 internal, 10 a single switch, 20 several switches, 30 a host bridge, 40 a NUMA node, 50 the system; `-1` at its own index |
+| `PciBusId` | str | the device's own `nvmlDeviceGetPciInfo` `busId`, `domain:bus:device.function` |
+| `LinkCount` | int | the rows stated, the length of every vector below |
+| `LinkType` | str_vec | per row, its kind: `PCIe`, `NVLink`; a plugin for another fabric adds its own name |
+| `LinkPeer` | int_vec | per row, the peer device's index in this runtime; `-1` for the host, or a remote that is not a device of this runtime |
+| `LinkPeerId` | str_vec | per row, the peer's id where the kind knows one (the remote's PCI bus id); `""` where not |
+| `LinkGenMax`, `LinkGenCurrent` | int_vec | per row, the generation (PCIe) or version (NVLink), maximum and current |
+| `LinkWidthMax`, `LinkWidthCurrent` | int_vec | per row, the width in lanes (PCIe), maximum and current |
+| `LinkTopologyLevel` | int_vec | per row, the path's common-ancestor level where the kind has one |
 
-Pair properties are vectors over the runtime's own device indices, so the
-pair `(i, j)` reads as `devices[i].get_property_int_vec("NvLinkCount")[j]`
-and is symmetric. A hip, metal or tenstorrent plugin states the same names
-when it has a link to state; until it does, the properties are absent there.
+The `cuda` plugin states three kinds of row:
+
+- **`PCIe` to the host**, `LinkPeer` `-1`, always the first row: generation
+  and width from `nvmlDeviceGet{Max,Curr}PcieLink{Generation,Width}`.
+- **`NVLink` to a peer**, one row per active NVML link: `LinkPeerId` is the
+  remote's bus id, `LinkPeer` the device it names when that device is one of
+  this runtime's, and `LinkGen*` the link's `nvmlDeviceGetNvLinkVersion`.
+  How many NVLinks reach device `j` is the count of such rows with
+  `LinkPeer == j`.
+- **`PCIe` path to a peer**, one row per other device of the runtime:
+  `LinkTopologyLevel` is `nvmlDeviceGetTopologyCommonAncestor` as NVML's
+  `nvmlGpuTopologyLevel_t` value — 0 internal, 10 a single switch, 20
+  several switches, 30 a host bridge, 40 a NUMA node, 50 the system.
+
+So the rows of device `i` with `LinkPeer == j` are its links to device `j`,
+and the pair is symmetric: device `j` states the same rows back. A hip, metal
+or tenstorrent plugin states the same columns with its own kinds when it has
+a link to state; until it does, the properties are absent there.
 
 ---
 

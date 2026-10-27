@@ -17,6 +17,78 @@
 
 using namespace nxs;
 
+// One link of a device, as the Link* properties state it: a row per link, the
+// vectors indexed by row. The cuda plugin states three kinds of row —
+//   PCIe to the host     (peer -1): generation and width, max and current;
+//   NVLink to a peer     (one row per active NVML link): its version as
+//                         generation, the remote's bus id, and the peer index
+//                         where the remote is a device of this runtime;
+//   PCIe path to a peer  (one row per other device): NVML's common-ancestor
+//                         level — 0 internal, 10 a single switch, 20 several,
+//                         30 a host bridge, 40 a NUMA node, 50 the system.
+// -1 and "" mean the row states no such figure. A plugin for another vendor
+// states the same columns with its own kinds.
+struct DeviceLink {
+  std::string type;
+  nxs_long peer = -1;
+  std::string peer_id;
+  nxs_long gen_max = -1, gen_cur = -1, width_max = -1, width_cur = -1;
+  nxs_long level = -1;
+};
+
+static std::vector<DeviceLink> deviceLinks(nxs_int device_id, nxs_int count) {
+  std::vector<DeviceLink> links;
+  std::vector<nvmlDevice_t> handles(count);
+  std::vector<std::string> bus_ids(count);
+  for (nxs_int j = 0; j < count; ++j) {
+    nvmlPciInfo_t pci;
+    if (nvmlDeviceGetHandleByIndex(j, &handles[j]) != NVML_SUCCESS) return links;
+    if (nvmlDeviceGetPciInfo(handles[j], &pci) == NVML_SUCCESS) bus_ids[j] = pci.busId;
+  }
+  nvmlDevice_t self = handles[device_id];
+
+  DeviceLink host;
+  host.type = "PCIe";
+  unsigned int v = 0;
+  if (nvmlDeviceGetMaxPcieLinkGeneration(self, &v) == NVML_SUCCESS) host.gen_max = v;
+  if (nvmlDeviceGetCurrPcieLinkGeneration(self, &v) == NVML_SUCCESS) host.gen_cur = v;
+  if (nvmlDeviceGetMaxPcieLinkWidth(self, &v) == NVML_SUCCESS) host.width_max = v;
+  if (nvmlDeviceGetCurrPcieLinkWidth(self, &v) == NVML_SUCCESS) host.width_cur = v;
+  links.push_back(host);
+
+  for (unsigned int link = 0; link < NVML_NVLINK_MAX_LINKS; ++link) {
+    nvmlEnableState_t active;
+    nvmlReturn_t rc = nvmlDeviceGetNvLinkState(self, link, &active);
+    if (rc == NVML_ERROR_NOT_SUPPORTED || rc == NVML_ERROR_INVALID_ARGUMENT) break;
+    if (rc != NVML_SUCCESS || active != NVML_FEATURE_ENABLED) continue;
+    DeviceLink nv;
+    nv.type = "NVLink";
+    nvmlPciInfo_t remote;
+    if (nvmlDeviceGetNvLinkRemotePciInfo(self, link, &remote) == NVML_SUCCESS) {
+      nv.peer_id = remote.busId;
+      for (nxs_int j = 0; j < count; ++j)
+        if (j != device_id && !bus_ids[j].empty() && bus_ids[j] == remote.busId) nv.peer = j;
+    }
+    unsigned int version = 0;
+    if (nvmlDeviceGetNvLinkVersion(self, link, &version) == NVML_SUCCESS)
+      nv.gen_max = nv.gen_cur = version;
+    links.push_back(nv);
+  }
+
+  for (nxs_int j = 0; j < count; ++j) {
+    if (j == device_id) continue;
+    DeviceLink path;
+    path.type = "PCIe";
+    path.peer = j;
+    path.peer_id = bus_ids[j];
+    nvmlGpuTopologyLevel_t level;
+    if (nvmlDeviceGetTopologyCommonAncestor(self, handles[j], &level) == NVML_SUCCESS)
+      path.level = (nxs_long)level;
+    links.push_back(path);
+  }
+  return links;
+}
+
 CudaRuntime *getRuntime() {
   static CudaRuntime s_runtime;
   return &s_runtime;
@@ -104,12 +176,15 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint property_id,
                          NP_CoreUtilization,
                          NP_MemoryUtilization,
                          NP_PciBusId,
-                         NP_PcieLinkGenMax,
-                         NP_PcieLinkGenCurrent,
-                         NP_PcieLinkWidthMax,
-                         NP_PcieLinkWidthCurrent,
-                         NP_NvLinkCount,
-                         NP_PcieTopologyLevel};
+                         NP_LinkCount,
+                         NP_LinkType,
+                         NP_LinkPeer,
+                         NP_LinkPeerId,
+                         NP_LinkGenMax,
+                         NP_LinkGenCurrent,
+                         NP_LinkWidthMax,
+                         NP_LinkWidthCurrent,
+                         NP_LinkTopologyLevel};
       return rt::getPropertyVec(property_value, property_value_size, keys,
                                 sizeof(keys) / sizeof(keys[0]));
     }
@@ -187,9 +262,9 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint property_id,
 
       return rt::getPropertyInt(property_value, property_value_size, value);
     }
-    // The device's link to the host and its path to each other device, from
-    // NVML — the names and units of docs/Python_API.md "Host and link
-    // properties". Nothing is measured; each is what the driver declares.
+    // The device's own identity and its links, from NVML — the names and
+    // units of docs/Python_API.md "Host and link properties". Nothing is
+    // measured; each is what the driver declares.
     case NP_PciBusId: {
       nvmlDevice_t nvml_device;
       nvmlPciInfo_t pci;
@@ -198,67 +273,37 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint property_id,
         return NXS_InvalidProperty;
       return rt::getPropertyStr(property_value, property_value_size, pci.busId);
     }
-    case NP_PcieLinkGenMax:
-    case NP_PcieLinkGenCurrent:
-    case NP_PcieLinkWidthMax:
-    case NP_PcieLinkWidthCurrent: {
-      nvmlDevice_t nvml_device;
-      unsigned int value = 0;
-      if (nvmlDeviceGetHandleByIndex(device_id, &nvml_device) != NVML_SUCCESS)
-        return NXS_InvalidProperty;
-      nvmlReturn_t rc;
-      switch (property_id) {
-        case NP_PcieLinkGenMax:
-          rc = nvmlDeviceGetMaxPcieLinkGeneration(nvml_device, &value); break;
-        case NP_PcieLinkGenCurrent:
-          rc = nvmlDeviceGetCurrPcieLinkGeneration(nvml_device, &value); break;
-        case NP_PcieLinkWidthMax:
-          rc = nvmlDeviceGetMaxPcieLinkWidth(nvml_device, &value); break;
-        default:
-          rc = nvmlDeviceGetCurrPcieLinkWidth(nvml_device, &value); break;
-      }
-      if (rc != NVML_SUCCESS) return NXS_InvalidProperty;
-      return rt::getPropertyInt(property_value, property_value_size, value);
-    }
-    case NP_NvLinkCount:
-    case NP_PcieTopologyLevel: {
-      // one entry per device of this runtime, indexed as the runtime indexes
-      nxs_int count = rt->getDeviceCount();
-      std::vector<nvmlDevice_t> handles(count);
-      std::vector<std::string> bus_ids(count);
-      for (nxs_int j = 0; j < count; ++j) {
-        nvmlPciInfo_t pci;
-        if (nvmlDeviceGetHandleByIndex(j, &handles[j]) != NVML_SUCCESS)
-          return NXS_InvalidProperty;
-        if (nvmlDeviceGetPciInfo(handles[j], &pci) == NVML_SUCCESS)
-          bus_ids[j] = pci.busId;
-      }
-      std::vector<nxs_long> values(count, property_id == NP_NvLinkCount ? 0 : -1);
-      if (property_id == NP_NvLinkCount) {
-        // an active link whose remote PCI bus id is device j's counts for j
-        for (unsigned int link = 0; link < NVML_NVLINK_MAX_LINKS; ++link) {
-          nvmlEnableState_t active;
-          nvmlReturn_t rc = nvmlDeviceGetNvLinkState(handles[device_id], link, &active);
-          if (rc == NVML_ERROR_NOT_SUPPORTED || rc == NVML_ERROR_INVALID_ARGUMENT) break;
-          if (rc != NVML_SUCCESS || active != NVML_FEATURE_ENABLED) continue;
-          nvmlPciInfo_t remote;
-          if (nvmlDeviceGetNvLinkRemotePciInfo(handles[device_id], link, &remote) != NVML_SUCCESS)
-            continue;
-          for (nxs_int j = 0; j < count; ++j)
-            if (j != device_id && !bus_ids[j].empty() && bus_ids[j] == remote.busId)
-              values[j] += 1;
-        }
-      } else {
-        for (nxs_int j = 0; j < count; ++j) {
-          if (j == device_id) continue;
-          nvmlGpuTopologyLevel_t level;
-          if (nvmlDeviceGetTopologyCommonAncestor(handles[device_id], handles[j], &level)
-              == NVML_SUCCESS)
-            values[j] = (nxs_long)level;
+    case NP_LinkCount:
+    case NP_LinkType:
+    case NP_LinkPeer:
+    case NP_LinkPeerId:
+    case NP_LinkGenMax:
+    case NP_LinkGenCurrent:
+    case NP_LinkWidthMax:
+    case NP_LinkWidthCurrent:
+    case NP_LinkTopologyLevel: {
+      std::vector<DeviceLink> links = deviceLinks(device_id, rt->getDeviceCount());
+      if (links.empty()) return NXS_InvalidProperty;
+      if (property_id == NP_LinkCount)
+        return rt::getPropertyInt(property_value, property_value_size, links.size());
+      std::vector<std::string> strs;
+      std::vector<nxs_long> ints;
+      for (const auto &l : links) {
+        switch (property_id) {
+          case NP_LinkType:          strs.push_back(l.type);     break;
+          case NP_LinkPeerId:        strs.push_back(l.peer_id);  break;
+          case NP_LinkPeer:          ints.push_back(l.peer);     break;
+          case NP_LinkGenMax:        ints.push_back(l.gen_max);  break;
+          case NP_LinkGenCurrent:    ints.push_back(l.gen_cur);  break;
+          case NP_LinkWidthMax:      ints.push_back(l.width_max); break;
+          case NP_LinkWidthCurrent:  ints.push_back(l.width_cur); break;
+          default:                   ints.push_back(l.level);    break;
         }
       }
-      return rt::getPropertyVec(property_value, property_value_size, values.data(),
-                                values.size());
+      if (property_id == NP_LinkType || property_id == NP_LinkPeerId)
+        return rt::getPropertyStrVec(property_value, property_value_size, strs);
+      return rt::getPropertyVec(property_value, property_value_size, ints.data(),
+                                ints.size());
     }
     default:
       return NXS_InvalidProperty;
