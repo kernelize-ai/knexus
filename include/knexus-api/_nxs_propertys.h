@@ -172,6 +172,7 @@ KNEXUS_API_PROP(ThreadCore,           _prop_int_vec,      "Per logical cpu numbe
 KNEXUS_API_PROP(ThreadNumaNode,       _prop_int_vec,      "Per logical cpu number, its NUMA node (-1 none)")
 KNEXUS_API_PROP(NumaNodeMemorySize,   _prop_int_vec,      "Per NUMA node, its memory (bytes, -1 none)")
 KNEXUS_API_PROP(NumaDistance,         _prop_int_vec,      "NUMA distance table, row-major")
+KNEXUS_API_PROP(NumaNodeCpuList,      _prop_str_vec,      "Per NUMA node, its cpus in the kernel's cpulist syntax")
 
 /* Link Properties — a device's PCIe link and its path to each other device
  * of the same runtime; see docs/Python_API.md */

@@ -30,6 +30,7 @@ struct HostTopology {
   std::vector<nxs_long> thread_socket, thread_core, thread_numa_node;
   std::vector<nxs_long> numa_memory_bytes;
   std::vector<nxs_long> numa_distance;   // row-major numa_nodes^2
+  std::vector<std::string> numa_cpulist; // per node, the kernel's cpulist text
   bool found = false;                    // any cpu topology at all
 };
 
@@ -180,7 +181,10 @@ inline HostTopology readHostTopology(const std::filesystem::path &root) {
   h.numa_nodes = nodes.size();
   std::vector<std::vector<nxs_long>> distances;
   for (auto &[n, path] : nodes) {
-    for (nxs_long cpu : cpulist(readText(path / "cpulist")))
+    std::string list = readText(path / "cpulist");
+    list.erase(list.find_last_not_of(" \t\r\n") + 1);
+    h.numa_cpulist.push_back(list);
+    for (nxs_long cpu : cpulist(list))
       if (cpu >= 0 && cpu <= max_cpu) h.thread_numa_node[cpu] = n;
     h.numa_memory_bytes.push_back(meminfoBytes(path / "meminfo", "MemTotal"));
     std::vector<nxs_long> row;

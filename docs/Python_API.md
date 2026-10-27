@@ -107,6 +107,12 @@ All major objects expose the following property query methods:
 - **`get_property_flt(name_or_enum)`**  
   Returns the property value as a float (if applicable).
 
+- **`get_property_int_vec(name_or_enum)`**  
+  Returns the property value as a list of integers.
+
+- **`get_property_str_vec(name_or_enum)`**  
+  Returns the property value as a list of strings.
+
 - **`get_property_str(path: List[str] or List[int])`**  
   Returns a string property from a hierarchical path.
 
@@ -177,7 +183,8 @@ KNexus states the machine it runs on as properties by name on the objects it
 already has, so a consumer (kmap's `kmap probe`, for one) reads the host and
 the links the same way it reads a device's name. Every name below is an
 `nxs_property` in `include/knexus-api/_nxs_propertys.h`, read through
-`get_property_str`, `get_property_int` or `get_property_int_vec`; a property a
+`get_property_str`, `get_property_int`, `get_property_int_vec` or
+`get_property_str_vec`; a property a
 runtime or a device does not state raises, like any other, rather than
 returning a guess. Nothing here is measured: each value is what the kernel or
 the driver declares.
@@ -200,6 +207,7 @@ absent.
 | `ThreadNumaNode` | int_vec | per logical cpu number, the NUMA node whose `cpulist` holds it; `-1` where none |
 | `NumaNodeMemorySize` | int_vec | per NUMA node, its `MemTotal` from `node*/meminfo`, in bytes; `-1` where none |
 | `NumaDistance` | int_vec | the kernel's `node*/distance` table, row-major, `NumaNodeCount` squared entries |
+| `NumaNodeCpuList` | str_vec | per NUMA node, its `node*/cpulist` text as the kernel writes it (`0-7,16-23`) |
 
 The three `Thread*` vectors are indexed by the cpu number the kernel uses
 (`cpu<N>`), so their length is one past the highest present cpu; an int

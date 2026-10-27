@@ -99,6 +99,25 @@ class RuntimeImpl : public Impl {
           }
           break;
         }
+        case NPT_STR_VEC: {
+          // the plugin lays its strings end to end, each NUL-terminated
+          // (rt::getPropertyStrVec); ask the byte count, then fill a buffer
+          // of that size and split it back on the NULs
+          size_t size = 0;
+          if (!nxs_success((*fn)(args..., prop, nullptr, &size))) break;
+          std::vector<char> buf(size);
+          if (size && !nxs_success((*fn)(args..., prop, buf.data(), &size)))
+            break;
+          std::vector<std::string> vec;
+          for (size_t at = 0; at < size;) {
+            size_t len = strnlen(buf.data() + at, size - at);
+            vec.emplace_back(buf.data() + at, len);
+            at += len + 1;
+          }
+          NXSLOG_INFO("{}: {} ({} strings)", nxsGetFuncName(Tfn), nxsGetPropName(prop),
+                    static_cast<unsigned>(vec.size()));
+          return Property(vec);
+        }
         default: {
           NXSLOG_ERROR("{}: Unknown property type for - {}", nxsGetFuncName(Tfn),
                     nxsGetPropName(prop));

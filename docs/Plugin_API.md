@@ -33,6 +33,7 @@ The KNexus Plugin API defines a set of C functions that must be implemented by h
 - **nxsGetRuntimeProperty**: Query runtime-level properties (e.g., backend name, device count).
 - **nxsGetDeviceProperty**: Query device-level properties (e.g., name, vendor, architecture).
 - The host (the cpu plugin's device, from sysfs under `$KNEXUS_HOST_ROOT`) and a device's links (the cuda plugin's, from NVML) are device properties too; the names are tabled in `Python_API.md` under *Host and link properties*.
+- A property's value crosses as bytes in the caller's buffer, with `property_value_size` stating the count: an int or float as itself, a string NUL-terminated, an int or float vector as its elements laid end to end, and a string vector as its strings laid end to end, each NUL-terminated (`rt::getPropertyStrVec` packs it; the core asks the byte count with a null buffer first, then fills one of that size and splits on the NULs). A null `property_value` is a size query.
 
 **Example (Metal):**
 - Returns `"metal"` for runtime name.

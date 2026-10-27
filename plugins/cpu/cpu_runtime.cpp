@@ -97,7 +97,7 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint device_property_id,
                          NP_SocketCount,  NP_CoreCount,     NP_ThreadCount,
                          NP_NumaNodeCount, NP_ThreadSocket, NP_ThreadCore,
                          NP_ThreadNumaNode, NP_NumaNodeMemorySize,
-                         NP_NumaDistance};
+                         NP_NumaDistance,  NP_NumaNodeCpuList};
       size_t count = host.found ? sizeof(keys) / sizeof(keys[0]) : 4;
       return rt::getPropertyVec(property_value, property_value_size, keys, count);
     }
@@ -144,6 +144,9 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint device_property_id,
       if (!host.found) return NXS_InvalidProperty;
       return rt::getPropertyVec(property_value, property_value_size,
                                 host.numa_distance.data(), host.numa_distance.size());
+    case NP_NumaNodeCpuList:
+      if (!host.found) return NXS_InvalidProperty;
+      return rt::getPropertyStrVec(property_value, property_value_size, host.numa_cpulist);
     case NP_Architecture: {
       auto archName = cpuinfo_uarch_to_string(cpu->core->uarch);
       assert(archName);

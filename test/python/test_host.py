@@ -25,6 +25,7 @@ except ImportError:
 
 HOST_INTS = ("SocketCount", "CoreCount", "ThreadCount", "NumaNodeCount", "GlobalMemorySize")
 HOST_VECS = ("ThreadSocket", "ThreadCore", "ThreadNumaNode", "NumaNodeMemorySize", "NumaDistance")
+HOST_STR_VECS = ("NumaNodeCpuList",)
 
 # Run in a child interpreter: the cpu device's host properties as JSON.
 READ = r"""
@@ -42,9 +43,14 @@ for name in %r:
         out[name] = dev.get_property_int_vec(name)
     except RuntimeError:
         out[name] = None
+for name in %r:
+    try:
+        out[name] = dev.get_property_str_vec(name)
+    except RuntimeError:
+        out[name] = None
 out["Keys"] = [str(k).rsplit(".", 1)[-1] for k in dev.get_property_keys()]
 print(json.dumps(out))
-""" % (HOST_INTS, HOST_VECS)
+""" % (HOST_INTS, HOST_VECS, HOST_STR_VECS)
 
 
 def put(path, text):
@@ -111,7 +117,8 @@ class TestHostFixture(unittest.TestCase):
         self.assertEqual(h["ThreadNumaNode"], [0] * 8 + [1] * 8)
         self.assertEqual(h["NumaNodeMemorySize"], [16000000 * 1024] * 2)
         self.assertEqual(h["NumaDistance"], [10, 21, 21, 10])
-        for name in HOST_INTS + HOST_VECS:
+        self.assertEqual(h["NumaNodeCpuList"], ["0-7", "8-15"])
+        for name in HOST_INTS + HOST_VECS + HOST_STR_VECS:
             self.assertIn(name, h["Keys"], f"{name} is among the device's Keys")
 
     def test_single_socket_no_numa(self):
@@ -122,12 +129,13 @@ class TestHostFixture(unittest.TestCase):
                          (1, 4, 4, 1))
         self.assertEqual(h["NumaDistance"], [10])
         self.assertEqual(h["ThreadNumaNode"], [0, 0, 0, 0])
+        self.assertEqual(h["NumaNodeCpuList"], ["0-3"])
 
     def test_empty_root_states_nothing(self):
         with tempfile.TemporaryDirectory() as tmp:
             h = read_host(tmp)
         self.assertEqual(h["Name"], "cpu")
-        for name in HOST_INTS + HOST_VECS:
+        for name in HOST_INTS + HOST_VECS + HOST_STR_VECS:
             self.assertIsNone(h[name], f"{name} is absent when the root holds no cpu topology")
         self.assertNotIn("SocketCount", h["Keys"])
 
@@ -156,6 +164,9 @@ class TestHostLive(unittest.TestCase):
         self.assertEqual(len(set(s for s in ts if s >= 0)), sockets)
         self.assertEqual(len(dev.get_property_int_vec("NumaNodeMemorySize")), nodes)
         self.assertEqual(len(dev.get_property_int_vec("NumaDistance")), nodes * nodes)
+        lists = dev.get_property_str_vec("NumaNodeCpuList")
+        self.assertEqual(len(lists), nodes)
+        self.assertTrue(all(isinstance(l, str) and l for l in lists))
         self.assertGreater(dev.get_property_int("GlobalMemorySize"), 0)
         self.assertTrue(dev.get_property_str("Name"))
 

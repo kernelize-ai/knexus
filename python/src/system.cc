@@ -288,6 +288,15 @@ static py::class_<T> make_object_class(py::module &m, const std::string &name, c
            [](T &self, nxs_property prop) {
              return get_prop<std::vector<nxs_long>>(self, prop);
            })
+      .def("get_property_str_vec",
+           [](T &self, const std::string &name) {
+             return get_prop<std::vector<std::string>>(
+                 self, nxsGetPropEnum(name.c_str()));
+           })
+      .def("get_property_str_vec",
+           [](T &self, nxs_property prop) {
+             return get_prop<std::vector<std::string>>(self, prop);
+           })
       .def("get_property_keys", [](T &self) {
         auto keys = get_prop<std::vector<nxs_long>>(self, NP_Keys);
         std::vector<nxs_property> props;
