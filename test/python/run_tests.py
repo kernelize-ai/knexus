@@ -25,6 +25,8 @@ def run_tests(test_pattern=None, verbose=False):
         'test_buffer',
         'test_schedule',
         'test_properties',
+        'test_host',
+        'test_links',
         'test_integration'
     ]
     

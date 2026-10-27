@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace nxs {
 namespace rt {
@@ -76,6 +77,32 @@ static nxs_status getPropertyVec(void *property_value,
     else if (*property_value_size < size)
       return NXS_InvalidArgValue;
     std::memcpy(property_value, values, size);
+  }
+  if (property_value_size != NULL) {
+    *property_value_size = size;
+  }
+  return NXS_Success;
+}
+
+// A string vector crosses the boundary as its strings laid end to end, each
+// NUL-terminated, so the byte count is the sum of every length plus one. A
+// caller that passes no value buffer is told that count and asks again; an
+// empty vector is zero bytes. The core splits it back on the NULs.
+static nxs_status getPropertyStrVec(void *property_value,
+                                    size_t *property_value_size,
+                                    const std::vector<std::string> &values) {
+  size_t size = 0;
+  for (const auto &v : values) size += v.size() + 1;
+  if (property_value != NULL) {
+    if (property_value_size == NULL)
+      return NXS_InvalidArgSize;
+    else if (*property_value_size < size)
+      return NXS_InvalidArgValue;
+    char *out = (char *)property_value;
+    for (const auto &v : values) {
+      std::memcpy(out, v.c_str(), v.size() + 1);
+      out += v.size() + 1;
+    }
   }
   if (property_value_size != NULL) {
     *property_value_size = size;

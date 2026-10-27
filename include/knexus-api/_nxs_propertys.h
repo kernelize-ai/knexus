@@ -161,6 +161,35 @@ KNEXUS_API_PROP(MaxPower,              _prop_flt,        "Max Power")
 KNEXUS_API_PROP(CoreUtilization,      _prop_int,          "Core Utilization")
 KNEXUS_API_PROP(MemoryUtilization,    _prop_int,          "Memory Utilization")
 
+/* Host Properties — the cpu plugin's device, from the kernel (Linux sysfs
+ * and procfs under $KNEXUS_HOST_ROOT); see docs/Python_API.md */
+KNEXUS_API_PROP(SocketCount,          _prop_int,          "Host sockets (physical packages)")
+KNEXUS_API_PROP(CoreCount,            _prop_int,          "Host cores, all sockets")
+KNEXUS_API_PROP(ThreadCount,          _prop_int,          "Host logical cpus (threads)")
+KNEXUS_API_PROP(NumaNodeCount,        _prop_int,          "Host NUMA nodes")
+KNEXUS_API_PROP(ThreadSocket,         _prop_int_vec,      "Per logical cpu number, its socket (-1 none)")
+KNEXUS_API_PROP(ThreadCore,           _prop_int_vec,      "Per logical cpu number, its core id (-1 none)")
+KNEXUS_API_PROP(ThreadNumaNode,       _prop_int_vec,      "Per logical cpu number, its NUMA node (-1 none)")
+KNEXUS_API_PROP(NumaNodeMemorySize,   _prop_int_vec,      "Per NUMA node, its memory (bytes, -1 none)")
+KNEXUS_API_PROP(NumaDistance,         _prop_int_vec,      "NUMA distance table, row-major")
+KNEXUS_API_PROP(NumaNodeCpuList,      _prop_str_vec,      "Per NUMA node, its cpus in the kernel's cpulist syntax")
+
+/* Link Properties — the links a device has, one row each: to the host and
+ * to each peer device of the same runtime. Every Link* vector is indexed by
+ * row and LinkCount long; LinkType names the kind of each row ("PCIe",
+ * "NVLink", ...); -1 or "" where a row states no such figure. See
+ * docs/Python_API.md */
+KNEXUS_API_PROP(PciBusId,             _prop_str,          "PCI bus id (domain:bus:device.function)")
+KNEXUS_API_PROP(LinkCount,            _prop_int,          "Links stated, the length of every Link* vector")
+KNEXUS_API_PROP(LinkType,             _prop_str_vec,      "Per link, its kind: PCIe, NVLink, ...")
+KNEXUS_API_PROP(LinkPeer,             _prop_int_vec,      "Per link, the peer device index in this runtime (-1 the host or no device)")
+KNEXUS_API_PROP(LinkPeerId,           _prop_str_vec,      "Per link, the peer's id where known (a PCI bus id)")
+KNEXUS_API_PROP(LinkGenMax,           _prop_int_vec,      "Per link, generation or version, maximum (-1 unstated)")
+KNEXUS_API_PROP(LinkGenCurrent,       _prop_int_vec,      "Per link, generation or version, current (-1 unstated)")
+KNEXUS_API_PROP(LinkWidthMax,         _prop_int_vec,      "Per link, width in lanes, maximum (-1 unstated)")
+KNEXUS_API_PROP(LinkWidthCurrent,     _prop_int_vec,      "Per link, width in lanes, current (-1 unstated)")
+KNEXUS_API_PROP(LinkTopologyLevel,    _prop_int_vec,      "Per link, the path's common-ancestor level where the kind has one (-1 unstated)")
+
 /************************************************************************
  * Cleanup
  ***********************************************************************/

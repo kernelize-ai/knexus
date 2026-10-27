@@ -107,6 +107,12 @@ All major objects expose the following property query methods:
 - **`get_property_flt(name_or_enum)`**  
   Returns the property value as a float (if applicable).
 
+- **`get_property_int_vec(name_or_enum)`**  
+  Returns the property value as a list of integers.
+
+- **`get_property_str_vec(name_or_enum)`**  
+  Returns the property value as a list of strings.
+
 - **`get_property_str(path: List[str] or List[int])`**  
   Returns a string property from a hierarchical path.
 
@@ -170,6 +176,78 @@ cmd_args = command.get_property_int_vec("Arguments")
 - Property names are case-sensitive and must match the schema or backend.
 - Enum values are available in the `knexus.property` submodule for convenience and type safety.
 - Hierarchical paths allow access to nested properties, such as memory subsystem details or device features.
+
+### Host and link properties
+
+KNexus states the machine it runs on as properties by name on the objects it
+already has, so a consumer (kmap's `kmap probe`, for one) reads the host and
+the links the same way it reads a device's name. Every name below is an
+`nxs_property` in `include/knexus-api/_nxs_propertys.h`, read through
+`get_property_str`, `get_property_int`, `get_property_int_vec` or
+`get_property_str_vec`; a property a
+runtime or a device does not state raises, like any other, rather than
+returning a guess. Nothing here is measured: each value is what the kernel or
+the driver declares.
+
+**The host** is the one device of the `cpu` runtime. On Linux the plugin reads
+the kernel's sysfs and procfs under `$KNEXUS_HOST_ROOT` (default `/`), so a
+test can point it at a fixture tree; on another OS the host properties are
+absent.
+
+| property | type | states |
+| --- | --- | --- |
+| `Name` | str | the first `model name` in `proc/cpuinfo` |
+| `GlobalMemorySize` | int | `MemTotal` in `proc/meminfo`, in bytes |
+| `SocketCount` | int | distinct `physical_package_id` under `sys/devices/system/cpu/cpu*/topology/` |
+| `CoreCount` | int | distinct (socket, `core_id`) pairs |
+| `ThreadCount` | int | logical cpus with a topology directory |
+| `NumaNodeCount` | int | `sys/devices/system/node/node*/` directories holding a `cpulist` |
+| `ThreadSocket` | int_vec | per logical cpu number, its socket; `-1` where the kernel states none |
+| `ThreadCore` | int_vec | per logical cpu number, its `core_id`; `-1` where none |
+| `ThreadNumaNode` | int_vec | per logical cpu number, the NUMA node whose `cpulist` holds it; `-1` where none |
+| `NumaNodeMemorySize` | int_vec | per NUMA node, its `MemTotal` from `node*/meminfo`, in bytes; `-1` where none |
+| `NumaDistance` | int_vec | the kernel's `node*/distance` table, row-major, `NumaNodeCount` squared entries |
+| `NumaNodeCpuList` | str_vec | per NUMA node, its `node*/cpulist` text as the kernel writes it (`0-7,16-23`) |
+
+The three `Thread*` vectors are indexed by the cpu number the kernel uses
+(`cpu<N>`), so their length is one past the highest present cpu; an int
+vector carries at most 1024 entries across the plugin boundary.
+
+**A link** is stated on the device it belongs to, one row per link, and
+every `Link*` property is a vector over those rows, `LinkCount` long. The
+row's `LinkType` says what kind of link it is; the other columns hold what
+that kind states and `-1` or `""` where it states nothing. The `cuda` plugin
+reads NVML, which it already links; no `nvidia-smi` is run.
+
+| property | type | states |
+| --- | --- | --- |
+| `PciBusId` | str | the device's own `nvmlDeviceGetPciInfo` `busId`, `domain:bus:device.function` |
+| `LinkCount` | int | the rows stated, the length of every vector below |
+| `LinkType` | str_vec | per row, its kind: `PCIe`, `NVLink`; a plugin for another fabric adds its own name |
+| `LinkPeer` | int_vec | per row, the peer device's index in this runtime; `-1` for the host, or a remote that is not a device of this runtime |
+| `LinkPeerId` | str_vec | per row, the peer's id where the kind knows one (the remote's PCI bus id); `""` where not |
+| `LinkGenMax`, `LinkGenCurrent` | int_vec | per row, the generation (PCIe) or version (NVLink), maximum and current |
+| `LinkWidthMax`, `LinkWidthCurrent` | int_vec | per row, the width in lanes (PCIe), maximum and current |
+| `LinkTopologyLevel` | int_vec | per row, the path's common-ancestor level where the kind has one |
+
+The `cuda` plugin states three kinds of row:
+
+- **`PCIe` to the host**, `LinkPeer` `-1`, always the first row: generation
+  and width from `nvmlDeviceGet{Max,Curr}PcieLink{Generation,Width}`.
+- **`NVLink` to a peer**, one row per active NVML link: `LinkPeerId` is the
+  remote's bus id, `LinkPeer` the device it names when that device is one of
+  this runtime's, and `LinkGen*` the link's `nvmlDeviceGetNvLinkVersion`.
+  How many NVLinks reach device `j` is the count of such rows with
+  `LinkPeer == j`.
+- **`PCIe` path to a peer**, one row per other device of the runtime:
+  `LinkTopologyLevel` is `nvmlDeviceGetTopologyCommonAncestor` as NVML's
+  `nvmlGpuTopologyLevel_t` value — 0 internal, 10 a single switch, 20
+  several switches, 30 a host bridge, 40 a NUMA node, 50 the system.
+
+So the rows of device `i` with `LinkPeer == j` are its links to device `j`,
+and the pair is symmetric: device `j` states the same rows back. A hip, metal
+or tenstorrent plugin states the same columns with its own kinds when it has
+a link to state; until it does, the properties are absent there.
 
 ---
 
