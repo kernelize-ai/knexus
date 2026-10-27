@@ -161,6 +161,28 @@ KNEXUS_API_PROP(MaxPower,              _prop_flt,        "Max Power")
 KNEXUS_API_PROP(CoreUtilization,      _prop_int,          "Core Utilization")
 KNEXUS_API_PROP(MemoryUtilization,    _prop_int,          "Memory Utilization")
 
+/* Host Properties — the cpu plugin's device, from the kernel (Linux sysfs
+ * and procfs under $KNEXUS_HOST_ROOT); see docs/Python_API.md */
+KNEXUS_API_PROP(SocketCount,          _prop_int,          "Host sockets (physical packages)")
+KNEXUS_API_PROP(CoreCount,            _prop_int,          "Host cores, all sockets")
+KNEXUS_API_PROP(ThreadCount,          _prop_int,          "Host logical cpus (threads)")
+KNEXUS_API_PROP(NumaNodeCount,        _prop_int,          "Host NUMA nodes")
+KNEXUS_API_PROP(ThreadSocket,         _prop_int_vec,      "Per logical cpu number, its socket (-1 none)")
+KNEXUS_API_PROP(ThreadCore,           _prop_int_vec,      "Per logical cpu number, its core id (-1 none)")
+KNEXUS_API_PROP(ThreadNumaNode,       _prop_int_vec,      "Per logical cpu number, its NUMA node (-1 none)")
+KNEXUS_API_PROP(NumaNodeMemorySize,   _prop_int_vec,      "Per NUMA node, its memory (bytes, -1 none)")
+KNEXUS_API_PROP(NumaDistance,         _prop_int_vec,      "NUMA distance table, row-major")
+
+/* Link Properties — a device's PCIe link and its path to each other device
+ * of the same runtime; see docs/Python_API.md */
+KNEXUS_API_PROP(PciBusId,             _prop_str,          "PCI bus id (domain:bus:device.function)")
+KNEXUS_API_PROP(PcieLinkGenMax,       _prop_int,          "PCIe link generation, maximum")
+KNEXUS_API_PROP(PcieLinkGenCurrent,   _prop_int,          "PCIe link generation, current")
+KNEXUS_API_PROP(PcieLinkWidthMax,     _prop_int,          "PCIe link width (lanes), maximum")
+KNEXUS_API_PROP(PcieLinkWidthCurrent, _prop_int,          "PCIe link width (lanes), current")
+KNEXUS_API_PROP(NvLinkCount,          _prop_int_vec,      "Per device index, active NVLinks to that device")
+KNEXUS_API_PROP(PcieTopologyLevel,    _prop_int_vec,      "Per device index, PCIe common-ancestor level (NVML, -1 self)")
+
 /************************************************************************
  * Cleanup
  ***********************************************************************/

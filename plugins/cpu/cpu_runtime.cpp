@@ -1,4 +1,5 @@
 #include "cpu_runtime.h"
+#include "cpu_host.h"
 
 #include <assert.h>
 #include <dlfcn.h>
@@ -87,16 +88,62 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint device_property_id,
 
   NXSLOG_TRACE("getDeviceProperty {}", nxsGetPropName(device_property_id));
 
+  const rt::HostTopology &host = rt::getHostTopology();
+
   switch (device_property_id) {
     case NP_Keys: {
-      nxs_long keys[] = {NP_Name, NP_Type, NP_Architecture, NP_Size};
-      return rt::getPropertyVec(property_value, property_value_size, keys, 4);
+      nxs_long keys[] = {NP_Name,         NP_Type,          NP_Architecture,
+                         NP_Size,         NP_GlobalMemorySize,
+                         NP_SocketCount,  NP_CoreCount,     NP_ThreadCount,
+                         NP_NumaNodeCount, NP_ThreadSocket, NP_ThreadCore,
+                         NP_ThreadNumaNode, NP_NumaNodeMemorySize,
+                         NP_NumaDistance};
+      size_t count = host.found ? sizeof(keys) / sizeof(keys[0]) : 4;
+      return rt::getPropertyVec(property_value, property_value_size, keys, count);
     }
-    case NP_Name: {
-      // return getStr(property_value, property_value_size, device->core);
-    }
+    case NP_Name:
+      // the kernel's model name where the host reader found one, else "cpu"
+      return rt::getPropertyStr(property_value, property_value_size,
+                                host.name.empty() ? std::string("cpu") : host.name);
     case NP_Type:
       return rt::getPropertyStr(property_value, property_value_size, "cpu");
+    case NP_GlobalMemorySize:
+      if (host.memory_bytes < 0) return NXS_InvalidProperty;
+      return rt::getPropertyInt(property_value, property_value_size, host.memory_bytes);
+    // the host: sockets, cores, threads and NUMA nodes as the kernel states
+    // them (cpu_host.h), absent when no cpu topology was found
+    case NP_SocketCount:
+      if (!host.found) return NXS_InvalidProperty;
+      return rt::getPropertyInt(property_value, property_value_size, host.sockets);
+    case NP_CoreCount:
+      if (!host.found) return NXS_InvalidProperty;
+      return rt::getPropertyInt(property_value, property_value_size, host.cores);
+    case NP_ThreadCount:
+      if (!host.found) return NXS_InvalidProperty;
+      return rt::getPropertyInt(property_value, property_value_size, host.threads);
+    case NP_NumaNodeCount:
+      if (!host.found) return NXS_InvalidProperty;
+      return rt::getPropertyInt(property_value, property_value_size, host.numa_nodes);
+    case NP_ThreadSocket:
+      if (!host.found) return NXS_InvalidProperty;
+      return rt::getPropertyVec(property_value, property_value_size,
+                                host.thread_socket.data(), host.thread_socket.size());
+    case NP_ThreadCore:
+      if (!host.found) return NXS_InvalidProperty;
+      return rt::getPropertyVec(property_value, property_value_size,
+                                host.thread_core.data(), host.thread_core.size());
+    case NP_ThreadNumaNode:
+      if (!host.found) return NXS_InvalidProperty;
+      return rt::getPropertyVec(property_value, property_value_size,
+                                host.thread_numa_node.data(), host.thread_numa_node.size());
+    case NP_NumaNodeMemorySize:
+      if (!host.found) return NXS_InvalidProperty;
+      return rt::getPropertyVec(property_value, property_value_size,
+                                host.numa_memory_bytes.data(), host.numa_memory_bytes.size());
+    case NP_NumaDistance:
+      if (!host.found) return NXS_InvalidProperty;
+      return rt::getPropertyVec(property_value, property_value_size,
+                                host.numa_distance.data(), host.numa_distance.size());
     case NP_Architecture: {
       auto archName = cpuinfo_uarch_to_string(cpu->core->uarch);
       assert(archName);

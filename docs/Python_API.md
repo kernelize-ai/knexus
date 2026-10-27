@@ -171,6 +171,58 @@ cmd_args = command.get_property_int_vec("Arguments")
 - Enum values are available in the `knexus.property` submodule for convenience and type safety.
 - Hierarchical paths allow access to nested properties, such as memory subsystem details or device features.
 
+### Host and link properties
+
+KNexus states the machine it runs on as properties by name on the objects it
+already has, so a consumer (kmap's `kmap probe`, for one) reads the host and
+the links the same way it reads a device's name. Every name below is an
+`nxs_property` in `include/knexus-api/_nxs_propertys.h`, read through
+`get_property_str`, `get_property_int` or `get_property_int_vec`; a property a
+runtime or a device does not state raises, like any other, rather than
+returning a guess. Nothing here is measured: each value is what the kernel or
+the driver declares.
+
+**The host** is the one device of the `cpu` runtime. On Linux the plugin reads
+the kernel's sysfs and procfs under `$KNEXUS_HOST_ROOT` (default `/`), so a
+test can point it at a fixture tree; on another OS the host properties are
+absent.
+
+| property | type | states |
+| --- | --- | --- |
+| `Name` | str | the first `model name` in `proc/cpuinfo` |
+| `GlobalMemorySize` | int | `MemTotal` in `proc/meminfo`, in bytes |
+| `SocketCount` | int | distinct `physical_package_id` under `sys/devices/system/cpu/cpu*/topology/` |
+| `CoreCount` | int | distinct (socket, `core_id`) pairs |
+| `ThreadCount` | int | logical cpus with a topology directory |
+| `NumaNodeCount` | int | `sys/devices/system/node/node*/` directories holding a `cpulist` |
+| `ThreadSocket` | int_vec | per logical cpu number, its socket; `-1` where the kernel states none |
+| `ThreadCore` | int_vec | per logical cpu number, its `core_id`; `-1` where none |
+| `ThreadNumaNode` | int_vec | per logical cpu number, the NUMA node whose `cpulist` holds it; `-1` where none |
+| `NumaNodeMemorySize` | int_vec | per NUMA node, its `MemTotal` from `node*/meminfo`, in bytes; `-1` where none |
+| `NumaDistance` | int_vec | the kernel's `node*/distance` table, row-major, `NumaNodeCount` squared entries |
+
+The three `Thread*` vectors are indexed by the cpu number the kernel uses
+(`cpu<N>`), so their length is one past the highest present cpu; an int
+vector carries at most 1024 entries across the plugin boundary.
+
+**A link** is stated on the device it belongs to. The `cuda` plugin reads
+NVML, which it already links; no `nvidia-smi` is run.
+
+| property | type | states |
+| --- | --- | --- |
+| `PciBusId` | str | `nvmlDeviceGetPciInfo` `busId`, `domain:bus:device.function` |
+| `PcieLinkGenMax` | int | `nvmlDeviceGetMaxPcieLinkGeneration` |
+| `PcieLinkGenCurrent` | int | `nvmlDeviceGetCurrPcieLinkGeneration` |
+| `PcieLinkWidthMax` | int | `nvmlDeviceGetMaxPcieLinkWidth` |
+| `PcieLinkWidthCurrent` | int | `nvmlDeviceGetCurrPcieLinkWidth` |
+| `NvLinkCount` | int_vec | per device index of this runtime, the active NVLinks from this device whose remote PCI bus id is that device's; `0` at its own index and where the device has none |
+| `PcieTopologyLevel` | int_vec | per device index of this runtime, `nvmlDeviceGetTopologyCommonAncestor` as NVML's `nvmlGpuTopologyLevel_t` value — 0 internal, 10 a single switch, 20 several switches, 30 a host bridge, 40 a NUMA node, 50 the system; `-1` at its own index |
+
+Pair properties are vectors over the runtime's own device indices, so the
+pair `(i, j)` reads as `devices[i].get_property_int_vec("NvLinkCount")[j]`
+and is symmetric. A hip, metal or tenstorrent plugin states the same names
+when it has a link to state; until it does, the properties are absent there.
+
 ---
 
 ## Event Types and Synchronization
