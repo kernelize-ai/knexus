@@ -21,10 +21,16 @@ from .utils import (
     get_data_type,
 )
 
+# ``knexus.dump(obj=None)``: the object tree (the System by default) as a dict.
+# Last: the module imports knexus and reads ``knexus.property``. The name is the
+# function, not the module; ``python -m knexus.dump`` still runs the module.
+from .dump import dump
+
 __all__ = [
     'version_info',
     'format_device_info',
     'get_data_type',
+    'dump',
 ]
 
 

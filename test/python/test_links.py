@@ -233,6 +233,27 @@ class TestLinks(unittest.TestCase):
         ids = [b for b in BUSES if b is not None]
         self.assertEqual(len(ids), len(set(ids)))
 
+    def test_endpoint_identity(self):
+        """An endpoint's get_runtime() and get_id() lead back to the same device, and
+        the dump's endpoint references say the same."""
+        dumped = knexus.dump()["children"]["links"]
+        self.assertEqual(len(dumped), len(LINKS))
+        for k, link in enumerate(LINKS):
+            with self.subTest(link=k, type=link["Type"]):
+                for dev, ref in zip(link["ends"], dumped[k]["endpoints"]):
+                    if not dev:
+                        self.assertIsNone(ref)
+                        continue
+                    rt = dev.get_runtime()
+                    self.assertTrue(rt, "an endpoint names its runtime")
+                    name, idx = rt.get_property_str("Name"), dev.get_id()
+                    same = knexus.get_runtime(name).get_device(idx)
+                    self.assertEqual(bus_id(same), bus_id(dev))
+                    self.assertEqual(same.get_property_str("Name"), dev.get_property_str("Name"))
+                    self.assertEqual(ref["runtime"], name)
+                    self.assertEqual(ref["device"], idx)
+                    self.assertEqual(ref.get("PciBusId"), bus_id(dev))
+
 
 if __name__ == '__main__':
     unittest.main()

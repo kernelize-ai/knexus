@@ -1,10 +1,12 @@
 """Dump the KNexus object tree as deterministic JSON.
 
-``system()`` returns one JSON-serializable dict for the System: each Runtime, each
-Device, and every child collection a getter returns (buffers, libraries and their
-kernels, schedules and their commands, streams, events). Each node carries its class
+``knexus.dump(obj=None)`` returns one JSON-serializable dict for ``obj``, by default
+the System: each Runtime, each Device, and every child collection a getter returns
+(buffers, libraries and their kernels, schedules and their commands, streams, events).
+Pass a Runtime, Device, Link or any other object to dump that subtree. Each node carries its class
 name, its index in the parent, its property keys, every readable property value, and
-its children keyed by collection name.
+its children keyed by collection name. A Link node also names its two endpoints as
+references (runtime name and device id), since the devices live under their runtimes.
 
 The walker only reads: it never creates a buffer, schedule, stream or event.
 
@@ -103,6 +105,19 @@ def _info(obj):
         return None
 
 
+def _endpoint(dev):
+    """A reference to a link endpoint: where the Device sits in the tree, plus its bus
+    id when it has one. ``None`` for an empty Device (a host link with no cpu runtime)."""
+    if not dev:
+        return None
+    ref = {'runtime': dev.get_runtime().get_property_str('Name'), 'device': dev.get_id()}
+    try:
+        ref['PciBusId'] = dev.get_property_str('PciBusId')
+    except Exception:
+        pass
+    return ref
+
+
 def to_dict(obj, index=None, info=False, children=True):
     """Return one node for ``obj`` and, unless ``children`` is False, its subtree."""
     cls = _class_name(obj)
@@ -111,6 +126,8 @@ def to_dict(obj, index=None, info=False, children=True):
         node['index'] = index
     if hasattr(obj, 'get_property_keys'):
         node['keys'], node['properties'] = _properties(obj)
+    if cls == 'Link':
+        node['endpoints'] = [_endpoint(dev) for dev in obj.get_devices()]
     if info:
         tree = _info(obj)
         if tree is not None:
@@ -131,14 +148,14 @@ def to_dict(obj, index=None, info=False, children=True):
     return node
 
 
-def system(runtime=None, info=False, children=True):
-    """Return the whole tree as a dict; ``runtime`` limits it to one runtime by name."""
-    if runtime is None:
-        return to_dict(_System(), info=info, children=children)
-    for i, rt in enumerate(knexus.get_runtimes()):
-        if rt.get_property_str('Name') == runtime:
-            return {'class': 'System', 'children': {'runtimes': [to_dict(rt, i, info, children)]}}
-    raise ValueError('no runtime named ' + repr(runtime))
+def dump(obj=None, info=False, children=True):
+    """Return ``obj``'s node and subtree as a JSON-serializable dict.
+
+    ``obj`` defaults to the System; a Runtime, Device, Link or any other knexus object
+    dumps that subtree. ``info`` adds each device's Info tree, ``children=False`` omits
+    the child collections.
+    """
+    return to_dict(_System() if obj is None else obj, info=info, children=children)
 
 
 def main(argv=None):
@@ -152,11 +169,13 @@ def main(argv=None):
     sys.stdout.flush()
     out = os.fdopen(os.dup(1), 'w')
     os.dup2(2, 1)
-    try:
-        tree = system(args.runtime, args.info, not args.no_children)
-    except ValueError as e:
-        print('knexus.dump: ' + str(e), file=sys.stderr)
-        return 2
+    obj = None
+    if args.runtime is not None:
+        obj = knexus.get_runtime(args.runtime)
+        if not obj:
+            print('knexus.dump: no runtime named ' + repr(args.runtime), file=sys.stderr)
+            return 2
+    tree = dump(obj, args.info, not args.no_children)
     json.dump(tree, out, indent=2, sort_keys=True)
     out.write('\n')
     out.flush()

@@ -265,6 +265,8 @@ static py::class_<T> make_object_class(py::module &m, const std::string &name, c
   // can return/pass knexus::Device, Runtime, Buffer, etc. without their own duplicate bindings.
   return py::class_<T>(m, name.c_str(), doc.c_str())
       .def("__bool__", [](T &self) { return (bool)self; })
+      .def("get_id", [](T &self) { return self.getId(); },
+           "The object's id: its index inside its parent collection, -1 when empty.")
       .def("__del__", [](T &self) { self.release(); })
       .def("release", [](T &self) { self.release(); })
       .def("get_property_str",
@@ -648,6 +650,15 @@ void pyknexus::init_system_bindings(py::module &m) {
 
   make_object_class<Device>(m, "Device", "Physical device for executing commands.")
       .def("get_info", [](Device &self) { return self.getInfo(); })
+      .def("get_runtime",
+           [](Device &self) {
+             // The Runtime whose impl owns this device's impl; a Link's endpoint
+             // comes back as a Device, and this says which runtime it belongs to.
+             for (auto rt : knexus::getSystem().getRuntimes())
+               if (rt == self.getParentImpl()) return rt;
+             return Runtime();
+           },
+           "The runtime that owns this device; an empty Runtime for an empty device.")
       .def("create_buffer",
            [](Device &self, py::object tensor) {
              return make_buffer(tensor, self);

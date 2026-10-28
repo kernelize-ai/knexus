@@ -45,6 +45,8 @@ Represents a backend runtime (e.g., CUDA, Metal, CPU).
 
 #### Device
 Represents a hardware device.
+- `get_runtime()`: The `Runtime` that owns this device (empty for an empty `Device`, such as a host link's second end without a cpu runtime).
+- `get_id()`: The device's index inside its runtime; every object has `get_id()`, its index inside its parent collection.
 - `get_info()`: Get device properties (as a Properties object).
 - `create_buffer(data or size)`: Create a buffer on this device.
 - `copy_buffer(buffer)`: Copy a buffer to this device.
@@ -56,7 +58,7 @@ Represents a hardware device.
 
 #### Link
 Represents a link between two devices (PCIe to the host, a PCIe path, NVLink, Ethernet).
-- `get_devices()`: The two endpoints as a `Devices` collection of two `Device` objects, possibly of different runtimes.
+- `get_devices()`: The two endpoints as a `Devices` collection of two `Device` objects, possibly of different runtimes. Each endpoint's `get_runtime()` and `get_id()` say where it sits in the tree.
 - `get_property_*`: `Type`, `LinkGenMax`, `LinkGenCurrent`, `LinkWidthMax`, `LinkWidthCurrent`, `LinkTopologyLevel`; `get_property_keys()` returns their property ids, as on every object.
 - `get_property_type(key)`: The type name (`"int"`, `"str"`, as `knexus.property.get_type` spells it) of the value this link states for `key` (a name or a property id). A `Link` states the `Link*` names as scalars while `knexus.property.get_type` gives the runtime fabric table's vector type, so ask the link.
 
@@ -419,7 +421,7 @@ KNexus exposes status codes as enums in `knexus.status` (e.g., `knexus.status.NX
 
 ## Utilities
 
-- **`python -m knexus.dump [--runtime NAME] [--info] [--no-children]`:** prints the System, its runtimes, devices, their properties and child objects as deterministic JSON (`knexus.dump.system()` returns the same dict), so `diff` compares two hosts or two builds; it only reads, never creates an object. The System's `links` are listed as `Link` nodes with their properties. Run it from an installed knexus, or from the repo root as `PYTHONPATH=python python3 -m knexus.dump` where knexus is not installed.
+- **`knexus.dump(obj=None, info=False, children=True)`** returns `obj`'s node and subtree as a JSON-serializable dict: the System by default, or a Runtime, Device, Link or any other knexus object. **`python -m knexus.dump [--runtime NAME] [--info] [--no-children]`** prints the System (or one runtime) the same way as deterministic JSON, so `diff` compares two hosts or two builds; it only reads, never creates an object. The System's `links` are listed as `Link` nodes with their properties and `endpoints`, two references `{runtime, device, PciBusId}` into the runtimes' device lists (`null` for an empty endpoint). Run it from an installed knexus, or from the repo root as `PYTHONPATH=python python3 -m knexus.dump` where knexus is not installed.
 
 ---
 
