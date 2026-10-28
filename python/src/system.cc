@@ -245,6 +245,18 @@ static T get_prop(Tobj &self, const nxs_property prop) {
 }
 
 
+// The type name (as knexus.property.get_type spells it) of the value a Link
+// states for prop.
+static const char *link_prop_type(const Link &self, nxs_property prop) {
+  static const char *names[] = {"int", "flt", "str", "str_vec", "int_vec", "flt_vec"};
+  static_assert(std::variant_size_v<PropVariant> == 6, "one name per Property alternative");
+  if (prop != NXS_PROPERTY_INVALID) {
+    if (auto pval = self.getProperty(prop))
+      return names[pval->index()];
+  }
+  throw std::runtime_error("Invalid property: " + std::string(nxsGetPropName(prop)));
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Object class generation
 template <typename T>
@@ -703,11 +715,29 @@ void pyknexus::init_system_bindings(py::module &m) {
 
   make_objects_class<Info>(m, "Infos", "Collection of info objects.");
 
+  // A Link answers the Link* names as scalars, though they are declared vectors
+  // (the runtime-level fabric table's columns), so its property type comes from
+  // the value it states, not from nxs_property_type_map.
+  make_object_class<Link>(m, "Link", "A link between two devices, owned by the System.")
+      .def("get_devices", [](Link &self) { return self.getDevices(); },
+           "The two endpoints as Device objects, possibly of different runtimes.")
+      .def("get_property_type",
+           [](Link &self, const std::string &name) {
+             return link_prop_type(self, nxsGetPropEnum(name.c_str()));
+           })
+      .def("get_property_type",
+           [](Link &self, nxs_property prop) { return link_prop_type(self, prop); });
+  make_objects_class<Link>(m, "Links", "Collection of link objects.");
+
   // query
   m.def("get_runtime", [](const std::string &name) { return knexus::getSystem().getRuntime(name); },
         "Lookup runtime by name.");
   m.def("get_runtimes", []() { return knexus::getSystem().getRuntimes(); },
         "Return all registered runtimes.");
+  m.def("get_devices", []() { return knexus::getSystem().getDevices(); },
+        "Return every runtime's devices, runtime order then device order.");
+  m.def("get_links", []() { return knexus::getSystem().getLinks(); },
+        "Return every link of the machine as Link objects.");
   m.def("get_device_info", []() { return *knexus::getDeviceInfoDB(); },
         "Return the global device info database.");
   m.def("lookup_device_info",

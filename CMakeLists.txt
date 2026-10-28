@@ -116,6 +116,12 @@ add_subdirectory(third_party/spdlog)
 set(PYBIND11_FINDPYTHON ON)
 add_subdirectory(third_party/pybind11_json pybind11_json)
 
+# System hwloc (>= 2.0) for the host and PCI topology (include/knexus/topology.h).
+# One GLOBAL imported target shared by the core, every plugin and every test that
+# includes that header; each links PkgConfig::HWLOC itself.
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(HWLOC REQUIRED IMPORTED_TARGET GLOBAL hwloc>=2.0)
+
 # ------
 # Core API source directory
 add_subdirectory(api-src)

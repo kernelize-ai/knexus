@@ -4,8 +4,10 @@
 
 #include <knexus/buffer.h>
 #include <knexus/info.h>
+#include <knexus/link.h>
 #include <knexus/runtime.h>
 
+#include <mutex>
 #include <unordered_map>
 
 namespace knexus {
@@ -31,6 +33,8 @@ class SystemImpl : public detail::Impl {
   Info loadCatalog(const std::string &catalogPath);
 
   Runtimes getRuntimes() const { return runtimes; }
+  Devices getDevices() const;
+  Links getLinks();
   Infos getCatalogs() const { return catalogs; }
   Buffers getBuffers() const { return buffers; }
 
@@ -40,6 +44,12 @@ class SystemImpl : public detail::Impl {
   std::unordered_map<std::string, Runtime> runtimeMap;
   Infos catalogs;
   Buffers buffers;
+  // built on the first getLinks(), cleared in releaseChildren()
+  std::mutex linksMutex;
+  bool linksBuilt = false;
+  Links links;
+
+  void buildLinks();
 };
 }  // namespace detail
 }  // namespace knexus

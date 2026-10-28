@@ -5,7 +5,7 @@
 #include <knexus-api.h>
 #include <rt_buffer.h>
 #include <rt_object.h>
-#include <rt_topology.h>
+#include <knexus/topology.h>
 #include <rt_runtime.h>
 #include <rt_utilities.h>
 #include <string.h>
@@ -21,7 +21,7 @@ using namespace nxs;
 
 namespace {
 
-// The host as hwloc states it (rt_topology.h, no I/O objects): packages,
+// The host as hwloc states it (knexus/topology.h, no I/O objects): packages,
 // cores, PUs and NUMA nodes, read once per process. Nothing is measured; the
 // names and units are those tabled in docs/Python_API.md under "Host and link
 // properties". found is false only when hwloc fails to load or states no PU,

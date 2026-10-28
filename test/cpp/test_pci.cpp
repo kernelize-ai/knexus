@@ -1,8 +1,8 @@
 // The tenstorrent plugin's PCI node, device-free, so it runs as ctest
 // registers it. Two halves:
-// - the sysfs sliver (plugins/include/rt_pci.h: the class listing and the
+// - the sysfs sliver (include/knexus/pci.h: the class listing and the
 //   link's generation and width) over a tiny fixture tree;
-// - hwloc's PCI objects (plugins/include/rt_topology.h: bus id to object,
+// - hwloc's PCI objects (include/knexus/topology.h: bus id to object,
 //   NUMA node, path level) over hwloc XML: test/fixtures/tt-quietbox.xml,
 //   exported from the four-card host this was written on, and a hand-written
 //   topology for the levels that host cannot show (10, 20, 50).
@@ -12,8 +12,8 @@
 
 #include <gtest/gtest.h>
 
-#include "../../plugins/include/rt_pci.h"
-#include "../../plugins/include/rt_topology.h"
+#include <knexus/pci.h>
+#include <knexus/topology.h>
 
 #include <stdlib.h>
 

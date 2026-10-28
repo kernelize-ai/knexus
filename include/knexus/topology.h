@@ -1,9 +1,10 @@
-#ifndef RT_TOPOLOGY_H
-#define RT_TOPOLOGY_H
+#ifndef KNEXUS_TOPOLOGY_H
+#define KNEXUS_TOPOLOGY_H
 
 // The host's hardware topology, from hwloc (>= 2.0, system library found by
-// pkg-config): one hwloc_topology_t per plugin, loaded on first use and kept
-// for the life of the plugin. Nothing here opens a device or measures
+// pkg-config): one hwloc_topology_t per shared object that calls topology()
+// (knexus-api, the cpu plugin, ...), loaded on first use and kept for the life
+// of that object. Not part of knexus.h: a consumer includes it and links hwloc. Nothing here opens a device or measures
 // anything; hwloc reads the kernel's view (sysfs/procfs on Linux).
 //
 // - Whole machine, not the cgroup: loaded with
@@ -21,8 +22,8 @@
 //   hwloc at load time, so a test sets one before the first call; nothing
 //   here handles them specially.
 //
-// The first call fixes the I/O filter for the plugin: a plugin asks with one
-// constant. topology() returns nullptr only when hwloc itself fails to load;
+// The first call fixes the I/O filter for the shared object: each asks with
+// one constant. topology() returns nullptr only when hwloc itself fails to load;
 // callers then state no topology-derived values. A malformed HWLOC_SYNTHETIC
 // or HWLOC_XMLFILE is not such a failure: hwloc warns on stderr and falls back
 // to this host (hwloc_topology_is_thissystem() then returns 1), so a fixture
@@ -73,8 +74,10 @@ struct Holder {
 
 }  // namespace topology_detail
 
-// Hidden so each plugin .so keeps its own instance: a default-visibility
-// inline static would be unified across every plugin loaded in the process.
+// Hidden so each shared object keeps its own instance: knexus-api is built
+// with default visibility and plugins are dlopened RTLD_GLOBAL, so a
+// default-visibility inline static would be unified across the core and every
+// plugin loaded in the process.
 NXS_RT_HIDDEN inline hwloc_topology_t topology(
     TopologyIo io = TopologyIo::None) {
   static topology_detail::Holder holder(io);  // thread-safe one-time load
@@ -148,4 +151,4 @@ inline int pciTopologyLevel(hwloc_topology_t topo, hwloc_obj_t a, hwloc_obj_t b)
 }  // namespace rt
 }  // namespace nxs
 
-#endif  // RT_TOPOLOGY_H
+#endif  // KNEXUS_TOPOLOGY_H
