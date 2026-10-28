@@ -29,12 +29,14 @@ This document covers the build process, continuous integration setup, and develo
 sudo apt-get update
 sudo apt-get install -y build-essential cmake python3 python3-dev python3-pip python3-pybind11
 sudo apt-get install -y libc++-dev libc++abi-dev
+sudo apt-get install -y libhwloc-dev pkg-config
 ```
 
 #### macOS
 ```bash
 brew update
 brew install cmake python@3.11 pybind11
+brew install hwloc pkg-config
 ```
 
 #### Windows
@@ -42,6 +44,16 @@ brew install cmake python@3.11 pybind11
 # Install Visual Studio 2022 with C++ workload
 python -m pip install pybind11
 ```
+
+#### hwloc
+
+The cpu and tenstorrent plugins, and the `test_topology` and `test_pci` tests,
+require the system hwloc (2.0 or later), found by pkg-config
+(`pkg_check_modules(HWLOC REQUIRED IMPORTED_TARGET hwloc>=2.0)`): a configure
+with `-DKNEXUS_BUILD_PLUGINS=ON` fails without it. It is not vendored. Wheels
+carry it: `auditwheel repair` (Linux) and `delocate-wheel` (macOS) bundle
+`libhwloc` into the wheel, so an installed wheel needs no system hwloc. Check
+a local install with `pkg-config --modversion hwloc`.
 
 ## Building from Source
 
@@ -149,7 +161,7 @@ To simulate the CI environment locally:
 docker run -it --rm -v $(pwd):/workspace ubuntu:latest bash
 cd /workspace
 sudo apt-get update
-sudo apt-get install -y build-essential cmake python3 python3-dev python3-pip python3-pybind11 libc++-dev libc++abi-dev
+sudo apt-get install -y build-essential cmake python3 python3-dev python3-pip python3-pybind11 libc++-dev libc++abi-dev libhwloc-dev pkg-config
 python3 -m pip install -r requirements.txt
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DKNEXUS_BUILD_PYTHON_MODULE=ON -DKNEXUS_BUILD_PLUGINS=ON

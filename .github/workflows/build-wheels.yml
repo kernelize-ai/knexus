@@ -39,7 +39,7 @@ jobs:
             build-essential cmake ninja-build \
             python3-dev python3-pybind11 \
             libc++-dev libc++abi-dev \
-            libboost-all-dev git
+            libboost-all-dev libhwloc-dev pkg-config git
 
       - name: Install Python build dependencies
         run: |
@@ -95,7 +95,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential cmake ninja-build git \
-            libboost-all-dev \
+            libboost-all-dev libhwloc-dev pkg-config \
             python3-dev python3-pybind11
 
       - name: Build cuda_plugin
@@ -136,7 +136,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential cmake ninja-build git \
-            libboost-all-dev \
+            libboost-all-dev libhwloc-dev pkg-config \
             nlohmann-json3-dev \
             python3-dev python3-pybind11
 
@@ -300,7 +300,7 @@ jobs:
         run: |
           brew update
           brew uninstall cmake || true
-          brew install cmake ninja python@${{ matrix.python-version }} pybind11 boost
+          brew install cmake ninja python@${{ matrix.python-version }} pybind11 boost hwloc pkg-config
 
       - name: Install Python build dependencies
         run: |

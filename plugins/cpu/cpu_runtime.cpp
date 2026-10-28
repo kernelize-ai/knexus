@@ -1,21 +1,139 @@
 #include "cpu_runtime.h"
-#include "cpu_host.h"
 
 #include <assert.h>
 #include <dlfcn.h>
 #include <knexus-api.h>
 #include <rt_buffer.h>
 #include <rt_object.h>
+#include <rt_topology.h>
 #include <rt_runtime.h>
 #include <rt_utilities.h>
 #include <string.h>
 
 #include <functional>
 #include <magic_enum/magic_enum.hpp>
+#include <algorithm>
 #include <optional>
+#include <string>
 #include <vector>
 
 using namespace nxs;
+
+namespace {
+
+// The host as hwloc states it (rt_topology.h, no I/O objects): packages,
+// cores, PUs and NUMA nodes, read once per process. Nothing is measured; the
+// names and units are those tabled in docs/Python_API.md under "Host and link
+// properties". found is false only when hwloc fails to load or states no PU,
+// and then the plugin states none of the host properties.
+struct HostTopology {
+  std::string name;                  // the first package's CPUModel, trimmed
+  nxs_long memory_bytes = -1;        // the root's total_memory, -1 if none
+  nxs_long sockets = 0, cores = 0, threads = 0, numa_nodes = 0;
+  std::vector<nxs_long> thread_socket, thread_core, thread_numa_node;  // by PU os_index
+  std::vector<nxs_long> numa_memory_bytes;  // by node, os_index ascending
+  std::vector<nxs_long> numa_distance;      // row-major numa_nodes^2, empty if none
+  std::vector<std::string> numa_cpulist;    // by node, kernel cpulist syntax
+  bool found = false;
+};
+
+HostTopology readHostTopology(hwloc_topology_t topo) {
+  HostTopology h;
+  if (!topo) return h;
+  int npu = hwloc_get_nbobjs_by_type(topo, HWLOC_OBJ_PU);
+  if (npu <= 0) return h;
+  h.found = true;
+  h.sockets = std::max(0, hwloc_get_nbobjs_by_type(topo, HWLOC_OBJ_PACKAGE));
+  h.cores = std::max(0, hwloc_get_nbobjs_by_type(topo, HWLOC_OBJ_CORE));
+  h.threads = npu;
+  int nnode = std::max(0, hwloc_get_nbobjs_by_type(topo, HWLOC_OBJ_NUMANODE));
+  h.numa_nodes = nnode;
+
+  // Name and memory: absent on a topology that does not state them (synthetic)
+  if (auto *pkg = hwloc_get_obj_by_type(topo, HWLOC_OBJ_PACKAGE, 0)) {
+    if (const char *model = hwloc_obj_get_info_by_name(pkg, "CPUModel")) {
+      std::string v(model);
+      v.erase(0, v.find_first_not_of(" \t"));
+      v.erase(v.find_last_not_of(" \t\r\n") + 1);
+      h.name = v;
+    }
+  }
+  if (auto *root = hwloc_get_root_obj(topo); root && root->total_memory > 0)
+    h.memory_bytes = (nxs_long)root->total_memory;
+
+  // the Thread* vectors, indexed by PU os_index
+  unsigned max_pu = 0;
+  for (int i = 0; i < npu; ++i)
+    max_pu = std::max(max_pu, hwloc_get_obj_by_type(topo, HWLOC_OBJ_PU, i)->os_index);
+  h.thread_socket.assign(max_pu + 1, -1);
+  h.thread_core.assign(max_pu + 1, -1);
+  h.thread_numa_node.assign(max_pu + 1, -1);
+  for (int i = 0; i < npu; ++i) {
+    hwloc_obj_t pu = hwloc_get_obj_by_type(topo, HWLOC_OBJ_PU, i);
+    unsigned n = pu->os_index;
+    if (auto *pkg = hwloc_get_ancestor_obj_by_type(topo, HWLOC_OBJ_PACKAGE, pu))
+      h.thread_socket[n] = pkg->os_index;
+    if (auto *core = hwloc_get_ancestor_obj_by_type(topo, HWLOC_OBJ_CORE, pu))
+      h.thread_core[n] = core->os_index;
+    if (pu->nodeset) {
+      int first = hwloc_bitmap_first(pu->nodeset);
+      if (first >= 0) h.thread_numa_node[n] = first;
+    }
+  }
+
+  // NUMA nodes in os_index order; the distance matrix in the same order
+  std::vector<hwloc_obj_t> nodes;
+  for (int i = 0; i < nnode; ++i)
+    nodes.push_back(hwloc_get_obj_by_type(topo, HWLOC_OBJ_NUMANODE, i));
+  std::sort(nodes.begin(), nodes.end(),
+            [](hwloc_obj_t a, hwloc_obj_t b) { return a->os_index < b->os_index; });
+  for (auto *node : nodes) {
+    h.numa_memory_bytes.push_back(node->attr && node->attr->numanode.local_memory
+                                      ? (nxs_long)node->attr->numanode.local_memory
+                                      : -1);
+    std::string list;
+    if (node->cpuset) {
+      int len = hwloc_bitmap_list_snprintf(nullptr, 0, node->cpuset);
+      if (len > 0) {
+        list.resize(len + 1);
+        hwloc_bitmap_list_snprintf(list.data(), list.size(), node->cpuset);
+        list.resize(len);
+      }
+    }
+    h.numa_cpulist.push_back(list);
+  }
+  if (nnode == 1) {
+    h.numa_distance = {10};  // the kernel's value; hwloc keeps no 1x1 matrix
+  } else if (nnode > 1) {
+    unsigned nr = 1;
+    hwloc_distances_s *dist = nullptr;
+    if (hwloc_distances_get_by_type(topo, HWLOC_OBJ_NUMANODE, &nr, &dist,
+                                    HWLOC_DISTANCES_KIND_FROM_OS, 0) == 0 &&
+        nr >= 1 && dist) {
+      // map each matrix object to its place in the os_index order
+      std::vector<int> place(dist->nbobjs, -1);
+      for (unsigned k = 0; k < dist->nbobjs; ++k)
+        for (size_t p = 0; p < nodes.size(); ++p)
+          if (dist->objs[k] == nodes[p]) place[k] = (int)p;
+      h.numa_distance.assign((size_t)nnode * nnode, -1);
+      for (unsigned i = 0; i < dist->nbobjs; ++i)
+        for (unsigned j = 0; j < dist->nbobjs; ++j)
+          if (place[i] >= 0 && place[j] >= 0)
+            h.numa_distance[(size_t)place[i] * nnode + place[j]] =
+                (nxs_long)dist->values[i * dist->nbobjs + j];
+      hwloc_distances_release(topo, dist);
+    }
+  }
+  return h;
+}
+
+const HostTopology &getHostTopology() {
+  static const HostTopology s_host =
+      readHostTopology(rt::topology(rt::TopologyIo::None));
+  return s_host;
+}
+
+}  // namespace
 
 CpuRuntime *getRuntime() {
   static CpuRuntime s_runtime;
@@ -88,7 +206,7 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint device_property_id,
 
   NXSLOG_TRACE("getDeviceProperty {}", nxsGetPropName(device_property_id));
 
-  const rt::HostTopology &host = rt::getHostTopology();
+  const HostTopology &host = getHostTopology();
 
   switch (device_property_id) {
     case NP_Keys: {
@@ -102,7 +220,7 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint device_property_id,
       return rt::getPropertyVec(property_value, property_value_size, keys, count);
     }
     case NP_Name:
-      // the kernel's model name where the host reader found one, else "cpu"
+      // the package's CPUModel where hwloc states one, else "cpu"
       return rt::getPropertyStr(property_value, property_value_size,
                                 host.name.empty() ? std::string("cpu") : host.name);
     case NP_Type:
@@ -110,8 +228,8 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint device_property_id,
     case NP_GlobalMemorySize:
       if (host.memory_bytes < 0) return NXS_InvalidProperty;
       return rt::getPropertyInt(property_value, property_value_size, host.memory_bytes);
-    // the host: sockets, cores, threads and NUMA nodes as the kernel states
-    // them (cpu_host.h), absent when no cpu topology was found
+    // the host: packages, cores, PUs and NUMA nodes as hwloc states them,
+    // absent when no topology was loaded
     case NP_SocketCount:
       if (!host.found) return NXS_InvalidProperty;
       return rt::getPropertyInt(property_value, property_value_size, host.sockets);
@@ -141,7 +259,8 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint device_property_id,
       return rt::getPropertyVec(property_value, property_value_size,
                                 host.numa_memory_bytes.data(), host.numa_memory_bytes.size());
     case NP_NumaDistance:
-      if (!host.found) return NXS_InvalidProperty;
+      // absent where hwloc holds no FROM_OS matrix (a synthetic topology)
+      if (!host.found || host.numa_distance.empty()) return NXS_InvalidProperty;
       return rt::getPropertyVec(property_value, property_value_size,
                                 host.numa_distance.data(), host.numa_distance.size());
     case NP_NumaNodeCpuList:
