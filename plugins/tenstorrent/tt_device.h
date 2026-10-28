@@ -5,11 +5,19 @@
 
 #include <mutex>
 
+// A plugin device: a 1x1 submesh of the runtime's mesh (TTRuntime::mesh, see
+// tt_runtime.h). The device holds the submesh, its coordinate in the parent
+// mesh's shape, and its tt-metal chip id. Every buffer, program and workload
+// of this device is created on and enqueued to the submesh, never the parent:
+// each mesh has its own allocator over the same DRAM, so parent and submesh
+// allocations alias, and using both CQs aborts the process at release.
 class TTDevice {
-  int device_id;
-  std::shared_ptr<ttmd::MeshDevice> device;
+  std::shared_ptr<ttmd::MeshDevice> device;  // the 1x1 submesh
+  ttmd::MeshCoordinate coord;                // its position in the parent mesh
+  int chip_id;                               // its one chip's tt-metal id
  public:
-  TTDevice(int device_id = -1) : device_id(device_id) { initDevice(); }
+  TTDevice(std::shared_ptr<ttmd::MeshDevice> submesh, ttmd::MeshCoordinate coord, int chip_id)
+      : device(std::move(submesh)), coord(coord), chip_id(chip_id) {}
   virtual ~TTDevice() { release(); }
 
   nxs_status release() {
@@ -22,18 +30,12 @@ class TTDevice {
   ttmd::MeshCommandQueue& getCQ() { return device->mesh_command_queue(); }
 
   ttmd::MeshCoordinateRange getRange() {
-    initDevice();
     TT_NOBJ_CHECK(devRange, ttmd::MeshCoordinateRange, device->shape());
     return devRange;
   }
 
- private:
-  bool initDevice() {
-    if (device || device_id < 0) return true;
-    TT_OBJ_CHECK(device, ttmd::MeshDevice::create_unit_mesh, device_id + 1);
-    NXSLOG_INFO("Create TTDevice: {}", device_id);
-    return true;
-  }
+  const ttmd::MeshCoordinate &getCoord() const { return coord; }
+  int getChipId() const { return chip_id; }
 };
 
 #endif  // RT_TT_DEVICE_H

@@ -16,6 +16,13 @@ if(EXISTS ${TT_METAL_CMAKE_PATH})
 
     find_package(TT-Metalium REQUIRED)
 
+    # System hwloc (>= 2.0) for the host and PCI topology (plugins/include/rt_topology.h).
+    # One GLOBAL imported target shared by every plugin and test that needs it.
+    find_package(PkgConfig REQUIRED)
+    if(NOT TARGET PkgConfig::HWLOC)
+      pkg_check_modules(HWLOC REQUIRED IMPORTED_TARGET GLOBAL hwloc>=2.0)
+    endif()
+
     add_library(tt_plugin SHARED
       tt_buffer.cpp
       tt_command.cpp
@@ -23,7 +30,7 @@ if(EXISTS ${TT_METAL_CMAKE_PATH})
       tt_runtime.cpp
       tt_schedule.cpp)
 
-    target_link_libraries(tt_plugin PRIVATE TT::Metalium nxs-api)
+    target_link_libraries(tt_plugin PRIVATE TT::Metalium nxs-api PkgConfig::HWLOC)
 
     if(UNIX AND (NOT APPLE))
         target_link_options(tt_plugin PRIVATE "LINKER:--exclude-libs,ALL")

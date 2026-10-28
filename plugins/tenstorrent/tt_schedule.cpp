@@ -94,6 +94,10 @@ nxs_status TTSchedule::run(nxs_int stream, nxs_uint run_settings) {
 }
 
 nxs_status TTSchedule::release() {
+  // Free the programs (and their circular buffers) now, while the submesh and
+  // tt-metal's per-thread state are alive: the pool keeps this slot, and an
+  // unreleased workload would only be destroyed at process exit.
+  workload = ttmd::MeshWorkload();
   nxs_status status = Schedule::release();
   return status;
 }

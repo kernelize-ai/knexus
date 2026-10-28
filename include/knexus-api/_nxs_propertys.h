@@ -161,8 +161,8 @@ KNEXUS_API_PROP(MaxPower,              _prop_flt,        "Max Power")
 KNEXUS_API_PROP(CoreUtilization,      _prop_int,          "Core Utilization")
 KNEXUS_API_PROP(MemoryUtilization,    _prop_int,          "Memory Utilization")
 
-/* Host Properties — the cpu plugin's device, from the kernel (Linux sysfs
- * and procfs under $KNEXUS_HOST_ROOT); see docs/Python_API.md */
+/* Host Properties — the cpu plugin's device, from the hwloc topology (which
+ * reads the kernel's sysfs and procfs on Linux); see docs/Python_API.md */
 KNEXUS_API_PROP(SocketCount,          _prop_int,          "Host sockets (physical packages)")
 KNEXUS_API_PROP(CoreCount,            _prop_int,          "Host cores, all sockets")
 KNEXUS_API_PROP(ThreadCount,          _prop_int,          "Host logical cpus (threads)")
