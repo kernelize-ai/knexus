@@ -27,6 +27,7 @@ def run_tests(test_pattern=None, verbose=False):
         'test_properties',
         'test_host',
         'test_links',
+        'test_tt_mesh',
         'test_integration'
     ]
     
