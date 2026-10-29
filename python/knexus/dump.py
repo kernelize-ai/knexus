@@ -10,8 +10,14 @@ references (runtime name and device id), since the devices live under their runt
 
 The walker only reads: it never creates a buffer, schedule, stream or event.
 
-Run ``python -m knexus.dump [--runtime NAME] [--info] [--no-children]``. Two runs on
-the same host print byte-identical output, so ``diff`` compares two dumps.
+``format`` picks the rendering: ``"json"`` (the default) or ``"minimal"``, indented
+text with one line per object and its properties beneath it, for reading rather than
+diffing. ``pretty=True`` prints that rendering (indented, key-sorted JSON, or the text)
+instead of returning the value.
+
+Run ``python -m knexus.dump [--runtime NAME] [--info] [--no-children]
+[--format json|minimal]``. Its JSON is indented and key-sorted, so two runs on the same
+host print byte-identical output and ``diff`` compares two dumps.
 """
 
 import argparse
@@ -148,14 +154,81 @@ def to_dict(obj, index=None, info=False, children=True):
     return node
 
 
-def dump(obj=None, info=False, children=True):
-    """Return ``obj``'s node and subtree as a JSON-serializable dict.
+def _fmt(value, limit=32):
+    """A property value on one line; a long vector shows its head and its length."""
+    if isinstance(value, list) and len(value) > limit:
+        return '[' + ', '.join(str(v) for v in value[:limit]) + ', ...] (' + str(len(value)) + ' entries)'
+    return json.dumps(value)
+
+
+def _label(node):
+    """What identifies the node on its own line: a Link's type and endpoints, else the
+    object's Name. Returns (label, the property key it already shows)."""
+    props = node.get('properties', {})
+    if node.get('class') == 'Link':
+        ends = []
+        for ref in node.get('endpoints', []):
+            if ref is None:
+                ends.append('(none)')
+            else:
+                bus = ref.get('PciBusId')
+                ends.append(ref['runtime'] + '/' + str(ref['device']) + (' (' + bus + ')' if bus else ''))
+        return props.get('Type', '?') + '  ' + ' <-> '.join(ends), 'Type'
+    if 'Name' in props:
+        return json.dumps(props['Name']), 'Name'
+    return '', None
+
+
+def to_text(node, collection=None, depth=0):
+    """Format a node that ``dump`` returned as indented text, one object per line.
+
+    A line reads ``<collection>[<index>] <class> <label>``; the object's properties
+    follow, one per line, then its children. ``depth`` is the starting indent.
+    """
+    pad = '  ' * depth
+    head = node['class'] if collection is None else collection + '[' + str(node.get('index', '?')) + '] ' + node['class']
+    label, shown = _label(node)
+    lines = [pad + head + ('  ' + label if label else '')]
+    props = node.get('properties', {})
+    for key in node.get('keys') or sorted(props):
+        if key in props and key != shown:
+            lines.append(pad + '  ' + key + ' = ' + _fmt(props[key]))
+    if 'info' in node:
+        lines.append(pad + '  info:')
+        lines.extend(pad + '    ' + l for l in json.dumps(node['info'], indent=2, sort_keys=True).splitlines())
+    for coll, items in node.get('children', {}).items():
+        for item in items:
+            lines.append(to_text(item, coll, depth + 1))
+    return '\n'.join(lines)
+
+
+def to_json(node):
+    """Format a node that ``dump`` returned as indented, key-sorted JSON."""
+    return json.dumps(node, indent=2, sort_keys=True)
+
+
+FORMATS = {'json': to_json, 'minimal': to_text}
+
+
+def dump(obj=None, info=False, children=True, format='json', pretty=False, file=None):
+    """Dump ``obj``'s node and subtree.
 
     ``obj`` defaults to the System; a Runtime, Device, Link or any other knexus object
     dumps that subtree. ``info`` adds each device's Info tree, ``children=False`` omits
     the child collections.
+
+    ``format`` is ``"json"`` (the default) or ``"minimal"``. Without ``pretty`` the value
+    comes back: the JSON-serializable dict, or the minimal text. With ``pretty=True`` the
+    rendering (indented, key-sorted JSON, or the text) is printed to ``file`` (stdout by
+    default) and nothing is returned.
     """
-    return to_dict(_System() if obj is None else obj, info=info, children=children)
+    if format not in FORMATS:
+        raise ValueError('format must be one of ' + ', '.join(sorted(FORMATS)) + ', not ' + repr(format))
+    tree = to_dict(_System() if obj is None else obj, info=info, children=children)
+    if pretty:
+        print(FORMATS[format](tree), file=file or sys.stdout)
+        return None
+    return tree if format == 'json' else to_text(tree)
 
 
 def main(argv=None):
@@ -163,6 +236,7 @@ def main(argv=None):
     parser.add_argument('--runtime', metavar='NAME', help='dump only this runtime')
     parser.add_argument('--info', action='store_true', help="also dump each object's Info tree (the device DB)")
     parser.add_argument('--no-children', action='store_true', help='omit child collections (with --runtime, the runtime is still shown)')
+    parser.add_argument('--format', choices=sorted(FORMATS), default='json', help='json (indented, key-sorted; the default) or minimal (indented text, one object per line)')
     args = parser.parse_args(argv)
 
     # Runtimes (tt-metal) log to stdout: keep stdout for the JSON, send the rest to stderr.
@@ -175,9 +249,7 @@ def main(argv=None):
         if not obj:
             print('knexus.dump: no runtime named ' + repr(args.runtime), file=sys.stderr)
             return 2
-    tree = dump(obj, args.info, not args.no_children)
-    json.dump(tree, out, indent=2, sort_keys=True)
-    out.write('\n')
+    dump(obj, args.info, not args.no_children, format=args.format, pretty=True, file=out)
     out.flush()
     return 0
 

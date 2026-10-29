@@ -254,6 +254,37 @@ class TestLinks(unittest.TestCase):
                     self.assertEqual(ref["device"], idx)
                     self.assertEqual(ref.get("PciBusId"), bus_id(dev))
 
+    def test_dump_minimal(self):
+        """format="minimal" has one line per link, naming its type and both endpoints;
+        pretty prints the same text."""
+        import io
+        text = knexus.dump(format="minimal")
+        self.assertIsInstance(text, str)
+        buf = io.StringIO()
+        self.assertIsNone(knexus.dump(format="minimal", pretty=True, file=buf))
+        self.assertEqual(buf.getvalue(), text + "\n")
+        lines = [l.strip() for l in text.splitlines() if l.strip().startswith("links[")]
+        self.assertEqual(len(lines), len(LINKS))
+        for k, (line, link) in enumerate(zip(lines, LINKS)):
+            with self.subTest(link=k):
+                self.assertIn(" Link  " + link["Type"] + "  ", line)
+                self.assertIn(" <-> ", line)
+                for dev in link["ends"]:
+                    if dev:
+                        self.assertIn(dev.get_runtime().get_property_str("Name") + "/" + str(dev.get_id()), line)
+
+    def test_dump_json_pretty(self):
+        """The default format returns the dict; pretty prints it as indented, key-sorted JSON."""
+        import io
+        import json
+        tree = knexus.dump()
+        self.assertIsInstance(tree, dict)
+        buf = io.StringIO()
+        self.assertIsNone(knexus.dump(pretty=True, file=buf))
+        self.assertEqual(buf.getvalue(), json.dumps(tree, indent=2, sort_keys=True) + "\n")
+        with self.assertRaises(ValueError):
+            knexus.dump(format="yaml")
+
 
 if __name__ == '__main__':
     unittest.main()
