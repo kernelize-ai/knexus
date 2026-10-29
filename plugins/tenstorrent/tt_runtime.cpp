@@ -3,11 +3,11 @@
 #include <assert.h>
 #include <dlfcn.h>
 #include <knexus-api.h>
+#include <knexus/pci.h>
 #include <rt_buffer.h>
+#include <rt_fabric.h>
 #include <rt_object.h>
-#include <rt_pci.h>
 #include <rt_runtime.h>
-#include <rt_topology.h>
 #include <rt_utilities.h>
 #include <string.h>
 
@@ -17,6 +17,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <tuple>
 #include <unordered_set>
 #include <vector>
 
@@ -35,14 +36,12 @@ TTRuntime *getRuntime() {
 // them (bus-id substrings, or integer indices into that sorted list) before
 // chip ids are handed out. That order is UMD's, not a documented contract,
 // so the count is checked against GetNumPCIeDevices() and, on a mismatch, no
-// chip states a PCI node. The class listing and the link's generation and
-// width are read once from sysfs under $KNEXUS_HOST_ROOT (rt_pci.h); the
-// node's hwloc object, its NUMA node and the path level come from the
-// plugin's hwloc topology (rt_topology.h).
+// chip states a PCI node. The class listing is read once from sysfs under
+// $KNEXUS_HOST_ROOT (knexus/pci.h). The plugin states only the bus id; the
+// core derives every PCIe link from it.
 struct ChipPci {
-  rt::PciNode node;           // bus id, class index, gen/width (sysfs)
-  hwloc_obj_t obj = nullptr;  // hwloc's PCI device at node.bus_id, or none
-  nxs_long numa_node = -1;    // its first non-I/O ancestor's one NUMA node, or -1
+  std::string bus_id;        // "0000:01:00.0", sysfs's form
+  nxs_long class_index = -1; // N of tenstorrent!N, /dev/tenstorrent/N
 };
 
 static const std::vector<ChipPci> &chipPciNodes() {
@@ -77,19 +76,8 @@ static const std::vector<ChipPci> &chipPciNodes() {
                   nodes.size(), pcie);
       nodes.clear();
     }
-    hwloc_topology_t topo = rt::topology(rt::TopologyIo::Pci);
     std::vector<ChipPci> chips;
-    for (const auto &n : nodes) {
-      ChipPci c;
-      c.node = n;
-      c.obj = rt::pciObject(topo, n.bus_id);
-      c.numa_node = rt::pciNumaNode(topo, c.obj);
-      if (c.obj)
-        NXSLOG_INFO("tenstorrent chip {} at {}: NUMA node {}", chips.size(), n.bus_id, c.numa_node);
-      else
-        NXSLOG_WARN("hwloc states no PCI device at {}: no NUMA node, no path rows", n.bus_id);
-      chips.push_back(c);
-    }
+    for (const auto &n : nodes) chips.push_back({n.bus_id, n.class_index});
     return chips;
   }();
   return s_nodes;
@@ -123,99 +111,81 @@ static const ChipPci *chipPci(TTDevice *dev) {
   }
 }
 
-// One link of a device, as the Link* properties state it: a row per link, the
-// vectors indexed by row. The tenstorrent plugin states three kinds of row —
-//   PCIe to the host     (peer -1): generation and width, max and current,
-//                         from the chip's sysfs PCI node;
-//   Ethernet to a peer   (one row per connected ethernet core): the peer's
-//                         index and bus id; no rate, width or level;
-//   PCIe path to a peer  (one row per other PCIe-attached device): the level
-//                         of the two hwloc PCI objects' common ancestor in
-//                         NVML's values (rt::pciTopologyLevel).
-// -1 and "" mean the row states no such figure. A chip with no PCI node
-// states no host row and no path rows; a chip whose bus id hwloc states no
-// object for states its host row but no path rows, and no peer has a path
-// row to it. Nothing is measured.
-struct DeviceLink {
-  std::string type;
-  nxs_long peer = -1;
-  std::string peer_id;
-  nxs_long gen_max = -1, gen_cur = -1, width_max = -1, width_cur = -1;
-  nxs_long level = -1;
-};
-
-static std::vector<DeviceLink> computeLinks(TTRuntime *rt, nxs_int device_id) {
-  std::vector<DeviceLink> links;
-  TTDevice *self = rt->getDevice(device_id);
-  const ChipPci *pci = chipPci(self);
-
-  if (pci) {
-    DeviceLink host;
-    host.type = "PCIe";
-    host.gen_max = pci->node.gen_max;
-    host.gen_cur = pci->node.gen_cur;
-    host.width_max = pci->node.width_max;
-    host.width_cur = pci->node.width_cur;
-    links.push_back(host);
-  }
-
-  // Ethernet: each active core's far end, grouped by peer. A core whose peer
-  // is not visible to this process throws ("connects to a remote mmio
-  // device"); it is skipped. get_ethernet_sockets(j) is not used: it throws
-  // for every unlinked j.
+// The runtime's fabric table (rt_fabric.h): one Ethernet row per active
+// ethernet core whose far end is another chip, each lane once. tt-metal names
+// the far end by chip id, which maps to a device index through
+// TTDevice::getChipId(); a row is stated from its lower-index device, so a
+// pair of this runtime's devices is never stated twice. A far end that is no
+// device of this runtime (a chip outside the opened mesh) is stated from the
+// near side with peer -1 and the far chip's bus id where it has one. A core
+// whose far end is not visible to this process throws ("connects to a remote
+// mmio device"); it is skipped. get_ethernet_sockets(j) is not used: it
+// throws for every unlinked j. No rate or width is stated; nothing is
+// measured.
+static std::vector<rt::FabricLink> computeLinks(TTRuntime *rt) {
   nxs_int count = rt->getNumDevices();
-  std::vector<std::pair<nxs_long, std::string>> eth;  // (peer chip, core)
-  if (ttm::IDevice *chip = chipOf(self)) {
+  std::map<int, nxs_long> index_of;  // chip id to device index
+  for (nxs_int i = 0; i < count; ++i)
+    if (TTDevice *d = rt->getDevice(i)) index_of[d->getChipId()] = i;
+
+  struct Row {
+    nxs_long device, peer;
+    int peer_chip;
+    std::string core;
+    bool operator<(const Row &o) const {
+      return std::tie(device, peer, peer_chip, core) <
+             std::tie(o.device, o.peer, o.peer_chip, o.core);
+    }
+  };
+  std::vector<Row> rows;
+  for (nxs_int i = 0; i < count; ++i) {
+    ttm::IDevice *chip = chipOf(rt->getDevice(i));
+    if (!chip) continue;
     decltype(chip->get_active_ethernet_cores()) cores;
     try {
       cores = chip->get_active_ethernet_cores();
     } catch (...) {
     }
     for (const auto &core : cores) {
+      int peer_chip = -1;
       try {
-        auto [peer, peer_core] = chip->get_connected_ethernet_core(core);
-        eth.emplace_back((nxs_long)peer, core.str());
+        peer_chip = (int)std::get<0>(chip->get_connected_ethernet_core(core));
       } catch (...) {
+        continue;
       }
+      auto it = index_of.find(peer_chip);
+      nxs_long peer = it == index_of.end() ? -1 : it->second;
+      if (peer == i) continue;
+      if (peer >= 0 && peer < i) continue;  // stated from the lower-index side
+      rows.push_back({i, peer, peer_chip, core.str()});
     }
   }
-  std::sort(eth.begin(), eth.end());
-  for (const auto &[peer, core] : eth) {
-    DeviceLink e;
-    e.type = "Ethernet";
-    e.peer = peer >= 0 && peer < count && peer != device_id ? peer : -1;
-    if (e.peer >= 0)
-      if (const ChipPci *p = chipPci(rt->getDevice(e.peer))) e.peer_id = p->node.bus_id;
-    links.push_back(e);
-  }
+  std::sort(rows.begin(), rows.end());
 
-  // PCIe paths to every other PCIe-attached device.
-  if (pci && pci->obj) {
-    hwloc_topology_t topo = rt::topology(rt::TopologyIo::Pci);
-    for (nxs_int j = 0; j < count; ++j) {
-      if (j == device_id) continue;
-      const ChipPci *other = chipPci(rt->getDevice(j));
-      if (!other || !other->obj) continue;
-      DeviceLink path;
-      path.type = "PCIe";
-      path.peer = j;
-      path.peer_id = other->node.bus_id;
-      path.level = rt::pciTopologyLevel(topo, pci->obj, other->obj);
-      links.push_back(path);
+  const auto &nodes = chipPciNodes();
+  std::vector<rt::FabricLink> links;
+  for (const auto &r : rows) {
+    rt::FabricLink l;
+    l.type = "Ethernet";
+    l.device = r.device;
+    l.peer = r.peer;
+    if (r.peer >= 0) {
+      if (const ChipPci *p = chipPci(rt->getDevice(r.peer))) l.peer_id = p->bus_id;
+    } else if (r.peer_chip >= 0 && (size_t)r.peer_chip < nodes.size()) {
+      l.peer_id = nodes[r.peer_chip].bus_id;
     }
+    links.push_back(l);
   }
   return links;
 }
 
-// Each device's rows, computed once: the topology does not change while the
-// devices are open.
-static const std::vector<DeviceLink> &deviceLinks(TTRuntime *rt, nxs_int device_id) {
-  static std::mutex s_mutex;
-  static std::map<nxs_int, std::vector<DeviceLink>> s_links;
-  std::lock_guard<std::mutex> lock(s_mutex);
-  auto it = s_links.find(device_id);
-  if (it == s_links.end()) it = s_links.emplace(device_id, computeLinks(rt, device_id)).first;
-  return it->second;
+// The table, computed once: the topology does not change while the devices
+// are open.
+static const std::vector<rt::FabricLink> &fabricLinks(TTRuntime *rt) {
+  static std::once_flag s_once;
+  static std::vector<rt::FabricLink> s_links;
+  std::call_once(s_once, [&] { s_links = computeLinks(rt); });
+  return s_links;
 }
 
 #undef NXS_API_CALL
@@ -238,10 +208,11 @@ nxsGetRuntimeProperty(nxs_uint runtime_property_id, void *property_value,
   /* return value */
   switch (runtime_property_id) {
     case NP_Keys: {
-      nxs_long keys[] = {NP_Name, NP_Type, NP_Vendor, NP_Size, NP_ID};
-      int keys_count = sizeof(keys) / sizeof(keys[0]);
-      return rt::getPropertyVec(property_value, property_value_size, keys,
-                                keys_count);
+      std::vector<nxs_long> keys = {NP_Name, NP_Type, NP_Vendor, NP_Size, NP_ID};
+      if (!fabricLinks(rt).empty())
+        keys.insert(keys.end(), rt::fabricKeys().begin(), rt::fabricKeys().end());
+      return rt::getPropertyVec(property_value, property_value_size, keys.data(),
+                                keys.size());
     }
     case NP_Name:
       return rt::getPropertyStr(property_value, property_value_size, "tt-metal");
@@ -257,8 +228,12 @@ nxsGetRuntimeProperty(nxs_uint runtime_property_id, void *property_value,
     case NP_ID: {
       //return rt::getPropertyInt(property_value, property_value_size,
       //                          cpuinfo_has_arm_sme2() ? 1 : 0);
+      return NXS_InvalidProperty;
     }
     default:
+      if (rt::isFabricProperty(runtime_property_id))
+        return rt::getFabricProperty(runtime_property_id, fabricLinks(rt), property_value,
+                                     property_value_size);
       return NXS_InvalidProperty;
   }
   return NXS_Success;
@@ -281,10 +256,6 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint device_property_id,
     case NP_Keys: {
       std::vector<nxs_long> keys = {NP_Name, NP_Vendor, NP_Type, NP_Architecture, NP_Size};
       if (chipPci(dev)) keys.push_back(NP_PciBusId);
-      if (!deviceLinks(rt, device_id).empty())
-        keys.insert(keys.end(), {NP_LinkCount, NP_LinkType, NP_LinkPeer, NP_LinkPeerId,
-                                 NP_LinkGenMax, NP_LinkGenCurrent, NP_LinkWidthMax,
-                                 NP_LinkWidthCurrent, NP_LinkTopologyLevel});
       return rt::getPropertyVec(property_value, property_value_size, keys.data(),
                                 keys.size());
     }
@@ -307,45 +278,12 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint device_property_id,
       return rt::getPropertyInt(property_value, property_value_size,
                                 numCores);
     }
-    // The device's own identity and its links, from sysfs and tt-metal's
-    // public API — the names and units of docs/Python_API.md "Host and link
-    // properties".
+    // The device's PCI identity, from sysfs (docs/Python_API.md "Host and
+    // link properties"). Its links are the System's.
     case NP_PciBusId: {
       const ChipPci *pci = chipPci(dev);
       if (!pci) return NXS_InvalidProperty;
-      return rt::getPropertyStr(property_value, property_value_size, pci->node.bus_id);
-    }
-    case NP_LinkCount:
-    case NP_LinkType:
-    case NP_LinkPeer:
-    case NP_LinkPeerId:
-    case NP_LinkGenMax:
-    case NP_LinkGenCurrent:
-    case NP_LinkWidthMax:
-    case NP_LinkWidthCurrent:
-    case NP_LinkTopologyLevel: {
-      const std::vector<DeviceLink> &links = deviceLinks(rt, device_id);
-      if (links.empty()) return NXS_InvalidProperty;
-      if (device_property_id == NP_LinkCount)
-        return rt::getPropertyInt(property_value, property_value_size, links.size());
-      std::vector<std::string> strs;
-      std::vector<nxs_long> ints;
-      for (const auto &l : links) {
-        switch (device_property_id) {
-          case NP_LinkType:          strs.push_back(l.type);      break;
-          case NP_LinkPeerId:        strs.push_back(l.peer_id);   break;
-          case NP_LinkPeer:          ints.push_back(l.peer);      break;
-          case NP_LinkGenMax:        ints.push_back(l.gen_max);   break;
-          case NP_LinkGenCurrent:    ints.push_back(l.gen_cur);   break;
-          case NP_LinkWidthMax:      ints.push_back(l.width_max); break;
-          case NP_LinkWidthCurrent:  ints.push_back(l.width_cur); break;
-          default:                   ints.push_back(l.level);     break;
-        }
-      }
-      if (device_property_id == NP_LinkType || device_property_id == NP_LinkPeerId)
-        return rt::getPropertyStrVec(property_value, property_value_size, strs);
-      return rt::getPropertyVec(property_value, property_value_size, ints.data(),
-                                ints.size());
+      return rt::getPropertyStr(property_value, property_value_size, pci->bus_id);
     }
     default:
       return NXS_InvalidProperty;

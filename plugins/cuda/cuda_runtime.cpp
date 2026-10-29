@@ -6,10 +6,13 @@
 #include <cuda_plugin_runtime.h>
 #include <cuda_runtime.h>
 #include <rt_buffer.h>
+#include <rt_fabric.h>
 #include <rt_object.h>
 #include <rt_utilities.h>
 #include <string.h>
 
+#include <cctype>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -17,76 +20,62 @@
 
 using namespace nxs;
 
-// One link of a device, as the Link* properties state it: a row per link, the
-// vectors indexed by row. The cuda plugin states three kinds of row —
-//   PCIe to the host     (peer -1): generation and width, max and current;
-//   NVLink to a peer     (one row per active NVML link): its version as
-//                         generation, the remote's bus id, and the peer index
-//                         where the remote is a device of this runtime;
-//   PCIe path to a peer  (one row per other device): NVML's common-ancestor
-//                         level — 0 internal, 10 a single switch, 20 several,
-//                         30 a host bridge, 40 a NUMA node, 50 the system.
-// -1 and "" mean the row states no such figure. A plugin for another vendor
-// states the same columns with its own kinds.
-struct DeviceLink {
-  std::string type;
-  nxs_long peer = -1;
-  std::string peer_id;
-  nxs_long gen_max = -1, gen_cur = -1, width_max = -1, width_cur = -1;
-  nxs_long level = -1;
-};
+// NVML's bus id ("00000000:3B:00.0", 8-hex domain, upper case) in sysfs's
+// form ("0000:3b:00.0"), the canonical PciBusId of docs/Python_API.md.
+static std::string sysfsBusId(const char *nvml) {
+  std::string id(nvml);
+  size_t colon = id.find(':');
+  if (colon != std::string::npos && colon > 4) id.erase(0, colon - 4);
+  for (auto &c : id) c = (char)std::tolower((unsigned char)c);
+  return id;
+}
 
-static std::vector<DeviceLink> deviceLinks(nxs_int device_id, nxs_int count) {
-  std::vector<DeviceLink> links;
+// The runtime's fabric table (rt_fabric.h): one NVLink row per active NVML
+// link, each lane once. A lane between two devices of this runtime is stated
+// from the lower-index device; a lane to anything else (an NVSwitch, a GPU
+// this process does not see) is stated with peer -1 and the remote's bus id.
+// The NVLink version is the row's generation; no width. Nothing is measured;
+// each figure is what the driver declares. PCIe links are the core's.
+static std::vector<rt::FabricLink> computeLinks(nxs_int count) {
+  std::vector<rt::FabricLink> links;
   std::vector<nvmlDevice_t> handles(count);
   std::vector<std::string> bus_ids(count);
   for (nxs_int j = 0; j < count; ++j) {
     nvmlPciInfo_t pci;
     if (nvmlDeviceGetHandleByIndex(j, &handles[j]) != NVML_SUCCESS) return links;
-    if (nvmlDeviceGetPciInfo(handles[j], &pci) == NVML_SUCCESS) bus_ids[j] = pci.busId;
+    if (nvmlDeviceGetPciInfo(handles[j], &pci) == NVML_SUCCESS) bus_ids[j] = sysfsBusId(pci.busId);
   }
-  nvmlDevice_t self = handles[device_id];
-
-  DeviceLink host;
-  host.type = "PCIe";
-  unsigned int v = 0;
-  if (nvmlDeviceGetMaxPcieLinkGeneration(self, &v) == NVML_SUCCESS) host.gen_max = v;
-  if (nvmlDeviceGetCurrPcieLinkGeneration(self, &v) == NVML_SUCCESS) host.gen_cur = v;
-  if (nvmlDeviceGetMaxPcieLinkWidth(self, &v) == NVML_SUCCESS) host.width_max = v;
-  if (nvmlDeviceGetCurrPcieLinkWidth(self, &v) == NVML_SUCCESS) host.width_cur = v;
-  links.push_back(host);
-
-  for (unsigned int link = 0; link < NVML_NVLINK_MAX_LINKS; ++link) {
-    nvmlEnableState_t active;
-    nvmlReturn_t rc = nvmlDeviceGetNvLinkState(self, link, &active);
-    if (rc == NVML_ERROR_NOT_SUPPORTED || rc == NVML_ERROR_INVALID_ARGUMENT) break;
-    if (rc != NVML_SUCCESS || active != NVML_FEATURE_ENABLED) continue;
-    DeviceLink nv;
-    nv.type = "NVLink";
-    nvmlPciInfo_t remote;
-    if (nvmlDeviceGetNvLinkRemotePciInfo(self, link, &remote) == NVML_SUCCESS) {
-      nv.peer_id = remote.busId;
-      for (nxs_int j = 0; j < count; ++j)
-        if (j != device_id && !bus_ids[j].empty() && bus_ids[j] == remote.busId) nv.peer = j;
+  for (nxs_int i = 0; i < count; ++i) {
+    for (unsigned int link = 0; link < NVML_NVLINK_MAX_LINKS; ++link) {
+      nvmlEnableState_t active;
+      nvmlReturn_t rc = nvmlDeviceGetNvLinkState(handles[i], link, &active);
+      if (rc == NVML_ERROR_NOT_SUPPORTED || rc == NVML_ERROR_INVALID_ARGUMENT) break;
+      if (rc != NVML_SUCCESS || active != NVML_FEATURE_ENABLED) continue;
+      rt::FabricLink nv;
+      nv.type = "NVLink";
+      nv.device = i;
+      nvmlPciInfo_t remote;
+      if (nvmlDeviceGetNvLinkRemotePciInfo(handles[i], link, &remote) == NVML_SUCCESS) {
+        nv.peer_id = sysfsBusId(remote.busId);
+        for (nxs_int j = 0; j < count; ++j)
+          if (j != i && !bus_ids[j].empty() && bus_ids[j] == nv.peer_id) nv.peer = j;
+      }
+      if (nv.peer >= 0 && nv.peer < i) continue;  // stated from the lower-index side
+      unsigned int version = 0;
+      if (nvmlDeviceGetNvLinkVersion(handles[i], link, &version) == NVML_SUCCESS)
+        nv.gen_max = nv.gen_cur = version;
+      links.push_back(nv);
     }
-    unsigned int version = 0;
-    if (nvmlDeviceGetNvLinkVersion(self, link, &version) == NVML_SUCCESS)
-      nv.gen_max = nv.gen_cur = version;
-    links.push_back(nv);
-  }
-
-  for (nxs_int j = 0; j < count; ++j) {
-    if (j == device_id) continue;
-    DeviceLink path;
-    path.type = "PCIe";
-    path.peer = j;
-    path.peer_id = bus_ids[j];
-    nvmlGpuTopologyLevel_t level;
-    if (nvmlDeviceGetTopologyCommonAncestor(self, handles[j], &level) == NVML_SUCCESS)
-      path.level = (nxs_long)level;
-    links.push_back(path);
   }
   return links;
+}
+
+// The table, computed once: the links do not change while the devices are open.
+static const std::vector<rt::FabricLink> &fabricLinks(nxs_int count) {
+  static std::once_flag s_once;
+  static std::vector<rt::FabricLink> s_links;
+  std::call_once(s_once, [&] { s_links = computeLinks(count); });
+  return s_links;
 }
 
 CudaRuntime *getRuntime() {
@@ -114,10 +103,13 @@ nxsGetRuntimeProperty(nxs_uint runtime_property_id, void *property_value,
   /* return value */
   switch (runtime_property_id) {
     case NP_Keys: {
-      nxs_long keys[] = {NP_Name,    NP_Type,         NP_Vendor,
-                         NP_Version, NP_MajorVersion, NP_MinorVersion,
-                         NP_Size};
-      return rt::getPropertyVec(property_value, property_value_size, keys, 7);
+      std::vector<nxs_long> keys = {NP_Name,    NP_Type,         NP_Vendor,
+                                    NP_Version, NP_MajorVersion, NP_MinorVersion,
+                                    NP_Size};
+      if (!fabricLinks(rt->getDeviceCount()).empty())
+        keys.insert(keys.end(), rt::fabricKeys().begin(), rt::fabricKeys().end());
+      return rt::getPropertyVec(property_value, property_value_size, keys.data(),
+                                keys.size());
     }
     case NP_Name:
       return rt::getPropertyStr(property_value, property_value_size, "cuda");
@@ -142,6 +134,9 @@ nxsGetRuntimeProperty(nxs_uint runtime_property_id, void *property_value,
       return rt::getPropertyInt(property_value, property_value_size, size);
     }
     default:
+      if (rt::isFabricProperty(runtime_property_id))
+        return rt::getFabricProperty(runtime_property_id, fabricLinks(rt->getDeviceCount()),
+                                     property_value, property_value_size);
       return NXS_InvalidProperty;
   }
   return NXS_Success;
@@ -175,16 +170,7 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint property_id,
                          NP_MemoryBusWidth,
                          NP_CoreUtilization,
                          NP_MemoryUtilization,
-                         NP_PciBusId,
-                         NP_LinkCount,
-                         NP_LinkType,
-                         NP_LinkPeer,
-                         NP_LinkPeerId,
-                         NP_LinkGenMax,
-                         NP_LinkGenCurrent,
-                         NP_LinkWidthMax,
-                         NP_LinkWidthCurrent,
-                         NP_LinkTopologyLevel};
+                         NP_PciBusId};
       return rt::getPropertyVec(property_value, property_value_size, keys,
                                 sizeof(keys) / sizeof(keys[0]));
     }
@@ -262,48 +248,15 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint property_id,
 
       return rt::getPropertyInt(property_value, property_value_size, value);
     }
-    // The device's own identity and its links, from NVML — the names and
-    // units of docs/Python_API.md "Host and link properties". Nothing is
-    // measured; each is what the driver declares.
+    // The device's PCI identity, from NVML in sysfs's form (docs/Python_API.md
+    // "Host and link properties"). Its links are the System's.
     case NP_PciBusId: {
       nvmlDevice_t nvml_device;
       nvmlPciInfo_t pci;
       if (nvmlDeviceGetHandleByIndex(device_id, &nvml_device) != NVML_SUCCESS ||
           nvmlDeviceGetPciInfo(nvml_device, &pci) != NVML_SUCCESS)
         return NXS_InvalidProperty;
-      return rt::getPropertyStr(property_value, property_value_size, pci.busId);
-    }
-    case NP_LinkCount:
-    case NP_LinkType:
-    case NP_LinkPeer:
-    case NP_LinkPeerId:
-    case NP_LinkGenMax:
-    case NP_LinkGenCurrent:
-    case NP_LinkWidthMax:
-    case NP_LinkWidthCurrent:
-    case NP_LinkTopologyLevel: {
-      std::vector<DeviceLink> links = deviceLinks(device_id, rt->getDeviceCount());
-      if (links.empty()) return NXS_InvalidProperty;
-      if (property_id == NP_LinkCount)
-        return rt::getPropertyInt(property_value, property_value_size, links.size());
-      std::vector<std::string> strs;
-      std::vector<nxs_long> ints;
-      for (const auto &l : links) {
-        switch (property_id) {
-          case NP_LinkType:          strs.push_back(l.type);     break;
-          case NP_LinkPeerId:        strs.push_back(l.peer_id);  break;
-          case NP_LinkPeer:          ints.push_back(l.peer);     break;
-          case NP_LinkGenMax:        ints.push_back(l.gen_max);  break;
-          case NP_LinkGenCurrent:    ints.push_back(l.gen_cur);  break;
-          case NP_LinkWidthMax:      ints.push_back(l.width_max); break;
-          case NP_LinkWidthCurrent:  ints.push_back(l.width_cur); break;
-          default:                   ints.push_back(l.level);    break;
-        }
-      }
-      if (property_id == NP_LinkType || property_id == NP_LinkPeerId)
-        return rt::getPropertyStrVec(property_value, property_value_size, strs);
-      return rt::getPropertyVec(property_value, property_value_size, ints.data(),
-                                ints.size());
+      return rt::getPropertyStr(property_value, property_value_size, sysfsBusId(pci.busId));
     }
     default:
       return NXS_InvalidProperty;

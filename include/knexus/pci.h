@@ -1,5 +1,5 @@
-#ifndef RT_PCI_H
-#define RT_PCI_H
+#ifndef KNEXUS_PCI_H
+#define KNEXUS_PCI_H
 
 // What the kernel states about a device's PCI node that hwloc does not: the
 // sysfs class listing (sys/class/<cls>/<cls>!N, so N to bus id) and the
@@ -9,7 +9,7 @@
 // (gen5 x8 and gen4 x16 are the same number); it has no OS-device object for
 // a vendor's char device either. Everything else about the node (its NUMA
 // node, its bridge ancestry, the path level between two nodes) comes from the
-// hwloc topology: plugins/include/rt_topology.h.
+// hwloc topology: include/knexus/topology.h.
 //
 // Read once from sysfs under $KNEXUS_HOST_ROOT (default "/") so a test can
 // point the reader at a fixture tree. Linux only: elsewhere the class lists
@@ -141,4 +141,4 @@ inline std::filesystem::path pciHostRoot() {
 }  // namespace rt
 }  // namespace nxs
 
-#endif  // RT_PCI_H
+#endif  // KNEXUS_PCI_H

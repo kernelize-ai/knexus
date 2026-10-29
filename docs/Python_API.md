@@ -29,6 +29,9 @@ The KNexus Python API provides a modern, object-oriented interface for cross-pla
 ### Top-Level Functions
 
 - `knexus.get_runtimes()`: Returns a list of available runtime backends (CUDA, Metal, CPU, etc.).
+- `knexus.get_runtime(name)`: Returns the runtime whose `Name` property is `name` (`"cpu"`, `"cuda"`, `"tt-metal"`, ...).
+- `knexus.get_devices()`: Every runtime's devices in one list, runtime order then device order.
+- `knexus.get_links()`: Every link of the machine as `Link` objects (see *Host and link properties*).
 - `knexus.get_device_info()`: Returns the device info database.
 - `knexus.lookup_device_info(name)`: Lookup device info by name.
 - `knexus.create_buffer(size)` / `knexus.create_buffer(data)`: Create a system buffer from size or numpy array.
@@ -42,6 +45,8 @@ Represents a backend runtime (e.g., CUDA, Metal, CPU).
 
 #### Device
 Represents a hardware device.
+- `get_runtime()`: The `Runtime` that owns this device (empty for an empty `Device`, such as a host link's second end without a cpu runtime).
+- `get_id()`: The device's index inside its runtime; every object has `get_id()`, its index inside its parent collection.
 - `get_info()`: Get device properties (as a Properties object).
 - `create_buffer(data or size)`: Create a buffer on this device.
 - `copy_buffer(buffer)`: Copy a buffer to this device.
@@ -50,6 +55,12 @@ Represents a hardware device.
 - `load_library(filepath)`: Load a kernel library.
 - `create_schedule()`: Create a command schedule.
 - `create_stream()`: Create a command stream (if supported).
+
+#### Link
+Represents a link between two devices (PCIe to the host, a PCIe path, NVLink, Ethernet).
+- `get_devices()`: The two endpoints as a `Devices` collection of two `Device` objects, possibly of different runtimes. Each endpoint's `get_runtime()` and `get_id()` say where it sits in the tree.
+- `get_property_*`: `Type`, `LinkGenMax`, `LinkGenCurrent`, `LinkWidthMax`, `LinkWidthCurrent`, `LinkTopologyLevel`; `get_property_keys()` returns their property ids, as on every object.
+- `get_property_type(key)`: The type name (`"int"`, `"str"`, as `knexus.property.get_type` spells it) of the value this link states for `key` (a name or a property id). A `Link` states the `Link*` names as scalars while `knexus.property.get_type` gives the runtime fabric table's vector type, so ask the link.
 
 #### Buffer
 Represents a memory buffer.
@@ -179,15 +190,15 @@ cmd_args = command.get_property_int_vec("Arguments")
 
 ### Host and link properties
 
-KNexus states the machine it runs on as properties by name on the objects it
-already has, so a consumer (kmap's `kmap probe`, for one) reads the host and
-the links the same way it reads a device's name. Every name below is an
+KNexus states the machine it runs on through the objects it already has: the
+host as properties of the cpu device, and the links between devices as `Link`
+objects on the System, so a consumer (kmap's `kmap probe`, for one) reads
+them the same way it reads a device's name. Every name below is an
 `nxs_property` in `include/knexus-api/_nxs_propertys.h`, read through
 `get_property_str`, `get_property_int`, `get_property_int_vec` or
-`get_property_str_vec`; a property a
-runtime or a device does not state raises, like any other, rather than
-returning a guess. Nothing here is measured: each value is what the kernel or
-the driver declares.
+`get_property_str_vec`; a property an object does not state raises, like any
+other, rather than returning a guess. Nothing here is measured: each value is
+what the kernel or the driver declares.
 
 **The host** is the one device of the `cpu` runtime. The plugin loads the
 host's topology once per process with hwloc (2.x), which reads the kernel's
@@ -220,68 +231,63 @@ The three `Thread*` vectors are indexed by the cpu number the kernel uses
 (`cpu<N>`), so their length is one past the highest present cpu; an int
 vector carries at most 1024 entries across the plugin boundary.
 
-**A link** is stated on the device it belongs to, one row per link, and
-every `Link*` property is a vector over those rows, `LinkCount` long. The
-row's `LinkType` says what kind of link it is; the other columns hold what
-that kind states and `-1` or `""` where it states nothing. The `cuda` plugin
-reads NVML, which it already links; no `nvidia-smi` is run. The `tenstorrent`
-plugin reads hwloc's PCI objects (the NUMA node and the path level), a small
-sysfs sliver under `$KNEXUS_HOST_ROOT` (default `/`) for what hwloc does not
-state (the `sys/class/tenstorrent` listing and each chip's PCIe generation and
-width, current and maximum), and tt-metal's public API; no `tt-smi` is run.
+**A link** is a fact about two devices, so it is stated once, on the System, as
+a `Link` object: `knexus.get_links()` returns every link of the machine, and
+each `Link` has `get_devices()`, its two endpoints as `Device` objects that may
+belong to different runtimes. The host is the one device of the `cpu` runtime,
+so a device's PCIe link to the host is a `Link` between that device and the cpu
+device (an empty `Device` where no cpu runtime is loaded). `knexus.get_devices()`
+lists every runtime's devices, runtime order then device order. No `Link*`
+property is stated on a device.
+
+A device states its own PCI identity:
 
 | property | type | states |
 | --- | --- | --- |
-| `PciBusId` | str | the device's own PCI address, `domain:bus:device.function`: NVML's `busId` (8-hex domain) on cuda, sysfs's (4-hex, as `lspci -D`) on tenstorrent |
-| `LinkCount` | int | the rows stated, the length of every vector below |
-| `LinkType` | str_vec | per row, its kind: `PCIe`, `NVLink`, `Ethernet`; a plugin for another fabric adds its own name |
-| `LinkPeer` | int_vec | per row, the peer device's index in this runtime; `-1` for the host, or a remote that is not a device of this runtime |
-| `LinkPeerId` | str_vec | per row, the peer's id where the kind knows one (the remote's PCI bus id); `""` where not |
-| `LinkGenMax`, `LinkGenCurrent` | int_vec | per row, the generation (PCIe) or version (NVLink), maximum and current |
-| `LinkWidthMax`, `LinkWidthCurrent` | int_vec | per row, the width in lanes (PCIe), maximum and current |
-| `LinkTopologyLevel` | int_vec | per row, the path's common-ancestor level where the kind has one |
+| `PciBusId` | str | the device's PCI address, `domain:bus:device.function` with a 4-hex domain (as sysfs and `lspci -D` write it; a plugin whose source writes more, as NVML does, trims it); absent on a device with no PCI node |
 
-The `cuda` plugin states three kinds of row:
+A `Link` states, through `get_property_*`:
 
-- **`PCIe` to the host**, `LinkPeer` `-1`, always the first row: generation
-  and width from `nvmlDeviceGet{Max,Curr}PcieLink{Generation,Width}`.
-- **`NVLink` to a peer**, one row per active NVML link: `LinkPeerId` is the
-  remote's bus id, `LinkPeer` the device it names when that device is one of
-  this runtime's, and `LinkGen*` the link's `nvmlDeviceGetNvLinkVersion`.
-  How many NVLinks reach device `j` is the count of such rows with
-  `LinkPeer == j`.
-- **`PCIe` path to a peer**, one row per other device of the runtime:
-  `LinkTopologyLevel` is `nvmlDeviceGetTopologyCommonAncestor` as NVML's
-  `nvmlGpuTopologyLevel_t` value — 0 internal, 10 a single switch, 20
-  several switches, 30 a host bridge, 40 a NUMA node, 50 the system.
+| property | type | states |
+| --- | --- | --- |
+| `Type` | str | the kind: `PCIe`, `NVLink`, `Ethernet`; a plugin for another fabric adds its own name |
+| `LinkGenMax`, `LinkGenCurrent` | int | the generation (PCIe) or version (NVLink), maximum and current; `-1` where the kind states none |
+| `LinkWidthMax`, `LinkWidthCurrent` | int | the width in lanes (PCIe), maximum and current; `-1` where none |
+| `LinkTopologyLevel` | int | for a `PCIe` path, the two PCI nodes' common-ancestor level; `-1` otherwise |
 
-The `tenstorrent` plugin states three kinds of row:
+Three kinds of link exist. The first two are computed by the core, for every
+device of every runtime that states a `PciBusId`, from one hwloc topology of
+the host (loaded as for the host properties, with I/O objects kept) and the
+sysfs PCI link files under `$KNEXUS_HOST_ROOT` (default `/`); no plugin
+computes a PCIe fact, and no `nvidia-smi` or `tt-smi` is run.
 
-- **`PCIe` to the host**, `LinkPeer` `-1`, the first row: generation and
-  width from the chip's sysfs PCI node (`{max,current}_link_{speed,width}`,
-  the speed as its PCIe generation: 2.5 GT/s 1 up to 64 GT/s 6).
-- **`Ethernet` to a peer**, one row per connected ethernet core (one socket
-  pair): `LinkPeer` the peer chip, `LinkPeerId` its bus id where it has one;
-  generation, width and level `-1`, as tt-metal's API states none.
-- **`PCIe` path to a peer**, one row per other PCIe-attached device:
-  `LinkTopologyLevel` from the two chips' hwloc PCI objects, in NVML's values,
-  by their nearest common ancestor: 10 a PCI bridge with at most one more
-  bridge between it and each chip, 20 a deeper PCI bridge, 30 a host bridge,
-  40 a non-I/O object (the Machine on a one-node host, the Package on a
-  multi-node one) whose nodeset holds exactly one NUMA node, 50 otherwise
-  (0 is never stated).
+- **`PCIe` to the host**, one per device with a `PciBusId`: the endpoints are
+  the device and the cpu device; generation and width from the node's
+  `{max,current}_link_{speed,width}` (the speed as its PCIe generation:
+  2.5 GT/s 1 up to 64 GT/s 6).
+- **`PCIe` path between two devices**, one per unordered pair of devices whose
+  bus ids hwloc both resolves, across runtimes: `LinkTopologyLevel` in NVML's
+  `nvmlGpuTopologyLevel_t` values, by the two PCI nodes' nearest common
+  ancestor: 10 a PCI bridge with at most one more bridge between it and each
+  device, 20 a deeper PCI bridge, 30 a host bridge, 40 a non-I/O object (the
+  Machine on a one-node host, the Package on a multi-node one) whose nodeset
+  holds exactly one NUMA node, 50 otherwise (0 is never stated). A bus id
+  hwloc states no object for keeps its host link and has no path links.
+- **A fabric link between two devices**, stated by the runtime's plugin, which
+  alone knows it, one `Link` per lane or socket pair, the pair stated once:
+  the `cuda` plugin states `NVLink` (one per active NVML link, `LinkGen*` its
+  `nvmlDeviceGetNvLinkVersion`); the `tenstorrent` plugin states `Ethernet`
+  (one per connected ethernet core, from tt-metal's public API; generation,
+  width and level `-1`). A fabric endpoint that is not a device of any loaded
+  runtime is an empty `Device`.
 
-Chip `k` is the `k`-th visible `/dev/tenstorrent/N` in ascending bus-id order
-(the order tt-metal's driver layer assigns, `TT_VISIBLE_DEVICES` applied);
-if that count disagrees with tt-metal's PCIe chip count, no chip has a PCI
-node. A chip with no PCI node (a remote chip reached over ethernet, say)
-states no `PciBusId`, no host row and no path rows: its way to the host is
-its `Ethernet` row to a chip that has one.
-
-So the rows of device `i` with `LinkPeer == j` are its links to device `j`,
-and the pair is symmetric: device `j` states the same rows back. A hip or
-metal plugin states the same columns with its own kinds when it has a link
-to state; until it does, the properties are absent there.
+So the links of device `d` are the `Link`s with `d` among `get_devices()`, and
+how many NVLinks or ethernet cores join `d` and `e` is the count of such links
+with both. A chip with no PCI node (a remote chip reached over ethernet, say)
+states no `PciBusId` and has no `PCIe` links: its way to the host is its
+`Ethernet` link to a chip that has them. A hip or metal device gets its `PCIe`
+links from the core as soon as its plugin states `PciBusId`; a plugin for a new
+fabric adds its kind by stating a pair table (`Plugin_API.md`), never a PCIe fact.
 
 ---
 
@@ -410,6 +416,12 @@ KNexus exposes status codes as enums in `knexus.status` (e.g., `knexus.status.NX
 - **Streams:** For asynchronous execution (if supported by backend).
 - **Multiple Devices:** Iterate over all runtimes and devices for multi-accelerator systems.
 - **Device Info Database:** Use `knexus.get_device_info()` and `knexus.lookup_device_info(name)` for architecture-aware programming.
+
+---
+
+## Utilities
+
+- **`knexus.dump(obj=None, info=False, children=True, format="json", pretty=False, file=None)`** dumps `obj`'s node and subtree: the System by default, or a Runtime, Device, Link or any other knexus object. `format` is `"json"` (the default) or `"minimal"`, indented text with one object per line as `collection[index] Class label` and its properties beneath it, a Link line showing its type and both endpoints as `runtime/device (PciBusId)`. Without `pretty` the value comes back, a JSON-serializable dict or the minimal text; with `pretty=True` the rendering (indented, key-sorted JSON, or the text) is printed to `file` (stdout by default) and nothing is returned. The dict carries each object's class, index, property keys and values, and children keyed by collection name; the System's `links` are `Link` nodes with their properties and `endpoints`, two references `{runtime, device, PciBusId}` into the runtimes' device lists (`null` for an empty endpoint). It only reads, never creates an object. **`python -m knexus.dump [--runtime NAME] [--info] [--no-children] [--format json|minimal]`** prints the System (or one runtime) the same way; two runs on one host are byte-identical, so `diff` compares two hosts or two builds. Run it from an installed knexus, or from the repo root as `PYTHONPATH=python python3 -m knexus.dump` where knexus is not installed. `from knexus.dump import to_text, to_json` formats a dict you already hold (the name `knexus.dump` is the function, not the module).
 
 ---
 

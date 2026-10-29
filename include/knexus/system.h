@@ -3,6 +3,7 @@
 
 #include <knexus/buffer.h>
 #include <knexus/info.h>
+#include <knexus/link.h>
 #include <knexus/runtime.h>
 
 #include <memory>
@@ -23,6 +24,8 @@ class System : Object<detail::SystemImpl> {
   std::optional<Property> getProperty(nxs_int prop) const override;
 
   Runtimes getRuntimes() const;
+  Devices getDevices() const;
+  Links getLinks() const;
   Infos getCatalogs() const;
   Buffers getBuffers() const;
 

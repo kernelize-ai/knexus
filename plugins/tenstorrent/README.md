@@ -136,37 +136,38 @@ num_cores = device.get_property_int('Size')  # Grid size (x * y)
 
 ### Identity and links
 
-Each device states its PCI address and its links as the cuda plugin does, in
-the columns of `docs/Python_API.md` (*Host and link properties*), which is
-where the row kinds and the level values are defined:
+A device states one PCI fact, its address; every link is the System's, a `Link`
+object with two `Device` endpoints (`docs/Python_API.md`, *Host and link
+properties*; `docs/Core_API.md`, *Link*). The core computes each chip's PCIe
+links, to the host (the cpu device) and the path level to every other PCI
+device of any runtime, from its own hwloc topology and sysfs. The plugin states
+only what the core cannot see, the chip-to-chip Ethernet links.
 
-| property | states |
-|----------|--------|
-| `PciBusId` | the chip's PCI address from the `sys/class/tenstorrent` listing, e.g. `0000:01:00.0`; absent for a chip with no PCI node |
-| `LinkCount` | the rows below |
-| `LinkType` | `PCIe` (host row first, then one path row per other PCIe device) or `Ethernet` (one per connected socket pair) |
-| `LinkPeer`, `LinkPeerId` | the peer device's index and bus id; `-1` and `""` for the host |
-| `LinkGenMax`, `LinkGenCurrent`, `LinkWidthMax`, `LinkWidthCurrent` | the host row's PCIe generation and lanes; `-1` elsewhere |
-| `LinkTopologyLevel` | a path row's level from the two chips' common ancestor in hwloc's PCI tree; `-1` elsewhere |
+| where | property | states |
+|-------|----------|--------|
+| device | `PciBusId` | the chip's PCI address from the `sys/class/tenstorrent` listing, e.g. `0000:01:00.0`; absent for a chip with no PCI node |
+| runtime | `LinkCount`, `LinkType`, `LinkDevice`, `LinkPeer`, `LinkPeerId`, `LinkGen*`, `LinkWidth*` | the fabric table of `docs/Plugin_API.md` (*Fabric links*): one `Ethernet` row per active ethernet core whose far end is another chip, each lane once, stated from the lower-index device; gen and width `-1` |
+
+tt-metal names an ethernet core's far end by chip id; the plugin maps it to a
+device index through `TTDevice::getChipId()`, so a partial mesh still names the
+right peer. A far end that is no device of this runtime is stated with
+`LinkPeer` `-1` and its bus id where it has one. On four p150b in a `2x2` mesh
+the table has 16 rows: devices 0 and 1 each have 4 lanes to device 2 and 4 to
+device 3.
 
 ```python
-dev = tt_runtime.get_device(0)
-dev.get_property_str('PciBusId')                 # '0000:01:00.0'
-dev.get_property_int('LinkCount')                # 12 on four p150b in a ring
-dev.get_property_str_vec('LinkType')             # ['PCIe', 'Ethernet', ..., 'PCIe']
+tt_runtime.get_property_int('LinkCount')         # 16 on four p150b
+tt_runtime.get_property_int_vec('LinkDevice')    # [0, 0, ..., 1]
+tt_runtime.get_property_int_vec('LinkPeer')      # [2, 2, 2, 2, 3, ..., 3]
 ```
 
-The NUMA node and the path level come from hwloc (`plugins/include/rt_topology.h`,
-PCI objects kept). sysfs is read only for what hwloc does not state, under
-`$KNEXUS_HOST_ROOT` (default `/`): the `sys/class/tenstorrent` listing and each
-chip's PCIe generation and width, current and maximum (`plugins/include/rt_pci.h`).
-Chip `k` is the `k`-th visible `/dev/tenstorrent/N` in ascending bus-id order.
-
-The tests cover this without a device: `test/cpp/test_pci.cpp` runs the sysfs
-reader on a small fixture tree and the NUMA and level cases on hwloc XML, both
-`test/fixtures/tt-quietbox.xml` (four p150b, a real host's export with the
-identifying info entries removed) and a hand-written topology inside the test
-for the levels that host lacks.
+sysfs is read under `$KNEXUS_HOST_ROOT` (default `/`) for the
+`sys/class/tenstorrent` listing (`include/knexus/pci.h`, which needs no hwloc: the plugin does not link it). Chip `k` is the `k`-th
+visible `/dev/tenstorrent/N` in ascending bus-id order. The core's link
+builders are tested without a device in `test/cpp/test_links.cpp` (the PCIe
+links on `test/fixtures/tt-quietbox.xml`, four p150b, a real host's export with
+the identifying info entries removed, and the fabric table on a fake runtime
+table); `test/cpp/test_pci.cpp` covers the sysfs reader.
 
 ### Kernel test on every device
 
@@ -355,8 +356,8 @@ The plugin automatically places commands across device cores:
 
 | Function | Status | Notes |
 |----------|--------|-------|
-| `nxsGetRuntimeProperty` | ✅ | Returns "tt-metal" runtime info |
-| `nxsGetDeviceProperty` | ✅ | Returns device architecture, grid size, PCI bus id, links |
+| `nxsGetRuntimeProperty` | ✅ | Returns "tt-metal" runtime info and the Ethernet fabric table |
+| `nxsGetDeviceProperty` | ✅ | Returns device architecture, grid size, PCI bus id |
 | `nxsCreateBuffer` | ✅ | Creates distributed/replicated buffers |
 | `nxsCopyBuffer` | ✅ | Copies buffer to host |
 | `nxsReleaseBuffer` | ✅ | Releases buffer resources |

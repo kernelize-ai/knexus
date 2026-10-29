@@ -23,6 +23,7 @@ System
 │       │   └── Kernels
 │       └── Schedules
 │           └── Commands
+├── Links  (each between two Devices, of any Runtimes)
 └── Buffers
 ```
 
@@ -59,7 +60,9 @@ Buffers are the primary memory abstraction, supporting:
 
 #### System
 
-The top-level system object that manages all resources.
+The top-level system object that manages all resources. It is also where the machine
+is described as a whole: every runtime's devices in one list, and the links between
+them.
 
 ```cpp
 namespace knexus {
@@ -68,15 +71,20 @@ namespace knexus {
         System(int);
         using Object::Object;
 
-        nxs_int getId() const override { return 0; }
         std::optional<Property> getProperty(nxs_int prop) const override;
 
         Runtimes getRuntimes() const;
+        Devices getDevices() const;
+        Links getLinks() const;
+        Infos getCatalogs() const;
         Buffers getBuffers() const;
 
         Runtime getRuntime(int idx) const;
-        Buffer createBuffer(size_t sz, const void *hostData = nullptr);
-        Buffer copyBuffer(Buffer buf, Device dev);
+        Runtime getRuntime(const std::string &name);
+        Buffer createBuffer(const Layout &layout, const void *hostData = nullptr,
+                            nxs_uint settings = 0);
+        Buffer copyBuffer(Buffer buf, Device dev, nxs_uint settings = 0);
+        Info loadCatalog(const std::string &catalogPath);
     };
 
     extern System getSystem();
@@ -85,9 +93,12 @@ namespace knexus {
 
 **Methods:**
 - `getRuntimes()`: Get all available runtimes
-- `getRuntime(int idx)`: Get runtime by index
-- `createBuffer(size_t sz, const void *hostData)`: Create a new buffer
-- `copyBuffer(Buffer buf, Device dev)`: Copy buffer to device
+- `getRuntime(int idx)` / `getRuntime(const std::string &name)`: Get a runtime by index or by its `Name` property
+- `getDevices()`: Every runtime's devices in one list, runtime order then device order
+- `getLinks()`: Every link of the machine (see [Link](#link)); built on the first call and cached for the System's lifetime
+- `createBuffer(const Layout &layout, const void *hostData, nxs_uint settings)`: Create a new system buffer
+- `copyBuffer(Buffer buf, Device dev, nxs_uint settings)`: Copy buffer to device
+- `loadCatalog(const std::string &catalogPath)` / `getCatalogs()`: Kernel catalogs
 
 #### Runtime
 
@@ -159,6 +170,38 @@ namespace knexus {
 - `createLibrary(const std::string &libraryPath)`: Create library from file
 - `createBuffer(size_t sz, const void *hostData)`: Create device buffer
 - `copyBuffer(Buffer buf)`: Copy buffer to this device
+
+#### Link
+
+A link between two devices: a device's PCIe link to the host, the PCIe path between two
+PCI-attached devices, or a fabric link (NVLink, Ethernet) a plugin states. Links are owned
+by the System, never by a device or a runtime, because their endpoints may belong to
+different runtimes. The host endpoint is the `cpu` runtime's one device.
+
+```cpp
+namespace knexus {
+    class Link : public Object<detail::LinkImpl> {
+    public:
+        using Object::Object;
+
+        std::optional<Property> getProperty(nxs_int prop) const override;
+
+        Devices getDevices() const;   // exactly two; an endpoint outside every loaded runtime is an empty Device
+    };
+
+    typedef Objects<Link> Links;
+}
+```
+
+**Methods:**
+- `getDevices()`: The two endpoints, as `Device` objects
+- `getProperty(nxs_int prop)`: `NP_Type` (`"PCIe"`, `"NVLink"`, `"Ethernet"`), `NP_LinkGenMax`, `NP_LinkGenCurrent`, `NP_LinkWidthMax`, `NP_LinkWidthCurrent`, `NP_LinkTopologyLevel` (scalars, `-1` where the kind states no such figure), and `NP_Keys` (the ids of those it states, as on every object)
+
+What each kind states, and where the core and the plugins get it, is tabled in
+[`Python_API.md`](Python_API.md) under *Host and link properties*; the plugin side is in
+[`Plugin_API.md`](Plugin_API.md). The core computes every `PCIe` link itself from the host's
+hwloc topology and sysfs, for any device of any runtime that states a `PciBusId`; a plugin
+contributes only its fabric links.
 
 #### Event
 

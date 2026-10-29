@@ -7,6 +7,9 @@ add_library(knexus-api SHARED
     info.cpp
     kernel.cpp
     library.cpp
+    link.cpp
+    pcie_links.cpp
+    fabric_links.cpp
     command.cpp
     event.cpp
     schedule.cpp
@@ -21,3 +24,4 @@ add_library(knexus-api SHARED
 target_link_libraries(knexus-api PRIVATE nxs-api)
 target_link_libraries(knexus-api PRIVATE nlohmann_json::nlohmann_json)
 target_link_libraries(knexus-api PRIVATE ${CMAKE_DL_LIBS})
+target_link_libraries(knexus-api PRIVATE PkgConfig::HWLOC)

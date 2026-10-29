@@ -55,7 +55,7 @@ def get_env_with_keys(key: list):
 
 
 # Fallback version used for local/dev builds when no tag is available.
-DEFAULT_VERSION = "0.2.11"
+DEFAULT_VERSION = "0.2.12"
 
 
 def get_version():

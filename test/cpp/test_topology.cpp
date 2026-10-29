@@ -1,11 +1,11 @@
-// The hwloc wrapper (plugins/include/rt_topology.h) over a synthetic
+// The hwloc wrapper (include/knexus/topology.h) over a synthetic
 // topology: no device and no arguments needed, so it runs as ctest registers
 // it. hwloc reads HWLOC_SYNTHETIC itself at load, so each test sets it before
 // the first load in its process.
 
 #include <gtest/gtest.h>
 
-#include "../../plugins/include/rt_topology.h"
+#include <knexus/topology.h>
 
 #include <stdlib.h>
 
