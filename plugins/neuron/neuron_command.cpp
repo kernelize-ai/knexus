@@ -6,11 +6,11 @@
 #include <string>
 
 // The sets may be in use by a request still on the queue: wait for the core's
-// queue before freeing them.
+// queue before freeing them. A failure of that request is left for the next
+// caller-visible synchronization (drainQueue).
 nxs_status NeuronCommand::destroySets() {
   if (!inputs && !outputs) return NXS_Success;
-  if (auto *lib = getLibrary())
-    if (lib->getDevice() && lib->getDevice()->queue) lib->getDevice()->queue->sync();
+  if (auto *lib = getLibrary()) drainQueue(lib->getDevice());
   if (inputs) nrt_destroy_tensor_set(&inputs);
   if (outputs) nrt_destroy_tensor_set(&outputs);
   inputs = outputs = nullptr;

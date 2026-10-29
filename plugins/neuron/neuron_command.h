@@ -48,6 +48,7 @@ class NeuronCommand : public nxs::rt::Command<NeuronKernel *, NeuronEvent *, nxs
                 nxs_uint command_settings = 0)
       : Command(event, type, event_value, command_settings) {
     kernel = nullptr;
+    time_ms = 0;  // the base's event constructor leaves it unset
   }
   ~NeuronCommand() { release(); }
 

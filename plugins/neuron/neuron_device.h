@@ -24,4 +24,13 @@ struct NeuronDevice {
   NeuronQueue *queue = nullptr;  // the core's compute queue 0
 };
 
+// Wait for the executions queued on the device's core (one may read or write
+// a tensor about to be touched). syncQueue returns, and clears, the failure of
+// an earlier non-blocking execution (NeuronQueue::sync): use it where the
+// status reaches the API caller. drainQueue leaves that failure for the next
+// caller-visible synchronization: use it where the status would be dropped.
+// Both are no-ops without a device or queue. Defined in neuron_schedule.cpp.
+nxs_status syncQueue(NeuronDevice *device);
+void drainQueue(NeuronDevice *device);
+
 #endif  // RT_NEURON_DEVICE_H

@@ -12,6 +12,7 @@
 #include <rt_pool.h>
 #include <rt_runtime.h>
 
+#include <map>
 #include <memory>
 #include <mutex>
 #include <set>
@@ -40,8 +41,10 @@ using namespace nxs;
 // - Teardown: the queues are drained, then the command tensor sets
 //   destroyed, the models unloaded and the tensors freed, then nrt_close.
 //   A released buffer is first unbound from every live command and a
-//   released library detaches its kernel from them, so no set names a freed
-//   tensor and no command an unloaded model.
+//   released library detaches its kernel from them and drops its kernel ids,
+//   so no set names a freed tensor and no command or kernel id an unloaded
+//   model. A released event is detached from the signal and wait commands
+//   naming it (they then fail with NXS_InvalidEvent).
 // - `devices` is sized once, at construction, and never grows, so the
 //   pointers handed to addObject stay valid; they take object ids 0..N-1.
 class NeuronRuntime : public rt::Runtime {
@@ -55,6 +58,13 @@ class NeuronRuntime : public rt::Runtime {
   rt::Pool<NeuronStream, 64> stream_pool;
   std::mutex command_mutex;
   std::set<NeuronCommand *> live_commands;
+  // The event of each signal and wait command (under command_mutex), so a
+  // released event is detached from the commands that name it.
+  std::map<NeuronCommand *, NeuronEvent *> command_events;
+  // The object ids nxsGetKernel handed out for each library's kernel (under
+  // command_mutex): released with the library, so a stale kernel id never
+  // resolves to the kernel of a later library in the same pool slot.
+  std::map<NeuronLibrary *, std::vector<nxs_int>> kernel_ids;
   std::string arch;     // nrt_get_instance_info's arch_name, "trn2"
   std::string version;  // libnrt's version, "2.35.30.0"
   std::vector<rt::FabricLink> links;  // NeuronLink rows, empty on a one-chip host
@@ -62,6 +72,8 @@ class NeuronRuntime : public rt::Runtime {
   bool initialized = false;
 
   void discover();
+  // Clear the id's entry, so it resolves to no object, and free the id.
+  bool forgetObject(nxs_int id);
 
  public:
   NeuronRuntime() : rt::Runtime() {
@@ -92,6 +104,10 @@ class NeuronRuntime : public rt::Runtime {
   NeuronLibrary *getLibrary(NeuronDevice *device, const std::string &path, const void *data,
                             size_t size, nxs_status &status);
   nxs_status releaseLibrary(nxs_int library_id);
+
+  // An id for the library's kernel (nxsGetKernel), and its release.
+  nxs_int addKernel(NeuronKernel *kernel);
+  nxs_status releaseKernel(nxs_int kernel_id);
 
   NeuronCommand *getCommand(NeuronKernel *kernel, nxs_uint settings);
   NeuronCommand *getCommand(NeuronEvent *event, nxs_command_type type, nxs_int value,

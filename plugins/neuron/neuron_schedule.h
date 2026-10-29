@@ -9,6 +9,7 @@
 
 #include <nrt/nrt_async.h>
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <deque>
@@ -25,8 +26,20 @@
 //   full queue (NRT_QUEUE_FULL) is drained (the oldest request waited for)
 //   and the submit retried.
 // - Completion is polled (nrta_is_completed); completed requests are retired
-//   oldest first and the first failure is kept, logged, and returned by the
-//   next wait() or sync().
+//   oldest first and the first failure is kept and logged.
+// - Error reporting: the kept failure is returned, and cleared, by the next
+//   wait() or sync(), the synchronization points whose status reaches the
+//   API caller (buffer copies and fills, blocking runs, event waits). drain()
+//   waits the same way but leaves the failure for that next caller: it is
+//   for internal waits whose status nobody sees (releases, tensor set
+//   teardown). An execution failure is thus reported once, at the first
+//   caller-visible synchronization after it retires.
+// - A hard error polling completion (anything but NRT_SUCCESS, or NRT_INVALID
+//   for an unknown sequence: NRT_CLOSED, NRT_UNINITIALIZED, NRT_TIMEOUT, ...)
+//   marks the queue dead: libnrt can no longer tell when a request finishes,
+//   so its slot is never retired (libnrt may still write its status), every
+//   wait returns NXS_DeviceNotAvailable at once instead of spinning, and
+//   submit() is refused. The state is sticky; it is not consumed.
 class NeuronQueue {
   struct InFlight {
     nrta_seq_t seq;
@@ -37,9 +50,11 @@ class NeuronQueue {
   std::mutex mutex;
   std::deque<InFlight> inflight;
   nxs_status error = NXS_Success;
+  std::atomic<bool> dead{false};
 
   void retireLocked();
   bool completed(nrta_seq_t seq);
+  bool waitFor(nrta_seq_t seq);
 
  public:
   explicit NeuronQueue(int vnc) : vnc(vnc) {}
@@ -51,8 +66,11 @@ class NeuronQueue {
   bool isComplete(nrta_seq_t seq);
   // The newest request still in flight; false when the queue is idle.
   bool lastPending(nrta_seq_t &seq);
+  // libnrt can no longer report completion on this queue (see above).
+  bool isDead() const { return dead; }
   nxs_status wait(nrta_seq_t seq);
   nxs_status sync();
+  void drain();
 };
 
 // An event: a value the host or a schedule signals and the host or a schedule
@@ -62,6 +80,17 @@ class NeuronQueue {
 // latest signal counts, as with a CUDA event record). With nothing pending and
 // the value short, it waits for a host signal (nxsSignalEvent from another
 // thread) or for a run to post one.
+//
+// - A direct signal (signal(): nxsSignalEvent or a blocking run's signal
+//   command) is the latest and supersedes every pending signal posted
+//   before it.
+// - Pending signals apply in the order they were posted: when one completes,
+//   the older ones still outstanding are superseded and dropped, so a
+//   request completing late on another queue never moves the value back.
+// - wait() returns the failure of an execution it waited for. Where a
+//   pending signal's queue is dead it is dropped, and with the value then
+//   short wait() returns the failure rather than waiting for a signal that
+//   cannot come.
 class NeuronEvent {
   struct Pending {
     NeuronQueue *queue;
@@ -105,8 +134,9 @@ struct NeuronStream {
 
 // A schedule: its commands, in order, on its device's queue.
 //
-// - Blocking run: the queue is drained first (earlier non-blocking work),
-//   then each command runs with nrt_execute in turn.
+// - Blocking run: the queue is synchronized first (earlier non-blocking
+//   work); a failure of that work is returned and the run does not start.
+//   Then each command runs with nrt_execute in turn.
 // - Non-blocking run: each command is enqueued (nrta_execute_schedule) and
 //   the run returns; a signal command signals its event when the requests
 //   before it complete, and a wait command holds the host only where the

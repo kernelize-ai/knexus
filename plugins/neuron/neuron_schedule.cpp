@@ -1,5 +1,6 @@
 #include "neuron_schedule.h"
 
+#include <algorithm>
 #include <thread>
 
 /************************************************************************
@@ -7,15 +8,32 @@
  ***********************************************************************/
 
 // nrta_is_completed answers NRT_INVALID for a sequence number it does not
-// know; that request is not waited for.
+// know; that request is not waited for. Any other failure (NRT_CLOSED,
+// NRT_UNINITIALIZED, NRT_TIMEOUT, ...) says nothing about the request, which
+// may still be running and write its status: it is not done, and the queue is
+// marked dead (neuron_schedule.h) so no wait spins on it.
 bool NeuronQueue::completed(nrta_seq_t seq) {
+  if (dead) return false;
   bool done = false;
   NRT_STATUS st = nrta_is_completed(seq, &done);
-  if (st != NRT_SUCCESS) {
+  if (st == NRT_SUCCESS) return done;
+  if (st == NRT_INVALID) {
     NXSLOG_WARN("nrta_is_completed(0x{:x}) on vnc {}: {}", seq, vnc, nrt_get_status_as_str(st));
     return true;
   }
-  return done;
+  if (!dead.exchange(true))
+    NXSLOG_ERROR("nrta_is_completed(0x{:x}) on vnc {} failed: {} ({}); the queue is dead", seq,
+                 vnc, nrt_get_status_as_str(st), (int)st);
+  return false;
+}
+
+// Spin until `seq` completes; false once the queue is dead.
+bool NeuronQueue::waitFor(nrta_seq_t seq) {
+  while (!completed(seq)) {
+    if (dead) return false;
+    std::this_thread::yield();
+  }
+  return true;
 }
 
 // Pop the completed requests, oldest first (the queue is in order), keeping
@@ -38,6 +56,7 @@ void NeuronQueue::retireLocked() {
 nxs_status NeuronQueue::submit(nrt_model_t *model, const nrt_tensor_set_t *inputs,
                                nrt_tensor_set_t *outputs, nrta_seq_t &seq) {
   std::lock_guard<std::mutex> lock(mutex);
+  if (dead) return NXS_DeviceNotAvailable;
   retireLocked();
   // libnrt writes the request's status at completion, so its slot is taken
   // in the deque first (push_back keeps the other elements in place) and
@@ -58,7 +77,10 @@ nxs_status NeuronQueue::submit(nrt_model_t *model, const nrt_tensor_set_t *input
       nrta_seq_t oldest = inflight.front().seq;
       NXSLOG_INFO("vnc {}: queue full with {} requests, draining 0x{:x}", vnc,
                   inflight.size() - 1, oldest);
-      while (!completed(oldest)) std::this_thread::yield();
+      if (!waitFor(oldest)) {
+        inflight.pop_back();  // ours, never submitted
+        return NXS_DeviceNotAvailable;
+      }
       retireLocked();
     } else {
       ++spins;  // full with nothing of ours on it: another thread's or library's
@@ -85,43 +107,63 @@ bool NeuronQueue::lastPending(nrta_seq_t &seq) {
   return true;
 }
 
+// Wait for `seq` and report (and clear) the kept failure.
 nxs_status NeuronQueue::wait(nrta_seq_t seq) {
-  while (!completed(seq)) std::this_thread::yield();
+  waitFor(seq);
   std::lock_guard<std::mutex> lock(mutex);
   retireLocked();
+  if (dead) return NXS_DeviceNotAvailable;
   nxs_status status = error;
   error = NXS_Success;
   return status;
 }
 
-nxs_status NeuronQueue::sync() {
+// Wait for every request in flight; the kept failure stays for the next
+// wait() or sync().
+void NeuronQueue::drain() {
   nrta_seq_t last = 0;
   {
     std::lock_guard<std::mutex> lock(mutex);
     retireLocked();
-    if (inflight.empty()) {
-      nxs_status status = error;
-      error = NXS_Success;
-      return status;
-    }
+    if (inflight.empty()) return;
     last = inflight.back().seq;
   }
-  return wait(last);
+  if (!waitFor(last)) return;
+  std::lock_guard<std::mutex> lock(mutex);
+  retireLocked();
+}
+
+// Wait for every request in flight and report (and clear) the kept failure.
+nxs_status NeuronQueue::sync() {
+  drain();
+  std::lock_guard<std::mutex> lock(mutex);
+  if (dead) return NXS_DeviceNotAvailable;
+  nxs_status status = error;
+  error = NXS_Success;
+  return status;
+}
+
+nxs_status syncQueue(NeuronDevice *device) {
+  return device && device->queue ? device->queue->sync() : NXS_Success;
+}
+
+void drainQueue(NeuronDevice *device) {
+  if (device && device->queue) device->queue->drain();
 }
 
 /************************************************************************
  * NeuronEvent
  ***********************************************************************/
 
-// Apply the pending signals whose request completed, in the order they were
-// posted.
+// Apply the newest pending signal whose request completed; the ones posted
+// before it are superseded (they may sit on another queue and complete later:
+// applying them then would move the value back).
 nxs_status NeuronEvent::pollLocked() {
-  for (auto it = pending.begin(); it != pending.end();) {
-    if (it->queue->isComplete(it->seq)) {
-      value = it->value;
-      it = pending.erase(it);
-    } else {
-      ++it;
+  for (size_t i = pending.size(); i-- > 0;) {
+    if (pending[i].queue->isComplete(pending[i].seq)) {
+      value = pending[i].value;
+      pending.erase(pending.begin(), pending.begin() + i + 1);
+      break;
     }
   }
   return NXS_Success;
@@ -137,6 +179,7 @@ nxs_status NeuronEvent::signal(nxs_int v) {
   {
     std::lock_guard<std::mutex> lock(mutex);
     value = v;
+    pending.clear();  // the latest signal: older pending ones must not overwrite it
   }
   cv.notify_all();
   return NXS_Success;
@@ -170,9 +213,15 @@ nxs_status NeuronEvent::wait(nxs_int v) {
       nxs_status st = p.queue->wait(p.seq);  // a failed request is reported here
       if (nxs_failed(st) && nxs_success(status)) status = st;
       lock.lock();
+      if (p.queue->isDead())  // its signals cannot complete: drop them
+        pending.erase(std::remove_if(pending.begin(), pending.end(),
+                                     [&](const Pending &q) { return q.queue == p.queue; }),
+                      pending.end());
       continue;
     }
-    if (value >= v) return status;
+    // A failure waited for above is returned rather than waiting on for a
+    // signal that may never come.
+    if (value >= v || nxs_failed(status)) return status;
     NXSLOG_TRACE("event: waiting for a signal of {} (value {}, nothing pending)", v, value);
     cv.wait(lock);
   }
@@ -203,11 +252,15 @@ nxs_status NeuronSchedule::run(nxs_int stream, nxs_uint run_settings) {
               non_blocking ? "non-blocking" : "blocking");
 
   start_time = std::chrono::steady_clock::now();
+  end_time = start_time;  // an untimed run reports 0
   if (!non_blocking) {
-    // Earlier non-blocking work goes first. Its failure was logged as it
-    // retired and belongs to that run, not this one.
+    // Earlier non-blocking work goes first. Its failure is reported here, the
+    // first synchronization the caller sees, and this run does not start.
     nxs_status st = queue->sync();
-    if (nxs_failed(st)) NXSLOG_WARN("an earlier non-blocking run on vnc {} failed", device->vnc);
+    if (nxs_failed(st)) {
+      NXSLOG_ERROR("an earlier non-blocking run on vnc {} failed; not running", device->vnc);
+      return st;
+    }
   }
   for (auto *cmd : getCommands()) {
     nxs_status status = cmd->run(queue, non_blocking, timing);

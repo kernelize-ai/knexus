@@ -245,7 +245,7 @@ NeuronRuntime::~NeuronRuntime() {
   // Queued executions finish first: they use the tensor sets, the models and
   // the tensors. Then the sets (commands), which name the tensors; the
   // models; the tensors; and last nrt_close, which tears down the cores.
-  for (auto &q : queues) q->sync();
+  for (auto &q : queues) q->drain();
   command_pool.clear();
   schedule_pool.clear();
   event_pool.clear();
@@ -303,7 +303,7 @@ nxs_status NeuronRuntime::releaseBuffer(nxs_int buffer_id) {
   auto buf = get<NeuronBuffer>(buffer_id);
   if (!buf) return NXS_InvalidBuffer;
   // A queued execution may use the tensor, and a command's set names it.
-  if (buf->getDevice() && buf->getDevice()->queue) buf->getDevice()->queue->sync();
+  drainQueue(buf->getDevice());
   {
     std::lock_guard<std::mutex> lock(command_mutex);
     for (auto *cmd : live_commands)
@@ -338,12 +338,21 @@ NeuronLibrary *NeuronRuntime::getLibrary(NeuronDevice *device, const std::string
   return lib;
 }
 
+bool NeuronRuntime::forgetObject(nxs_int id) {
+  auto obj = getObject(id);
+  if (!obj || !*obj) return false;
+  (*obj)->release(nullptr);  // not owned: nothing to free, the entry is cleared
+  return dropObject(id);
+}
+
 // Commands still using the kernel are detached from it (they then fail to
-// run with NXS_InvalidKernel) before the model is unloaded.
+// run with NXS_InvalidKernel) and the kernel's ids dropped (they then resolve
+// to no kernel) before the model is unloaded.
 nxs_status NeuronRuntime::releaseLibrary(nxs_int library_id) {
   auto lib = get<NeuronLibrary>(library_id);
   if (!lib) return NXS_InvalidLibrary;
-  if (lib->getDevice() && lib->getDevice()->queue) lib->getDevice()->queue->sync();
+  drainQueue(lib->getDevice());
+  std::vector<nxs_int> kernels;
   {
     std::lock_guard<std::mutex> lock(command_mutex);
     for (auto *cmd : live_commands)
@@ -352,10 +361,42 @@ nxs_status NeuronRuntime::releaseLibrary(nxs_int library_id) {
                     library_id, cmd->getId());
         cmd->detachKernel();
       }
+    auto it = kernel_ids.find(lib);
+    if (it != kernel_ids.end()) {
+      kernels = std::move(it->second);
+      kernel_ids.erase(it);
+    }
   }
+  for (nxs_int id : kernels) forgetObject(id);
   lib->unload();
   library_pool.release(lib);
   if (!dropObject(library_id)) return NXS_InvalidLibrary;
+  return NXS_Success;
+}
+
+nxs_int NeuronRuntime::addKernel(NeuronKernel *kernel) {
+  nxs_int id = addObject(kernel);
+  if (id < 0) return id;
+  std::lock_guard<std::mutex> lock(command_mutex);
+  kernel_ids[kernel->getLibrary()].push_back(id);
+  return id;
+}
+
+// Only an id addKernel handed out and not yet dropped is a kernel.
+nxs_status NeuronRuntime::releaseKernel(nxs_int kernel_id) {
+  {
+    std::lock_guard<std::mutex> lock(command_mutex);
+    bool found = false;
+    for (auto &[lib, ids] : kernel_ids) {
+      auto it = std::find(ids.begin(), ids.end(), kernel_id);
+      if (it == ids.end()) continue;
+      ids.erase(it);
+      found = true;
+      break;
+    }
+    if (!found) return NXS_InvalidKernel;
+  }
+  if (!forgetObject(kernel_id)) return NXS_InvalidKernel;
   return NXS_Success;
 }
 
@@ -365,7 +406,11 @@ NeuronCommand *NeuronRuntime::getCommand(NeuronKernel *kernel, nxs_uint settings
 
 NeuronCommand *NeuronRuntime::getCommand(NeuronEvent *event, nxs_command_type type,
                                          nxs_int value, nxs_uint settings) {
-  return command_pool.get_new(event, type, value, settings);
+  auto *command = command_pool.get_new(event, type, value, settings);
+  if (!command) return nullptr;
+  std::lock_guard<std::mutex> lock(command_mutex);
+  command_events[command] = event;
+  return command;
 }
 
 nxs_int NeuronRuntime::addCommand(NeuronSchedule *schedule, NeuronCommand *command) {
@@ -388,11 +433,12 @@ nxs_int NeuronRuntime::getSchedule(NeuronDevice *device, nxs_uint settings) {
 nxs_status NeuronRuntime::releaseSchedule(nxs_int schedule_id) {
   auto sched = get<NeuronSchedule>(schedule_id);
   if (!sched) return NXS_InvalidSchedule;
-  if (sched->getDevice() && sched->getDevice()->queue) sched->getDevice()->queue->sync();
+  drainQueue(sched->getDevice());
   for (auto *cmd : sched->getCommands()) {
     {
       std::lock_guard<std::mutex> lock(command_mutex);
       live_commands.erase(cmd);
+      command_events.erase(cmd);
     }
     cmd->release();
     nxs_int id = cmd->getId();
@@ -412,9 +458,25 @@ nxs_int NeuronRuntime::getEvent(NeuronDevice *device, nxs_event_type type) {
   return addObject(event);
 }
 
+// Signal and wait commands naming the event are detached from it (they then
+// fail to run with NXS_InvalidEvent), so none signals or waits on the event a
+// later nxsCreateEvent places in the same pool slot.
 nxs_status NeuronRuntime::releaseEvent(nxs_int event_id) {
   auto *event = get<NeuronEvent>(event_id);
   if (!event) return NXS_InvalidEvent;
+  {
+    std::lock_guard<std::mutex> lock(command_mutex);
+    for (auto it = command_events.begin(); it != command_events.end();) {
+      if (it->second != event) {
+        ++it;
+        continue;
+      }
+      NXSLOG_WARN("releaseEvent {}: command {} still uses it; it can no longer run", event_id,
+                  it->first->getId());
+      it->first->release();  // an event command has no sets: this drops the event
+      it = command_events.erase(it);
+    }
+  }
   event->reset();
   event_pool.release(event);
   if (!dropObject(event_id)) return NXS_InvalidEvent;
@@ -712,7 +774,7 @@ extern "C" nxs_int NXS_API_CALL nxsGetKernel(nxs_int library_id, const char *ker
   }
   auto *kern = lib->getKernel();
   if (kernel_name) kern->setName(kernel_name);
-  return rt->addObject(kern);
+  return rt->addKernel(kern);
 }
 
 /************************************************************************
@@ -782,9 +844,7 @@ extern "C" nxs_status NXS_API_CALL nxsGetKernelProperty(nxs_int kernel_id,
  * @brief Drop the kernel's id; the model goes with its library
  ***********************************************************************/
 extern "C" nxs_status NXS_API_CALL nxsReleaseKernel(nxs_int kernel_id) {
-  auto rt = getRuntime();
-  if (!rt->dropObject(kernel_id)) return NXS_InvalidKernel;
-  return NXS_Success;
+  return getRuntime()->releaseKernel(kernel_id);
 }
 
 /************************************************************************

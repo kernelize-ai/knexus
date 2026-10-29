@@ -252,6 +252,42 @@ TEST_F(NeuronExec, LibraryFromBytes) {
   EXPECT_FALSE(dev.createLibrary(junk.data(), junk.size()));
 }
 
+// A released event is detached from the signal and wait commands naming it:
+// running them fails, and the event a later createEvent places in the same
+// slot is neither signalled nor waited on.
+TEST_F(NeuronExec, ReleasedEventDetaches) {
+  auto ev = dev.createEvent();
+  auto sched = dev.createSchedule();
+  ASSERT_TRUE(sched.createSignalCommand(ev, 5));
+  auto wsched = dev.createSchedule();
+  ASSERT_TRUE(wsched.createWaitCommand(ev, 7));
+  ev.release();
+  auto ev2 = dev.createEvent();  // likely the released slot
+  ASSERT_TRUE(ev2);
+  EXPECT_EQ(sched.run(knexus::Stream(), 0), NXS_InvalidEvent);
+  EXPECT_EQ(ev2.getProp<nxs_long>(NP_Value), 0);
+  EXPECT_EQ(wsched.run(knexus::Stream(), 0), NXS_InvalidEvent);  // does not block on ev2
+}
+
+// A released library takes its kernel ids with it: a kernel id from before
+// the release resolves to no kernel, not to the kernel of a library loaded
+// into the same slot later.
+TEST_F(NeuronExec, ReleasedLibraryDropsKernelIds) {
+  auto lib1 = dev.createLibrary(g_neff);
+  ASSERT_TRUE(lib1);
+  auto k1 = lib1.getKernel("kernel");
+  ASSERT_TRUE(k1);
+  lib1.release();
+  auto lib2 = dev.createLibrary(g_neff);  // likely the released slot
+  ASSERT_TRUE(lib2);
+  auto sched = dev.createSchedule();
+  EXPECT_FALSE(sched.createCommand(k1));
+  // lib2's own kernel is good.
+  auto k2 = lib2.getKernel("kernel");
+  ASSERT_TRUE(k2);
+  EXPECT_TRUE(sched.createCommand(k2));
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   if (argc > 1) g_neff = argv[1];
