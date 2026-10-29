@@ -54,6 +54,14 @@ There is no `uv` on this machine and `kmap/.venv` has no pip:
 (`--python` goes before the subcommand.) kmap's probe refuses a knexus below
 `kmap.probe.KNEXUS_FLOOR`, read from the wheel's metadata.
 
+Since 0.2.12 kmap's gate venv carries the **PyPI wheel** instead (same pip
+form, `install knexus==0.2.12`); the local wheel is for testing a knexus
+change. The PyPI wheel's cuda plugin links `libcudart.so.12` and does not
+bundle it: put a CUDA 12 runtime's lib dir on `LD_LIBRARY_PATH` (kmap's venv
+installs `nvidia-cuda-runtime-cu12` for that, ※kurs/kmap/readme§the-gate)
+or the plugin fails to `dlopen` and cuda shows up as an empty runtime —
+`KNEXUS_LOG_ENABLE=1` prints the failing `dlopen`.
+
 ## knobs
 
 - `KNEXUS_HOST_ROOT` — where the cpu plugin reads `sys/` and `proc/` from
