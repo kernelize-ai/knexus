@@ -228,10 +228,14 @@ class CMakeBuild(build_ext):
             os.makedirs(self.build_temp)
         # python directories
         python_include_dir = sysconfig.get_path("platinclude")
-        cmake_args = [
-            "-G", "Ninja",  # Ninja is much faster than make
-            "-DCMAKE_MAKE_PROGRAM=" +
-            ninja_dir,  # Pass explicit path to ninja otherwise cmake may cache a temporary path
+        cmake_args = []
+        if ninja_dir:
+            cmake_args += [
+                "-G", "Ninja",  # Ninja is much faster than make
+                "-DCMAKE_MAKE_PROGRAM=" +
+                ninja_dir,  # Pass explicit path to ninja otherwise cmake may cache a temporary path
+            ]
+        cmake_args += [
             "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
             "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + c_dir, "-DKNEXUS_BUILD_PYTHON_MODULE=ON",
             "-DPython3_EXECUTABLE:FILEPATH=" + sys.executable, "-DPython3_INCLUDE_DIR=" + python_include_dir

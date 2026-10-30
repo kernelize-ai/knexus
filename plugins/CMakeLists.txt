@@ -3,6 +3,7 @@ include_directories(include)
 
 option(KNEXUS_REQUIRE_CUDA "Fail build if CUDA compiler not found" OFF)
 option(KNEXUS_REQUIRE_TT   "Fail build if TT Metalium not found"   OFF)
+option(KNEXUS_REQUIRE_NEURON "Fail build if the AWS Neuron runtime not found" OFF)
 
 add_subdirectory(cpu)
 
@@ -40,6 +41,10 @@ if(LINUX)
     endif()
 
     add_subdirectory(tenstorrent)
+
+    # Skips itself (status message) where libnrt or its headers are absent;
+    # fails instead with KNEXUS_REQUIRE_NEURON=ON.
+    add_subdirectory(neuron)
 
 elseif(MACOS)
 
