@@ -21,6 +21,13 @@ struct NeuronDevice {
   nxs_long lnc = -1;         // physical NeuronCores fused into this logical core
   std::string name;          // the chip's name, "Trainium2"
   std::string bus_id;        // the chip's PCI node, "0000:33:00.0"
+  // The HBM this logical core owns, in bytes (GlobalMemorySize; read it with
+  // NeuronRuntime::getGlobalMemory). table_mem: the arch table's chip HBM over
+  // the logical cores per chip, set at discovery. nrt_mem: libnrt's
+  // nrt_get_vnc_memory_stats bytes_limit, set by ensureInit after nrt_init.
+  // -1 where the source does not state it.
+  nxs_long table_mem = -1;
+  nxs_long nrt_mem = -1;
   NeuronQueue *queue = nullptr;  // the core's compute queue 0
 };
 

@@ -12,6 +12,7 @@
 #include <rt_pool.h>
 #include <rt_runtime.h>
 
+#include <atomic>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -20,6 +21,20 @@
 #include <vector>
 
 using namespace nxs;
+
+// The memory sizes of one Neuron architecture, in bytes, as the hardware's own
+// sources declare them (the table and its sources: neuron_runtime.cpp).
+// chip_hbm is the whole chip's HBM; sbuf and psum are one physical
+// NeuronCore's on-chip SBUF and PSUM.
+struct NeuronArchMemory {
+  const char *arch;  // nrt_get_instance_info's arch_name
+  nxs_long chip_hbm;
+  nxs_long sbuf;
+  nxs_long psum;
+};
+
+// The architecture's row, nullptr for one the table does not hold.
+const NeuronArchMemory *neuronArchMemory(const std::string &arch);
 
 // The runtime: one plugin device per logical NeuronCore libnrt makes visible
 // to this process (nrt_get_visible_vnc_count, which honours
@@ -30,6 +45,8 @@ using namespace nxs;
 //   the chip of each core, its name and its PCI node come from sysfs, so
 //   loading the plugin neither claims a NeuronCore nor pays nrt_init's
 //   15-20 s.
+// - Memory sizes: from the arch table (neuronArchMemory) at discovery; once
+//   nrt_init has run, a core's GlobalMemorySize is libnrt's own limit.
 // - nrt_init runs on the first call that needs a core (a buffer), claiming
 //   every visible core for the process. It fails while another process holds
 //   one of them; the call then fails and the next one retries.
@@ -66,10 +83,13 @@ class NeuronRuntime : public rt::Runtime {
   // resolves to the kernel of a later library in the same pool slot.
   std::map<NeuronLibrary *, std::vector<nxs_int>> kernel_ids;
   std::string arch;     // nrt_get_instance_info's arch_name, "trn2"
+  const NeuronArchMemory *arch_mem = nullptr;  // arch's memory row, if the table holds it
   std::string version;  // libnrt's version, "2.35.30.0"
   std::vector<rt::FabricLink> links;  // NeuronLink rows, empty on a one-chip host
   std::mutex init_mutex;
-  bool initialized = false;
+  // Set (release) after ensureInit has written every device's nrt_mem, so a
+  // property read that sees it true (acquire) sees libnrt's figures.
+  std::atomic<bool> initialized{false};
 
   void discover();
   // Clear the id's entry, so it resolves to no object, and free the id.
@@ -91,6 +111,14 @@ class NeuronRuntime : public rt::Runtime {
     return &devices[device_id];
   }
   const std::string &getArch() const { return arch; }
+  const NeuronArchMemory *getArchMemory() const { return arch_mem; }
+  // The device's GlobalMemorySize: libnrt's limit once nrt_init has run and
+  // stated one, else the arch table's; -1 where neither does.
+  nxs_long getGlobalMemory(const NeuronDevice *device) const {
+    if (initialized.load(std::memory_order_acquire) && device->nrt_mem > 0)
+      return device->nrt_mem;
+    return device->table_mem;
+  }
   const std::string &getVersion() const { return version; }
   const std::vector<rt::FabricLink> &getLinks() const { return links; }
 
