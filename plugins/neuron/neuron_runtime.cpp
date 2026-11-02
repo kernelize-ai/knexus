@@ -168,6 +168,43 @@ static std::vector<rt::FabricLink> neuronLinks(const fs::path &root,
   return links;
 }
 
+// The memory sizes per Neuron architecture (NeuronArchMemory), keyed on
+// nrt_get_instance_info's arch_name. Every figure is what AWS's own sources
+// declare; nothing is measured, and an architecture not listed states none of
+// the three sizes rather than a guess.
+//
+// - chip_hbm: the driver's HBM map, aws-neuronx-dkms 2.31.7.0
+//   (/usr/src/aws-neuronx-2.31.7.0), mpset_set_dram_and_mpset_info_v<N>:
+//   v2 (trn1 and inf2, both registered by v2/neuron_dhal_v2.c) V2_NUM_HBMS 2
+//   stacks of V2_HBM_0_SIZE/V2_HBM_1_SIZE 0x400000000 (16 GiB), 32 GiB;
+//   v3 (trn2) V3_NUM_HBMS 4 of V3_HBM_ACTIVE_SIZE 0x600000000 (24 GiB),
+//   96 GiB; v4 (trn3, device_name "Trainium3") V4_NUM_HBMS 4 of
+//   V4_HBM_ACTIVE_SIZE 0x900000000 (36 GiB), 144 GiB. On the trn2.3xlarge
+//   this was written on, neuron-ls reports memory_size 103079215104 (96 GiB)
+//   for the chip and nrt_get_vnc_memory_stats a bytes_limit of 24 GiB on each
+//   of its 4 logical cores.
+// - sbuf: one physical NeuronCore's SBUF, from the nki package (nki 0.7.0,
+//   neuronx-cc 2.28.7631.0): nki/language/_tile_size.py _SBUF_SIZE_BYTES and
+//   nki/isa/_validation.py SBUF_CAPACITY, 128 partitions of 192 KiB (gen2:
+//   trn1, inf2), 224 KiB (gen3: trn2) and 256 KiB (gen4: trn3), so 24, 28 and
+//   32 MiB; the generation of each arch_name from nki/compiler/target.py.
+// - psum: one physical NeuronCore's PSUM, the matmul accumulator, from the
+//   same _tile_size.py: _PSUM_PARTITION_SIZE 16 KiB per partition (8 banks,
+//   _PSUM_NUM_BANKS, of 512 fp32), 128 partitions, 2 MiB on every generation.
+static constexpr nxs_long KiB = 1024, MiB = KiB * KiB, GiB = MiB * KiB;
+static const NeuronArchMemory kArchMemory[] = {
+    {"trn1", 32 * GiB, 128 * 192 * KiB, 128 * 16 * KiB},
+    {"inf2", 32 * GiB, 128 * 192 * KiB, 128 * 16 * KiB},
+    {"trn2", 96 * GiB, 128 * 224 * KiB, 128 * 16 * KiB},
+    {"trn3", 144 * GiB, 128 * 256 * KiB, 128 * 16 * KiB},
+};
+
+const NeuronArchMemory *neuronArchMemory(const std::string &arch) {
+  for (const auto &m : kArchMemory)
+    if (arch == m.arch) return &m;
+  return nullptr;
+}
+
 // Each visible logical core's host-wide id, chip, name and PCI node.
 //
 // - Core ids: NEURON_RT_VISIBLE_CORES's list where it names as many cores as
@@ -180,6 +217,8 @@ static std::vector<rt::FabricLink> neuronLinks(const fs::path &root,
 //   is the driver's behaviour, not a documented contract, so the counts are
 //   checked and, on a mismatch, no core states a PciBusId.
 // - lnc: the chip's physical cores (neuron<chip>/core_count) per logical core.
+// - table_mem: the arch's chip HBM (kArchMemory) over the logical cores per
+//   chip, where both are known; libnrt's figure replaces it after nrt_init.
 // Everything reads sysfs under $KNEXUS_HOST_ROOT (knexus/pci.h).
 void NeuronRuntime::discover() {
   nrt_version_t ver{};
@@ -198,6 +237,9 @@ void NeuronRuntime::discover() {
   nrt_instance_info_t info{};
   if (nrt_get_instance_info(&info, sizeof(info)) == NRT_SUCCESS)
     arch.assign(info.arch_name, strnlen(info.arch_name, sizeof(info.arch_name)));
+  arch_mem = neuronArchMemory(arch);
+  if (!arch.empty() && !arch_mem)
+    NXSLOG_WARN("Neuron architecture {} is not in the memory table: no memory sizes", arch);
 
   fs::path root = rt::pciHostRoot();
   std::vector<nxs_long> chips = neuronChips(root);
@@ -223,6 +265,7 @@ void NeuronRuntime::discover() {
     NeuronDevice &d = devices[k];
     d.vnc = k;
     if (k < ids.size()) d.global_vnc = ids[k];
+    if (arch_mem && per_chip > 0) d.table_mem = arch_mem->chip_hbm / per_chip;
     if (d.global_vnc >= 0 && per_chip > 0 && d.global_vnc / per_chip < (nxs_long)chips.size()) {
       size_t c = d.global_vnc / per_chip;
       d.chip = chips[c];
@@ -232,8 +275,8 @@ void NeuronRuntime::discover() {
       if (cores > 0 && cores % per_chip == 0) d.lnc = cores / per_chip;
       if (c < pci.size()) d.bus_id = pci[c];
     }
-    NXSLOG_INFO("Neuron device {}: core {} on neuron{} ({}), lnc {}", k, d.global_vnc, d.chip,
-                d.bus_id, d.lnc);
+    NXSLOG_INFO("Neuron device {}: core {} on neuron{} ({}), lnc {}, {} bytes HBM", k,
+                d.global_vnc, d.chip, d.bus_id, d.lnc, d.table_mem);
   }
   for (auto &d : devices) addObject(&d);
 
@@ -268,14 +311,28 @@ bool NeuronRuntime::ensureInit() {
                  nrt_get_status_as_str(st));
     return false;
   }
-  initialized = true;
-  // Cross-check the sysfs chip of each core against libnrt's own mapping.
+  // Cross-check the sysfs chip of each core against libnrt's own mapping, and
+  // take libnrt's HBM limit for each core over the arch table's (warning
+  // where they differ). Both before `initialized` is published.
   for (auto &d : devices) {
     int chip = -1;
     if (d.chip >= 0 && nrt_get_device_id(d.vnc, &chip) == NRT_SUCCESS && chip != d.chip)
       NXSLOG_WARN("Neuron device {}: sysfs puts it on neuron{}, libnrt on neuron{}", d.vnc,
                   d.chip, chip);
+    nrt_vnc_memory_stats_t stats{};
+    size_t out_size = 0;
+    st = nrt_get_vnc_memory_stats(d.vnc, &stats, sizeof(stats), &out_size);
+    if (st != NRT_SUCCESS || stats.bytes_limit == 0) {
+      NXSLOG_WARN("Neuron device {}: nrt_get_vnc_memory_stats states no limit ({}), keeping {}",
+                  d.vnc, nrt_get_status_as_str(st), d.table_mem);
+      continue;
+    }
+    d.nrt_mem = stats.bytes_limit;
+    if (d.table_mem > 0 && d.nrt_mem != d.table_mem)
+      NXSLOG_WARN("Neuron device {}: libnrt states {} bytes of HBM, the {} table {}", d.vnc,
+                  d.nrt_mem, arch, d.table_mem);
   }
+  initialized.store(true, std::memory_order_release);
   return true;
 }
 
@@ -560,6 +617,11 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint device_property_id,
       if (!rt->getArch().empty()) keys.push_back(NP_Architecture);
       if (dev->lnc > 0) keys.push_back(NP_Size);
       if (!dev->bus_id.empty()) keys.push_back(NP_PciBusId);
+      if (rt->getGlobalMemory(dev) > 0) keys.push_back(NP_GlobalMemorySize);
+      if (rt->getArchMemory()) {
+        keys.push_back(NP_CoreMemorySize);
+        keys.push_back(NP_CoreRegisterSize);
+      }
       return rt::getPropertyVec(property_value, property_value_size, keys.data(), keys.size());
     }
     // The chip's name from sysfs ("Trainium2"), else the architecture.
@@ -585,6 +647,22 @@ nxsGetDeviceProperty(nxs_int device_id, nxs_uint device_property_id,
     case NP_PciBusId:
       if (dev->bus_id.empty()) return NXS_InvalidProperty;
       return rt::getPropertyStr(property_value, property_value_size, dev->bus_id);
+    // The HBM this logical core owns (README.md "Properties"): libnrt's
+    // limit after nrt_init, else the arch table's chip HBM over the logical
+    // cores per chip.
+    case NP_GlobalMemorySize: {
+      nxs_long mem = rt->getGlobalMemory(dev);
+      if (mem <= 0) return NXS_InvalidProperty;
+      return rt::getPropertyInt(property_value, property_value_size, mem);
+    }
+    // One physical NeuronCore's SBUF and PSUM (the arch table): a logical
+    // core of `Size` physical cores has `Size` of each.
+    case NP_CoreMemorySize:
+      if (!rt->getArchMemory()) return NXS_InvalidProperty;
+      return rt::getPropertyInt(property_value, property_value_size, rt->getArchMemory()->sbuf);
+    case NP_CoreRegisterSize:
+      if (!rt->getArchMemory()) return NXS_InvalidProperty;
+      return rt::getPropertyInt(property_value, property_value_size, rt->getArchMemory()->psum);
     default:
       return NXS_InvalidProperty;
   }

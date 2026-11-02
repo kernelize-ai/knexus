@@ -102,11 +102,51 @@ Device (absent where the source does not state it):
 | `Architecture` | `nrt_get_instance_info`'s `arch_name` (`trn1`, `trn2`) |
 | `Size` | physical NeuronCores in the logical core (the LNC degree) |
 | `PciBusId` | the chip's PCI address |
+| `GlobalMemorySize` | HBM this **logical** core owns, bytes: libnrt's `nrt_get_vnc_memory_stats` `bytes_limit` once `nrt_init` has run, before that the chip's HBM (arch table) over the logical cores per chip |
+| `CoreMemorySize` | SBUF of one **physical** NeuronCore, bytes (arch table) |
+| `CoreRegisterSize` | PSUM of one **physical** NeuronCore, bytes (arch table) |
 
 `Vendor`-`Type`-`Architecture` is the device_lib tag, so a trn2 core loads
 `device_lib/aws-npu-trn2.json` and a trn1 core `aws-npu-trn1.json`.
 
 Buffer: `Size` (bytes) and `Value` (`nrt_tensor_get_va`).
+
+### Memory sizes
+
+`nrt_init` is not run at discovery, so the sizes come from a table keyed on
+`Architecture` (`kArchMemory` in `neuron_runtime.cpp`, each figure's source
+beside it). An architecture the table does not hold states none of the three
+until `nrt_init`, and then only `GlobalMemorySize`, libnrt's figure; no size
+is guessed. Nothing states a memory bus width or a clock rate, so
+`MemoryBusWidth` and the clock properties are absent.
+
+| `Architecture` | chip HBM | SBUF per physical core | PSUM per physical core |
+| --- | --- | --- | --- |
+| `trn1`, `inf2` | 32 GiB (2 x 16 GiB stacks) | 24 MiB (128 x 192 KiB) | 2 MiB (128 x 16 KiB) |
+| `trn2` | 96 GiB (4 x 24 GiB) | 28 MiB (128 x 224 KiB) | 2 MiB |
+| `trn3` | 144 GiB (4 x 36 GiB) | 32 MiB (128 x 256 KiB) | 2 MiB |
+
+- **Chip HBM**, from the driver's HBM map (aws-neuronx-dkms 2.31.7.0,
+  `mpset_set_dram_and_mpset_info_v2`/`_v3`/`_v4`: `V2_NUM_HBMS` x
+  `V2_HBM_0_SIZE`, `V3_NUM_HBMS` x `V3_HBM_ACTIVE_SIZE`, `V4_NUM_HBMS` x
+  `V4_HBM_ACTIVE_SIZE`; trn1 and inf2 are both the v2 HAL). A logical core's
+  `GlobalMemorySize` is the chip's over its logical cores per chip, so it
+  follows LNC: on a trn2.3xlarge at LNC=2, 96 GiB / 4 = 24 GiB (25769803776),
+  at LNC=1 12 GiB. Here `neuron-ls` reports the chip's `memory_size` as
+  103079215104 (96 GiB), and after `nrt_init` libnrt's `bytes_limit` is
+  25769803776 on each core, the table's figure; where libnrt and the table
+  disagree the plugin states libnrt's and logs a warning.
+- **SBUF and PSUM**, from AWS's `nki` package (nki 0.7.0, neuronx-cc
+  2.28.7631.0): `nki/language/_tile_size.py` (`_SBUF_SIZE_BYTES`,
+  `_PSUM_PARTITION_SIZE`, `_PSUM_NUM_BANKS`) and `nki/isa/_validation.py`
+  (`SBUF_CAPACITY`), the architecture's generation from
+  `nki/compiler/target.py` (gen2 trn1/inf2, gen3 trn2, gen4 trn3). SBUF is the
+  core's on-chip scratchpad, the nearest thing to a GPU's shared memory. PSUM
+  is the matmul accumulator (8 banks of 512 fp32 per partition), the nearest
+  thing to a register file, so it is `CoreRegisterSize`.
+- **Per physical core.** SBUF and PSUM belong to a physical NeuronCore; a
+  logical core fuses `Size` of them (LNC=2: two), so it has `Size` x
+  `CoreMemorySize` of SBUF in all. `GlobalMemorySize` is the logical core's.
 
 ## Links
 
@@ -298,10 +338,14 @@ plugin links libnrt with an RPATH to its directory and lands in
 
 ```bash
 cmake .. -DKNEXUS_BUILD_PLUGINS=ON
-make neuron_plugin test_neuron_exec
+make neuron_plugin test_neuron_exec test_neuron_memory
 ./test/cpp/test_buffers neuron   # from the build directory
 NEURON_RT_VISIBLE_CORES=0 ./test/cpp/test_neuron_exec kernel.neff
 ```
+
+`test_neuron_memory` checks the memory sizes against the table (and, with
+`KNEXUS_NEURON_LIVE=1`, creates a buffer to run `nrt_init` and checks
+`GlobalMemorySize` against libnrt's `bytes_limit`; it then holds the cores).
 
 `test_neuron_exec` takes a NEFF whose one float32 output is the elementwise
 sum of its float32 inputs (the `vadd` above), as `argv[1]` or
@@ -309,8 +353,9 @@ sum of its float32 inputs (the `vadd` above), as `argv[1]` or
 
 ## Status
 
-Done: discovery, runtime and device properties, `PciBusId`, the NeuronLink
-table, buffers (create, copy both ways, fill, release), and execution
+Done: discovery, runtime and device properties (memory sizes included),
+`PciBusId`, the NeuronLink table, buffers (create, copy both ways, fill,
+release), and execution
 (libraries, kernels, commands, schedules blocking and non-blocking, streams,
 events).
 
@@ -326,5 +371,3 @@ Open:
   and a NEFF that spans cores are not handled.
 - An execution error reported at completion of a non-blocking request is
   logged and returned by the next wait; no test here produces one.
-- `GlobalMemorySize` from `nrt_get_vnc_memory_stats`, which needs `nrt_init`,
-  is not stated yet.

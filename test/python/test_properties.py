@@ -309,5 +309,31 @@ class TestPropertyErrorHandling(unittest.TestCase):
                 pass
 
 
+def get_neuron_runtime():
+    """The `neuron` runtime with at least one device, else None."""
+    for runtime in knexus.get_runtimes():
+        if runtime.get_property_str("Name") == "neuron" and len(runtime.get_devices()) > 0:
+            return runtime
+    return None
+
+
+@unittest.skipIf(knexus is None, "knexus module not available")
+class TestNeuronMemoryProperties(unittest.TestCase):
+    """The neuron plugin's memory sizes (plugins/neuron/README.md "Properties"):
+    GlobalMemorySize per logical core, CoreMemorySize (SBUF) and
+    CoreRegisterSize (PSUM) per physical core."""
+
+    def test_memory_sizes(self):
+        runtime = get_neuron_runtime()
+        if runtime is None:
+            self.skipTest("no neuron runtime or device")
+        for i, dev in enumerate(runtime.get_devices()):
+            for name in ("GlobalMemorySize", "CoreMemorySize", "CoreRegisterSize"):
+                with self.subTest(device=i, property=name):
+                    value = dev.get_property_int(name)
+                    self.assertIsInstance(value, int)
+                    self.assertGreater(value, 0)
+
+
 if __name__ == '__main__':
     unittest.main() 
